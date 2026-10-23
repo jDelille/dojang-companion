@@ -1,0 +1,306 @@
+@import "tailwindcss";
+@theme {
+  --breakpoint-xxl: 1400px;
+}
+
+
+.ms-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 41px;
+  padding: 6px;
+  color: var(--text);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: calc(8px * var(--rs));
+  font-size: calc(13px * var(--fs));
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.18s;
+}
+
+/* `.choices.is-focused` / `.is-open` both take a solid gold border. */
+.ms-select[data-p-focus="true"],
+.ms-select[data-p-overlay-visible="true"] {
+  border-color: var(--gold);
+}
+
+.ms-select[data-p-disabled="true"] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.ms-select-label-container {
+  flex: 1;
+  overflow: hidden;
+}
+
+.ms-select-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+/* `.choices__placeholder` — full opacity, --dim (not --dim2). */
+.ms-select-label.p-placeholder {
+  color: var(--dim);
+  opacity: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Pills — mirrors `.choices__list--multiple .choices__item`, where the
+   label text itself is gold rather than plain --text. */
+.ms-select-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  font-size: calc(11px * var(--fs));
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--gold);
+  background-color: rgba(var(--gold-rgb), 0.14);
+  border: 1px solid rgba(var(--gold-rgb), 0.28);
+  border-radius: calc(6px * var(--rs));
+}
+
+/* `.choices__button` sits behind a left divider on the pill. */
+.ms-select-chip-remove {
+  width: 12px;
+  height: 12px;
+  padding-left: 6px;
+  box-sizing: content-box;
+  border-left: 1px solid rgba(var(--gold-rgb), 0.35);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.ms-select-chip-remove:hover {
+  opacity: 1;
+}
+
+.ms-select-trigger {
+  display: flex;
+  align-items: center;
+  color: var(--dim);
+}
+
+.ms-select-trigger-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transition: transform 0.18s;
+}
+
+.ms-select[data-p-overlay-visible="true"] .ms-select-trigger-icon {
+  transform: rotate(180deg);
+}
+
+/* Dropdown — mirrors `.choices__list--dropdown` */
+.ms-select-panel {
+  z-index: 9999;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--text);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: calc(8px * var(--rs));
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.ms-select-panel .p-multiselect-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background-color: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+
+.ms-select-panel .p-multiselect-header:empty {
+  display: none;
+}
+
+.ms-select-panel .p-multiselect-close {
+  display: none;
+}
+
+/* `.choices__input` — transparent against the panel fill. */
+.ms-select-filter {
+  width: 100%;
+  height: 32px;
+  padding: 6px 10px;
+  color: var(--text);
+  background-color: transparent;
+  border: 1px solid var(--border);
+  border-radius: calc(6px * var(--rs));
+  font-size: calc(12px * var(--fs));
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.18s;
+}
+
+.ms-select-filter:focus {
+  border-color: var(--gold);
+}
+
+.ms-select-filter::placeholder {
+  color: var(--dim);
+}
+
+.ms-select-list {
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+}
+
+.ms-select-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ms-select-list::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 3px;
+}
+
+.ms-select-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  color: var(--text);
+  font-size: calc(13px * var(--fs));
+  border-radius: calc(6px * var(--rs));
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.ms-select-item:hover,
+.ms-select-item[data-p-highlight="true"] {
+  background-color: rgba(var(--gold-rgb), 0.15);
+  color: var(--gold);
+}
+
+.ms-select-item[data-p-disabled="true"] {
+  color: var(--dim);
+  cursor: not-allowed;
+}
+
+.ms-select-empty {
+  padding: 8px 12px;
+  color: var(--dim);
+  font-size: calc(13px * var(--fs));
+}
+.ms-select-panel .p-checkbox,
+.ms-select-panel .p-multiselect-select-all,
+.ms-select-panel li[role="option"] > div:first-child {
+  display: none;
+}
+
+.ms-select-panel{
+  .p-icon{
+    display: none;
+  }
+}
+
+.tag-input-container:focus,
+.tag-input-container:focus-within,
+.tag-input-container[data-p-focus="true"] {
+  border-color: var(--border);
+  box-shadow: none;
+  outline: none;
+}
+
+.ql-toolbar.ql-snow,
+.ql-container.ql-snow {
+  border-color: var(--border);
+}
+
+.quill-style-editor {
+  .ql-toolbar.ql-snow{
+    border-color: var(--border);
+  }
+  .ql-container.ql-snow{
+    border-color: var(--border);
+  }
+}
+/* .ch-menu-btn{
+  display: none;
+} */
+ .fab{
+  width: 52px !important;
+  display: flex !important;
+ }
+
+  #side-profile-menu{
+  width: 100% !important;
+ }
+
+/* ---------- Hover-to-expand for the collapsed rail and layout-mini ----------
+   Both start as a 66px icon rail. Hovering temporarily flies the full sidebar
+   out over the content (no #main reflow), mirroring how lay-hoverview already
+   expands on :hover — see the :root.lay-hoverview #sidebar rules in style.css.
+*/
+#sidebar.collapsed:hover {
+  width: 260px !important;
+  z-index: 100 !important;
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.3) !important;
+  align-items: stretch !important;
+  overflow-y: auto !important;
+}
+#sidebar.collapsed:hover .nav-label,
+#sidebar.collapsed:hover .sidebar-logo-text,
+#sidebar.collapsed:hover .nav-group-label {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  width: auto !important;
+  overflow: visible !important;
+  white-space: nowrap !important;
+}
+#sidebar.collapsed:hover .user-info {
+  display: block !important;
+}
+#sidebar.collapsed:hover .nav-item {
+  justify-content: flex-start !important;
+  gap: 10px !important;
+}
+#sidebar.collapsed:hover .nav-badge {
+  display: inline-flex !important;
+}
+#sidebar.collapsed:hover .sidebar-head {
+  justify-content: flex-start !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  gap: 12px !important;
+}
+#sidebar.collapsed:hover .sidebar-foot {
+  height: auto !important;
+  padding: 12px 16px !important;
+  justify-content: flex-start !important;
+}
+#sidebar.collapsed:hover .side-profile {
+  width: 100% !important;
+  height: auto !important;
+  padding: 8px !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+}
+#sidebar.collapsed:hover .side-profile .user-info {
+  display: block !important;
+}
+
+/* layout-mini's hover-expand is handled in LayoutSync.tsx by removing the
+   lay-mini class itself on mouseenter (and restoring it on mouseleave), so
+   #sidebar/#main fall back to the plain default layout rules while hovered —
+   no dedicated CSS needed here. */
+       .hs-tooltip-content {
+    z-index: 60 !important;
+  }
