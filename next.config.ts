@@ -6,8 +6,10 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        // Dojang staff start on People until Today (C01) exists. The template's
+        // demo login stays at /login; staff sign-in will be the Odoo login via the Hub.
         source: "/",
-        destination: "/login",
+        destination: "/people",
         permanent: false, // 307 Temporary Redirect
       },
       {

@@ -1,9 +1,12 @@
 import { all_routes } from "../../routes/all_routes";
+import { SHOW_TEMPLATE_UI } from "../../config/dojang";
 
 export type SidebarLeaf = {
   label: string;
   routeKey?: keyof typeof all_routes;
   activeRouteKeys?: (keyof typeof all_routes)[];
+  /** Also selected on the route's sub-pages, e.g. People on /people/5001. */
+  matchSubpaths?: boolean;
   externalUrl?: string;
   icon?: string;
   badge?: string;
@@ -23,7 +26,33 @@ export type SidebarSection = {
   items: (SidebarLeaf | SidebarSubmenu)[];
 };
 
-export const sidebarMenu: SidebarSection[] = [
+/*
+   The Dojang staff navigation: only the surfaces that exist. Planned addition,
+   in Jodi's order (implementation handoff, 9 Oct 2026): Today (C01) goes first
+   in Workspace. Add it only when its screen exists.
+
+   Also the Dojang shell's icon rail (src/views/shell/navRail.tsx).
+*/
+export const dojangMenu: SidebarSection[] = [
+  {
+    title: "Workspace",
+    items: [
+      { label: "People", icon: "users", routeKey: "people", matchSubpaths: true },
+      { label: "Sales", icon: "trending-up", routeKey: "crm", matchSubpaths: true },
+      { label: "Inbox", icon: "inbox", routeKey: "inbox", matchSubpaths: true },
+    ],
+  },
+  {
+    title: "Front desk",
+    items: [
+      // Opens the full-screen public kiosk, outside this shell
+      { label: "Kiosk", icon: "scan-line", routeKey: "kiosk" },
+    ],
+  },
+];
+
+// The stock Dreams Gym navigation. Hidden unless SHOW_TEMPLATE_UI (src/config/dojang.ts).
+const templateMenu: SidebarSection[] = [
   {
     title: "Overview",
     items: [
@@ -316,3 +345,9 @@ export const sidebarMenu: SidebarSection[] = [
     ],
   },
 ];
+
+// What the sidebar shows. The breadcrumbs and the header search are built from
+// this too (routeMeta.ts), so hidden template pages don't appear in search either.
+export const sidebarMenu: SidebarSection[] = SHOW_TEMPLATE_UI
+  ? [...dojangMenu, ...templateMenu]
+  : dojangMenu;

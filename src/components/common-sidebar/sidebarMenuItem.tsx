@@ -19,6 +19,9 @@ const isLeaf = (item: SidebarLeaf | SidebarSubmenu): item is SidebarLeaf =>
 
 const isLeafActive = (item: SidebarLeaf, pathname: string): boolean =>
   (!!item.routeKey && all_routes[item.routeKey] === pathname) ||
+  (!!item.routeKey &&
+    !!item.matchSubpaths &&
+    pathname.startsWith(`${all_routes[item.routeKey]}/`)) ||
   !!item.activeRouteKeys?.some((key) => all_routes[key] === pathname);
 
 const containsActive = (

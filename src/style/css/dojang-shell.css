@@ -1,0 +1,58 @@
+/*
+   Dojang staff shell palette. Loaded by app/(main)/layout.tsx after the template's
+   style.css, and re-points the template's own tokens (--gold, --bg, --card, --text…)
+   so the sidebar, header and any template component read as Dojang without
+   editing them one by one.
+
+   Handoff tokens: canvas #08080a, panel #101014, text #f6f6f8, brand red #e8192c.
+   Red replaces the template's gold accent. Gold is kept for mastery/testing and
+   violet for AI context only (see crm.css: --crm-mastery, --crm-agent).
+
+   Dark only for now. The selectors carry an extra (never-matching) id so they win
+   over the template's :root.mode-light, :root.accent-* and :root.sb-* switches,
+   which an earlier Appearance setting may have left on <html>.
+*/
+:root:not(#dojang-shell),
+:root:not(#dojang-shell) #sidebar {
+  /* Accent: brand red */
+  --gold: #e8192c;
+  --gold-light: #ff4b5c;
+  --gold-dark: #b31221;
+  --gold-soft: #e8192c;
+  --gold-rgb: 232, 25, 44;
+  --gold-light-rgb: 255, 75, 92;
+  --gold-dark-rgb: 179, 18, 33;
+  --on-accent: #ffffff;
+  --color-primary: #e8192c;
+  --color-primary-hover: #b31221;
+
+  /* Surfaces */
+  --bg: #08080a;
+  --bg2: #101014;
+  --surface: #101014;
+  --card: #17171d;
+  --card2: #1e1e26;
+  --bg-rgb: 8, 8, 10;
+  --bg2-rgb: 16, 16, 20;
+  --border: #2a2a35;
+  --border-color: #2a2a35;
+  --border-rgb: 42, 42, 53;
+  --color-gray-transparent: rgba(16, 16, 20, 0.9);
+
+  /* Text */
+  --text: #f6f6f8;
+  --text2: #a8a8b8;
+  --muted: #a8a8b8;
+  --dim: #717184;
+  --dim2: #555566;
+
+  /* Sidebar */
+  --sb-bg1: #101014;
+  --sb-bg2: #08080a;
+  --sb-border: #2a2a35;
+  --sb-text: #a8a8b8;
+  --dropup-bg: rgba(16, 16, 20, 0.98);
+  --c-red: #e8192c;
+
+  color-scheme: dark;
+}

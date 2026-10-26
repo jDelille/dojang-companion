@@ -3,6 +3,12 @@ export const all_routes = {
   dashboard: "/dashboard",
   pos: "/pos",
 
+  // Dojang (CRM screens C02–C05 and the public kiosk)
+  people: "/people",
+  crm: "/crm",
+  inbox: "/inbox",
+  kiosk: "/kiosk",
+
   // Sales
   orders: "/orders",
   payments: "/payments",

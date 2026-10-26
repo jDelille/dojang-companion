@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Unmodified licensed reference copies, never compiled (vendor/licensed/README.md)
+    "vendor/**",
   ]),
   {
     rules: {

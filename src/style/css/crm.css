@@ -1,0 +1,40 @@
+/*
+   Dojang CRM tokens, scoped to .crm-scope. Handoff palette: canvas #08080a,
+   panel #101014, text #f6f6f8, brand red #e8192c. Gold only for mastery/testing,
+   violet only for AI context. Layout reference: Jodi's mockup
+   (Desktop/inspiration/jodi-2.png). The surrounding staff shell uses the same
+   values (dojang-shell.css).
+
+   PROVISIONAL: dark only for now. Components only use these variables, so the
+   palette can be swapped here.
+*/
+.crm-scope {
+  --crm-canvas: #08080a;
+  --crm-panel: #101014;
+  --crm-raised: #17171d;
+  --crm-interactive: #1e1e26;
+  --crm-line: #2a2a35;
+  --crm-text: #f6f6f8;
+  --crm-text-secondary: #a8a8b8;
+  --crm-muted: #717184;
+  --crm-brand: #e8192c; /* actions only */
+  --crm-status: #a8a8b8; /* neutral status pills: lead stage, "Lost" */
+  /* Gold and violet: the handoff's token table (agent spec part 5 §18, also
+     Companion styles/_variables.scss) */
+  --crm-mastery: #d7b75c; /* gold: rank, mastery and testing only */
+  --crm-agent: #8a7cf6; /* violet: Do For Me / AI context only */
+  /* The selected section in the nav rail. Amber in the mockup
+     (Desktop/vercel-design-1.png); the handoff keeps gold for mastery/testing, so
+     this is its own token until that's settled. */
+  --crm-nav-active: #d7b75c;
+  /* Outcome colours from the same table */
+  --crm-success: #26c76f;
+  --crm-warning: #f6a63b;
+  --crm-danger: #ef4053;
+  --crm-info: #4c8dff;
+  --crm-font-label: ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  color-scheme: dark;
+  background: var(--crm-canvas);
+  color: var(--crm-text);
+}

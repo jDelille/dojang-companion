@@ -1,0 +1,164 @@
+"use client";
+
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import type { CompanionContext, Suggestion } from "@/domain/companion";
+import DoForMeRail, { type RailTab } from "./doForMeRail";
+
+/*
+   The shared Do For Me rail for the Dojang staff pages.
+
+   The provider lives in app/(main)/layout.tsx, the one layout every staff page
+   shares. The Dojang shell (src/views/shell/dojangShell.tsx) places the rail with
+   <ConnectedDoForMeRail />, as the right-hand column of the mockup
+   (Desktop/vercel-design-1.png). Template pages under (main) never show it.
+
+   - Each page says what the rail is focused on with <DoForMeFocus> ("people",
+     "member:5001", "sales", "lead:9005") and hands it that focus's context, which
+     the page read on the server through src/integrations/companion.ts.
+   - The rail keeps its tab and picked task per focus, so going back to a record
+     finds the rail as it was left. The layout isn't re-mounted while staff move
+     between Dojang pages, so this survives navigation (not a page reload).
+   - A page's "Do For Me" button calls useDoForMe().aim(key), like Companion's
+     dojang:do-for-me event: the focus's top suggestion opens, otherwise Plan.
+     It also reopens the rail if staff closed it.
+   - Picking a suggestion opens its review in Work. A suggestion marked
+     review: "page" is reviewed and applied on the page instead (Jodi's 19 Oct
+     spec): the rail switches to Evidence, the page reads it with pickedFor(key)
+     and calls settle(key, tab) when the review is done or cancelled.
+*/
+
+type Focus = { key: string; context: CompanionContext };
+type RailState = { tab: RailTab; picked: Suggestion | null };
+
+const START: RailState = { tab: "plan", picked: null };
+
+// What a page can ask of the rail
+type RailActions = {
+  aim: (key: string) => void;
+  pickedFor: (key: string) => Suggestion | null;
+  settle: (key: string, tab: RailTab) => void;
+};
+
+// Two contexts: the setter never changes, so pages that only set the focus
+// don't re-run their effect every time the rail changes
+const SetFocusContext = createContext<((focus: Focus) => void) | null>(null);
+const ActionsContext = createContext<RailActions | null>(null);
+
+// What the shell needs to draw the rail, and to open or close it
+type RailView = {
+  focus: Focus | null;
+  current: RailState;
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  showTab: (tab: RailTab) => void;
+  doForMe: (suggestion: Suggestion) => void;
+};
+const RailViewContext = createContext<RailView | null>(null);
+
+// Where a picked suggestion opens: its own review in Work, or Evidence when the
+// review happens on the page
+const tabFor = (suggestion: Suggestion): RailTab =>
+  suggestion.review === "page" ? "evidence" : "work";
+
+export function DoForMeProvider({ children }: { children: ReactNode }) {
+  const [open, setOpen] = useState(true);
+  const [focus, setFocus] = useState<Focus | null>(null);
+  const [stateByKey, setStateByKey] = useState<Record<string, RailState>>({});
+
+  const current = focus ? (stateByKey[focus.key] ?? START) : START;
+
+  function update(key: string, next: RailState) {
+    setStateByKey((previous) => ({ ...previous, [key]: next }));
+  }
+
+  function showTab(tab: RailTab) {
+    if (focus) update(focus.key, { ...current, tab });
+  }
+
+  // Do For Me on a suggestion
+  function doForMe(suggestion: Suggestion) {
+    if (focus) update(focus.key, { tab: tabFor(suggestion), picked: suggestion });
+  }
+
+  // A page's own "Do For Me" button, for the record the page is showing
+  function aim(key: string) {
+    if (!focus || focus.key !== key) return;
+    const top = focus.context.featured?.suggestion ?? focus.context.suggestions[0];
+    if (top) update(key, { tab: tabFor(top), picked: top });
+    else update(key, { ...current, tab: "plan" });
+    setOpen(true);
+    // Below lg the rail sits under the page, so bring it into view (once it's drawn)
+    requestAnimationFrame(() =>
+      document
+        .getElementById("do-for-me-rail")
+        ?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
+    );
+  }
+
+  // The suggestion picked for this record, if any
+  function pickedFor(key: string) {
+    return stateByKey[key]?.picked ?? null;
+  }
+
+  // The page finished (or cancelled) a review: nothing picked, rail on `tab`
+  function settle(key: string, tab: RailTab) {
+    update(key, { tab, picked: null });
+  }
+
+  return (
+    <SetFocusContext.Provider value={setFocus}>
+      <ActionsContext.Provider value={{ aim, pickedFor, settle }}>
+        <RailViewContext.Provider value={{ focus, current, open, setOpen, showTab, doForMe }}>
+          {children}
+        </RailViewContext.Provider>
+      </ActionsContext.Provider>
+    </SetFocusContext.Provider>
+  );
+}
+
+// The rail itself, where the Dojang shell puts it. Nothing while it's closed.
+export function ConnectedDoForMeRail() {
+  const view = useContext(RailViewContext);
+  if (!view || !view.open) return null;
+  return (
+    <DoForMeRail
+      context={view.focus?.context ?? null}
+      tab={view.current.tab}
+      picked={view.current.picked}
+      onTab={view.showTab}
+      onDoForMe={view.doForMe}
+      onClose={() => view.setOpen(false)}
+    />
+  );
+}
+
+// For the shell's "Do For Me" button, shown while the rail is closed
+export function useDoForMeRailOpen(): [boolean, (open: boolean) => void] {
+  const view = useContext(RailViewContext);
+  return [view?.open ?? false, (open) => view?.setOpen(open)];
+}
+
+// Put on each Dojang page: tells the rail what to focus on
+export function DoForMeFocus({
+  focusKey,
+  context,
+}: {
+  focusKey: string;
+  context: CompanionContext;
+}) {
+  const setFocus = useContext(SetFocusContext);
+  useEffect(() => {
+    setFocus?.({ key: focusKey, context });
+  }, [setFocus, focusKey, context]);
+  return null;
+}
+
+// For a page's Do For Me button and page reviews. Does nothing outside the Dojang layout.
+export function useDoForMe(): RailActions {
+  const actions = useContext(ActionsContext);
+  return {
+    aim: (key) => actions?.aim(key),
+    pickedFor: (key) => actions?.pickedFor(key) ?? null,
+    settle: (key, tab) => actions?.settle(key, tab),
+  };
+}

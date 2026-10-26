@@ -1,0 +1,63 @@
+// A Dojang member as the CRM shows it (Member 360). Ported from Companion 1cab554b
+// src/domain/member.ts. Not the same as types/members.ts, which is the gym template's
+// own sample member.
+//
+// Two sources fill it (src/integrations/member.ts): the development fixture, and
+// the real Hub (Odoo "context" and "member_details"). Fields the Hub doesn't send
+// are optional and stay empty for real members; screens show "Not recorded".
+
+export type MembershipState =
+  "lead" | "trial" | "active" | "paused" | "cancelled";
+
+export type Rank = {
+  name: string; // "Blue Belt"
+  stripes?: number; // stripes on the current belt; not in the Hub's member list
+};
+
+export type Member = {
+  tenantId?: string; // which school (fixture only; the Hub scopes by site instead)
+  id: string; // in Hub mode, the Odoo dojo.member id (the same id the Inbox links to)
+  memberNumber?: string; // not in the Hub's member reads
+  name: string;
+  membershipState: MembershipState;
+  rank: Rank;
+  householdName?: string; // "Chen Family"
+  nextClass?: string; // "5:45 PM"
+  testReadiness?: number; // 0–100
+  attendanceRate?: number; // 0–1; nobody has defined it for the Hub yet
+  bookings?: MemberBooking[]; // absent = unavailable; [] = no registered sessions
+  // Member 360's Training card and Member story. Nothing sends these yet, so the
+  // page shows "Not recorded". Never fill them from mockups.
+  training?: MemberTraining;
+  joinedOn?: string; // "2025-01-14"
+  classesAttended?: number; // all-time count
+};
+
+export type MemberTraining = {
+  program?: string;
+  primaryInstructor?: string;
+  team?: string;
+  homeLocation?: string;
+};
+
+export type MemberBooking = {
+  sessionId: string;
+  title: string;
+  startsAt: string;
+  endsAt?: string; // the Hub's bookings have no end time
+};
+
+// One attended class
+export type CheckIn = {
+  sessionTitle: string; // "Children Advanced"
+  checkedInAt: string; // ISO time; the browser formats it
+  late?: boolean; // the Hub counts present and late check-ins but doesn't say which
+};
+
+// PROVISIONAL: what Member 360 knows about attendance until the Hub has a
+// per-member read. No attendance % on purpose: nobody has defined it yet.
+export type MemberAttendance = {
+  latest: CheckIn | null; // null = no check-ins yet
+  lastSevenDays: number; // rolling 7 days, so it doesn't depend on a time zone
+  history?: CheckIn[]; // newest first; left out when the source can't send it
+};

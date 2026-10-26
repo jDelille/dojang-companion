@@ -18,6 +18,7 @@ import { useIsMobile } from "../../hooks/useMediaQuery";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { searchPages } from "../../routes/searchIndex";
 import { all_routes } from "../../routes/all_routes";
+import { SHOW_TEMPLATE_UI } from "../../config/dojang";
 
 const BRANCHES = [
   { label: "Austin — HQ", short: "Austin HQ", icon: "building-2" as const },
@@ -138,7 +139,7 @@ const CommonHeader = () => {
             type="text"
             id="global-search"
             className="fp-input pl-9 pr-12 py-2 w-64 text-sm"
-            placeholder="Search pages, members…"
+            placeholder="Search, navigate, or ask AI…"
             autoComplete="off"
             role="combobox"
             aria-expanded={searchOpen && query.trim().length > 0}
@@ -191,6 +192,9 @@ const CommonHeader = () => {
           </div>
         </div>
 
+        {/* The template's demo menus (sample data) are hidden in Dojang mode */}
+        {SHOW_TEMPLATE_UI && (
+        <>
         {/* Quick Actions */}
         <Dropdown id="quick-menu" className="hidden md:block">
           <Dropdown.Trigger className="qa-btn">
@@ -254,6 +258,8 @@ const CommonHeader = () => {
           </Dropdown.Menu>
         </Dropdown>
 
+        </>
+        )}
         <div className="md:block hdr-divider" />
 
         {/* Fullscreen */}
@@ -267,6 +273,10 @@ const CommonHeader = () => {
           <LucideIcon name="maximize" className="w-4 h-4" />
         </button>
 
+        {/* Messages, theme, notifications and profile: template demo content.
+            Dojang is dark only for now, and the staff state lives in the sidebar. */}
+        {SHOW_TEMPLATE_UI && (
+        <>
         {/* Messages */}
         <Dropdown id="msg-menu">
           <Dropdown.Trigger className="hbtn" title="Messages" aria-label="Messages">
@@ -429,6 +439,8 @@ const CommonHeader = () => {
             </Link>
           </Dropdown.Menu>
         </Dropdown>
+        </>
+        )}
       </header>
     </>
   );
