@@ -1,0 +1,25 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {startIdleTimer,idleTimerShouldRun,ACTIVITY_EVENTS}=require(process.env.DOJANG_IDLE_TIMER_MODULE);
+const {IDLE_TIMEOUT_SECONDS,IDLE_WARNING_SECONDS}=require(process.env.DOJANG_KIOSK_CONFIG_MODULE);
+const {checkInFlowReducer:reduce,initialCheckInFlow}=require(process.env.DOJANG_FLOW_MODULE);
+
+// Fake clock and a hand-cranked scheduler: tick(ms) moves time on in 250ms steps, like the real interval
+const harness=(options={})=>{let now=0;let tickFn=null;let cancelled=0;const target=new EventTarget();const shown=[];let timeouts=0;
+  const timer=startIdleTimer({timeoutSeconds:60,warningSeconds:10,onSecondsLeft:v=>shown.push(v),onTimeout:()=>{timeouts++;options.onTimeout?.()},target,now:()=>now,schedule:(fn,ms)=>{assert.equal(ms,250);tickFn=fn;return()=>{cancelled++;tickFn=null}}});
+  const tick=ms=>{for(let t=0;t<ms;t+=250){now+=250;tickFn?.()}};
+  return {timer,target,tick,shown,get timeouts(){return timeouts},get cancelled(){return cancelled},get last(){return shown[shown.length-1]},get running(){return tickFn!==null}}};
+
+test('uses Companion\'s 60s timeout with a 10s warning',()=>{assert.equal(IDLE_TIMEOUT_SECONDS,60);assert.equal(IDLE_WARNING_SECONDS,10)});
+test('no warning before 50 idle seconds, then a countdown, then one reset at 60s',()=>{const h=harness();h.tick(49750);assert.equal(h.last,null);assert.equal(h.timeouts,0);h.tick(250);assert.equal(h.last,10);h.tick(5000);assert.equal(h.last,5);h.tick(4750);assert.equal(h.last,1);assert.equal(h.timeouts,0);h.tick(250);assert.equal(h.last,null);assert.equal(h.timeouts,1);assert.equal(h.running,false);h.tick(60000);assert.equal(h.timeouts,1)});
+test('first tick always reports, so a warning left over from a restart clears',()=>{const h=harness();h.tick(250);assert.deepEqual(h.shown,[null])});
+test('taps, key presses and typing all count as activity',()=>{assert.deepEqual([...ACTIVITY_EVENTS],['pointerdown','keydown','input']);for(const eventName of ACTIVITY_EVENTS){const h=harness();h.tick(45000);h.target.dispatchEvent(new Event(eventName));h.tick(45000);assert.equal(h.last,null);assert.equal(h.timeouts,0);h.tick(15000);assert.equal(h.timeouts,1)}});
+test('someone typing steadily is never reset',()=>{const h=harness();for(let i=0;i<20;i++){h.tick(30000);h.target.dispatchEvent(new Event('input'))}assert.equal(h.timeouts,0);assert.equal(h.shown.every(v=>v===null),true)});
+test('activity during the warning closes it on the next tick',()=>{const h=harness();h.tick(55000);assert.equal(h.last,5);h.target.dispatchEvent(new Event('pointerdown'));h.tick(250);assert.equal(h.last,null);h.tick(30000);assert.equal(h.timeouts,0)});
+test('"I\'m still here" closes the warning straight away and restarts the countdown',()=>{const h=harness();h.tick(57000);assert.equal(h.last,3);h.timer.stillHere();assert.equal(h.last,null);h.tick(49750);assert.equal(h.last,null);h.tick(10250);assert.equal(h.timeouts,1)});
+test('stop cancels the interval and stops listening, so a paused timer never resets',()=>{const h=harness();h.timer.stop();assert.equal(h.cancelled,1);assert.equal(h.running,false);h.timer.stop();assert.equal(h.cancelled,1);h.tick(120000);assert.equal(h.timeouts,0)});
+test('timer is off on Welcome and while sending, on everywhere a visitor\'s details can show',()=>{const session={sessionId:'102'};const member={memberId:'2001'};assert.equal(idleTimerShouldRun({step:'welcome'}),false);assert.equal(idleTimerShouldRun({step:'sending',session,member}),false);for(const flow of [{step:'session',sessions:{status:'loading'}},{step:'identify',session,roster:{status:'ready',list:[]},query:'Av'},{step:'confirm',session,member,query:'Av'},{step:'concierge',startWith:'staffHelp'}])assert.equal(idleTimerShouldRun(flow),true,flow.step)});
+test('timer is off while a confirmed result returns to Welcome on its own, on for the other results',()=>{const result=kind=>({step:'result',session:{},member:{},command:null,outcome:{kind}});assert.equal(idleTimerShouldRun(result('success')),false);assert.equal(idleTimerShouldRun(result('alreadyCheckedIn')),false);for(const kind of ['seeFrontDesk','chooseAnotherClass','kioskUnavailable','notConfirmed'])assert.equal(idleTimerShouldRun(result(kind)),true,kind)});
+test('an idle timeout on Identify clears the class, roster, search text and student',()=>{const session={sessionId:'102',title:'Junior Taekwondo',startsAt:'2026-10-23T17:00:00.000Z',endsAt:'2026-10-23T18:00:00.000Z',version:3,capacity:8,seatsTaken:3};const ava={memberId:'2001',displayName:'Ava M.',enrollmentStatus:'registered',attendanceState:'pending'};
+  for(const extra of [[],[{type:'selectMember',member:ava}]]){let flow=[{type:'start'},{type:'sessionsLoaded',sessions:[session]},{type:'selectSession',session},{type:'rosterLoaded',sessionId:'102',roster:[ava]},{type:'searchChanged',query:'Ava'},...extra].reduce(reduce,initialCheckInFlow);
+    assert.notEqual(flow.step,'welcome');const h=harness({onTimeout:()=>{flow=reduce(flow,{type:'reset'})}});h.tick(60000);assert.equal(flow,initialCheckInFlow);assert.deepEqual(flow,{step:'welcome'})}});

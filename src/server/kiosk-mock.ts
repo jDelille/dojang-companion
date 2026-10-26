@@ -2,9 +2,9 @@
 // Never contacts Odoo or any other service. Disabled when NODE_ENV is "production".
 //
 // Ported from Companion 1cab554b (src/integrations/mock/kiosk.ts, kiosk-store.ts, kiosk-http.ts,
-// routes/{sessions,roster,checkins}.ts) with three differences:
+// kiosk-scenario.ts, routes/{sessions,roster,checkins}.ts) with three differences:
 //   - no Companion members on the rosters, kiosk-only fictional students
-//   - no dev scenario switch and no NEXT_PUBLIC_DEMO_MODE flag
+//   - no NEXT_PUBLIC_DEMO_MODE flag
 //   - stricter command validation, matching Companion's Odoo gateway (unknown fields, body size)
 //
 // Relative imports only, so tools/test-kiosk-domain.sh can compile it with plain tsc.
@@ -74,6 +74,37 @@ const ineligibleMemberIds = ["2006"];
 const PROVISIONAL_LATE_AFTER_MINUTES = 10;
 
 const MAX_BODY_BYTES = 8192; // same limit as Companion's Odoo gateway
+
+// ---------------------------------------------------------------------------
+// Dev-only scenario switch for forcing failures (PUT /api/dev/kiosk-scenario).
+// Always "normal" in production and can't be changed there.
+
+export const kioskScenarios = [
+  "normal",
+  "no-sessions", // GET /sessions returns []
+  "slow", // every route waits ~2.5s instead of responding immediately
+  "network-failure", // does the work, then returns a bare 503 like the response got lost
+  "not-on-roster", // check-ins fail with NOT_ON_ROSTER
+  "eligibility-review", // check-ins fail with ELIGIBILITY_REVIEW_REQUIRED
+  "session-not-open", // check-ins fail with SESSION_NOT_OPEN
+  "version-conflict", // check-ins fail with VERSION_CONFLICT
+] as const;
+
+export type KioskScenario = (typeof kioskScenarios)[number];
+
+export function isKioskScenario(value: unknown): value is KioskScenario {
+  return kioskScenarios.some((scenario) => scenario === value);
+}
+
+// Scenarios that force every check-in to fail with a specific problem
+const forcedProblems: Partial<Record<KioskScenario, ProblemCode>> = {
+  "not-on-roster": "NOT_ON_ROSTER",
+  "eligibility-review": "ELIGIBILITY_REVIEW_REQUIRED",
+  "session-not-open": "SESSION_NOT_OPEN",
+  "version-conflict": "VERSION_CONFLICT",
+};
+
+const SLOW_DELAY_MS = 2500; // for the "slow" scenario
 
 // ---------------------------------------------------------------------------
 // HTTP helpers
@@ -198,9 +229,12 @@ export type KioskMockOptions = {
 };
 
 export type KioskMock = {
+  enabled: boolean;
   sessions(request: Request): Response;
   roster(request: Request, sessionId: string): Response;
   checkIn(request: Request): Promise<Response>;
+  scenario(): KioskScenario; // always "normal" when disabled
+  setScenario(scenario: KioskScenario): void; // throws when disabled
 };
 
 // Key for one student in one session, like "102:2003"
@@ -214,6 +248,7 @@ export function createKioskMock(options: KioskMockOptions = {}): KioskMock {
   const receipts = new Map<string, AttendanceReceipt>();
   const usedKeys = new Map<string, UsedKey>();
   let nextAttendanceId = 9001;
+  let scenario: KioskScenario = "normal";
 
   // Anyone seeded as present needs a receipt for the "already checked in" case
   const seededAt = now().toISOString();
@@ -272,9 +307,12 @@ export function createKioskMock(options: KioskMockOptions = {}): KioskMock {
   };
 
   return {
+    enabled,
+
     // GET /api/v2/sessions -> SessionOption[]
     sessions(request) {
       if (!enabled) return disabled(request);
+      if (scenario === "no-sessions") return json([]);
       return json(todaysSessions());
     },
 
@@ -311,6 +349,11 @@ export function createKioskMock(options: KioskMockOptions = {}): KioskMock {
       const { idempotencyKey, correlationId, expectedVersion } = command;
       const { sessionId, memberId } = command.payload;
       const thisCheckIn = checkInKey(sessionId, memberId);
+
+      const forcedProblem = forcedProblems[scenario];
+      if (forcedProblem) {
+        return problem(forcedProblem, correlationId, `Forced by the "${scenario}" dev scenario.`);
+      }
 
       // Key's been used before: same check-in gets the original receipt back, anything else is a conflict
       const usedKey = usedKeys.get(idempotencyKey);
@@ -369,6 +412,15 @@ export function createKioskMock(options: KioskMockOptions = {}): KioskMock {
 
       return checkInResponse(receipt, false, correlationId, 201);
     },
+
+    scenario() {
+      return enabled ? scenario : "normal";
+    },
+
+    setScenario(next) {
+      if (!enabled) throw new Error("Kiosk scenarios are dev-only.");
+      scenario = next;
+    },
   };
 }
 
@@ -379,4 +431,32 @@ const serverMemory = globalThis as typeof globalThis & { dojangKioskMock?: Kiosk
 export function devKioskMock(): KioskMock {
   serverMemory.dojangKioskMock ??= createKioskMock();
   return serverMemory.dojangKioskMock;
+}
+
+// DELETE /api/dev/kiosk-scenario: check-ins and used keys back to the seed data.
+// The scenario stays as it was, like Companion's resetStore.
+export function resetDevKioskMock() {
+  const scenario = devKioskMock().scenario();
+  const fresh = createKioskMock();
+  if (fresh.enabled) fresh.setScenario(scenario);
+  serverMemory.dojangKioskMock = fresh;
+}
+
+const wait = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+// Every mock kiosk route goes through this, like Companion's mockRoute: the "slow"
+// scenario's delay, and "network-failure" (the work still happens, the response
+// just gets swapped for a bare 503)
+export async function devMockRoute(
+  handleRequest: (mock: KioskMock) => Response | Promise<Response>,
+): Promise<Response> {
+  const mock = devKioskMock();
+  if (mock.scenario() === "slow") await wait(SLOW_DELAY_MS);
+
+  const response = await handleRequest(mock);
+
+  if (mock.scenario() === "network-failure") {
+    return new Response(null, { status: 503 });
+  }
+  return response;
 }

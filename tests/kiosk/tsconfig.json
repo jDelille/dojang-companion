@@ -1,0 +1,28 @@
+{
+  "//": "Compiles the kiosk modules that use @/ imports for tools/test-kiosk-domain.sh (outDir comes from the runner). Not used by Next or npm run typecheck.",
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "skipLibCheck": true,
+    "baseUrl": "../..",
+    "paths": { "@/*": ["src/*"] },
+    "rootDir": "../../src"
+  },
+  "files": [
+    "../../src/domain/kiosk/checkInFlow.ts",
+    "../../src/domain/kiosk/rosterSearch.ts",
+    "../../src/integrations/kiosk.ts",
+    "../../src/domain/kiosk/kioskConfig.ts",
+    "../../src/domain/kiosk/checkInCommand.ts",
+    "../../src/domain/kiosk/checkInOutcome.ts",
+    "../../src/views/kiosk/idleTimer.ts",
+    "../../src/views/kiosk/rosterGrid.ts",
+    "../../src/app/api/dev/kiosk-scenario/route.ts",
+    "../../src/app/api/v2/sessions/route.ts",
+    "../../src/app/api/v2/attendance/check-ins/route.ts"
+  ]
+}
