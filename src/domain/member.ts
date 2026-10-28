@@ -25,7 +25,10 @@ export type Member = {
   nextClass?: string; // "5:45 PM"
   testReadiness?: number; // 0–100
   attendanceRate?: number; // 0–1; nobody has defined it for the Hub yet
-  bookings?: MemberBooking[]; // absent = unavailable; [] = no registered sessions
+  bookings?: MemberBooking[]; // absent = unavailable (or unreadable); [] = no registered sessions
+  // true: the source sent as many bookings as its limit allows, so there may be
+  // more than the list holds. Show the count as "at least".
+  bookingsCapped?: boolean;
   // Member 360's Training card and Member story. Nothing sends these yet, so the
   // page shows "Not recorded". Never fill them from mockups.
   training?: MemberTraining;
@@ -54,10 +57,16 @@ export type CheckIn = {
   late?: boolean; // the Hub counts present and late check-ins but doesn't say which
 };
 
-// PROVISIONAL: what Member 360 knows about attendance until the Hub has a
-// per-member read. No attendance % on purpose: nobody has defined it yet.
+// A count over a time window.
+//   complete: true   every event in the window was counted (exact)
+//   complete: false  the source's list was cut off inside the window, so the
+//                    real number may be higher; show it as "at least"
+export type WindowCount = { count: number; complete: boolean };
+
+// What Member 360 knows about attendance. No attendance % on purpose: nobody has
+// defined it yet. The Hub sends only the latest 30 check-ins.
 export type MemberAttendance = {
   latest: CheckIn | null; // null = no check-ins yet
-  lastSevenDays: number; // rolling 7 days, so it doesn't depend on a time zone
+  lastSevenDays: WindowCount; // rolling 7 days, so it doesn't depend on a time zone
   history?: CheckIn[]; // newest first; left out when the source can't send it
 };

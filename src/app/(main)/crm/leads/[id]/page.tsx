@@ -6,6 +6,7 @@ import { getLeadDetails, USES_SAMPLE_LEADS } from "@/integrations/crm";
 import { DoForMeFocus } from "@/views/doForMe/doForMeProvider";
 import { hubEnabled } from "@/server/hub-gateway";
 import LeadDetail from "@/views/crm/leadDetail";
+import HubUnavailable from "@/views/shell/hubUnavailable";
 import { WorkspaceTabName } from "@/views/shell/workspaceTabs";
 
 export const dynamic = "force-dynamic";
@@ -15,14 +16,26 @@ export const generateMetadata = () => {
   return getPageMetadata("Lead");
 };
 
+// In Hub mode the lead is the real Odoo lead (lead_details); when that read
+// fails, the page says why (or asks the staff member to sign in) instead of
+// showing anything else.
 export default async function LeadPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const details = await getLeadDetails(id);
-  if (!details) notFound();
+  const answer = await getLeadDetails(id);
+  if (answer.outcome === "missing") notFound();
+  if (answer.outcome === "unavailable") {
+    return (
+      <div className="crm-scope overflow-hidden rounded-2xl border border-(--crm-line)">
+        <HubUnavailable code={answer.code} text={answer.text} />
+      </div>
+    );
+  }
+
+  const details = answer.details;
   const focus: CompanionFocus = { kind: "lead", leadId: details.lead.id };
   const companion = await getCompanionContext(focus);
 
@@ -30,7 +43,7 @@ export default async function LeadPage({
     <>
       {companion && <DoForMeFocus focusKey={focusKey(focus)} context={companion} />}
       <WorkspaceTabName label={details.lead.name} />
-      <LeadDetail details={details} showsSampleData={USES_SAMPLE_LEADS} peopleFromOdoo={hubEnabled()} />
+      <LeadDetail details={details} showsSampleData={USES_SAMPLE_LEADS} hubMode={hubEnabled()} />
     </>
   );
 }

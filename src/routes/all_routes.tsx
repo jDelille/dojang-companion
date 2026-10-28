@@ -7,6 +7,7 @@ export const all_routes = {
   people: "/people",
   crm: "/crm",
   inbox: "/inbox",
+  frontDesk: "/front-desk",
   kiosk: "/kiosk",
 
   // Sales

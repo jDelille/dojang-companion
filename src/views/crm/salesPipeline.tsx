@@ -2,15 +2,21 @@
 
 import { useState } from "react";
 import type { CrmContext, Lead, LeadTag } from "@/domain/lead";
+import { HubSignOutButton } from "@/views/shell/hubUnavailable";
+import CrmSectionNav from "./crmSectionNav";
 import { LeadBoard, LeadList, LostLeads } from "./leadViews";
 import LeadTray from "./leadTray";
 
 /*
-   CRM / Sales (CRM screen C03), read-only development slice. Product rules from
-   Jodi's implementation handoff (9 Oct 2026, page 2): lead inbox + pipeline +
+   CRM / Sales (CRM screen C03), read-only. Product rules from Jodi's
+   implementation handoff (9 Oct 2026, page 2): lead inbox + pipeline +
    contextual tray, filter by owner and program, Lost kept apart from the stages.
    List/Board and filters follow Companion's CrmWorkspace; the board layout
    follows Roster's kanban. No dragging or other writes yet.
+
+   From Odoo (fromOdoo): the filter is "Tags", because Odoo's lead tags mix
+   programs, sources and ages; and there's no Lost list, because crm_context
+   leaves archived (lost) leads out.
 */
 
 type View = "board" | "list";
@@ -20,8 +26,8 @@ const ALL = "";
 const filterSelect =
   "h-9 rounded-lg border border-(--crm-line) bg-(--crm-canvas) px-3 text-[12px] text-(--crm-text) focus:border-(--crm-muted) focus:outline-none";
 
-// Every program tag on the leads, once each, sorted by name
-function programsOf(leads: Lead[]): LeadTag[] {
+// Every tag on the leads, once each, sorted by name
+function tagsOnLeads(leads: Lead[]): LeadTag[] {
   const byId = new Map<string, LeadTag>();
   for (const lead of leads) {
     for (const tag of lead.tags) byId.set(tag.id, tag);
@@ -37,18 +43,20 @@ function ownersOf(leads: Lead[]): string[] {
 export default function SalesPipeline({
   context,
   showsSampleData,
+  fromOdoo,
 }: {
   context: CrmContext;
   showsSampleData: boolean;
+  fromOdoo: boolean;
 }) {
   const [view, setView] = useState<View>("board");
   const [ownerFilter, setOwnerFilter] = useState(ALL);
-  const [programFilter, setProgramFilter] = useState(ALL);
+  const [tagFilter, setTagFilter] = useState(ALL);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   function matchesFilters(lead: Lead) {
     if (ownerFilter !== ALL && lead.owner !== ownerFilter) return false;
-    if (programFilter !== ALL && !lead.tags.some((tag) => tag.id === programFilter)) return false;
+    if (tagFilter !== ALL && !lead.tags.some((tag) => tag.id === tagFilter)) return false;
     return true;
   }
 
@@ -64,14 +72,24 @@ export default function SalesPipeline({
           Sample leads · Development preview, not connected to Odoo
         </p>
       )}
+      {fromOdoo && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-(--crm-line) px-5 py-3 text-[11px] text-(--crm-text-secondary) sm:px-6">
+          <p>Leads from Odoo · Read-only here</p>
+          <HubSignOutButton />
+        </div>
+      )}
 
       <div className="grid 2xl:grid-cols-[minmax(0,1fr)_18rem]">
         <section aria-label="Lead pipeline" className="min-w-0 p-5 sm:p-6">
-          <header className="mb-5">
-            <h1 className="text-xl font-bold leading-tight text-(--crm-text)">Sales</h1>
-            <p className="mt-1 text-sm text-(--crm-text-secondary)">
-              {openLeads.length} open {openLeads.length === 1 ? "lead" : "leads"} · {lostLeads.length} lost
-            </p>
+          <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-bold leading-tight text-(--crm-text)">Sales</h1>
+              <p className="mt-1 text-sm text-(--crm-text-secondary)">
+                {openLeads.length} open {openLeads.length === 1 ? "lead" : "leads"}
+                {!fromOdoo && ` · ${lostLeads.length} lost`}
+              </p>
+            </div>
+            <CrmSectionNav />
           </header>
 
           <div className="mb-5 flex flex-wrap items-center gap-2">
@@ -91,16 +109,16 @@ export default function SalesPipeline({
               </select>
             </label>
             <label className="flex items-center gap-2 text-[12px] text-(--crm-text-secondary)">
-              Program
+              Tags
               <select
-                value={programFilter}
-                onChange={(event) => setProgramFilter(event.target.value)}
+                value={tagFilter}
+                onChange={(event) => setTagFilter(event.target.value)}
                 className={filterSelect}
               >
-                <option value={ALL}>All programs</option>
-                {programsOf(context.leads).map((program) => (
-                  <option key={program.id} value={program.id}>
-                    {program.name}
+                <option value={ALL}>All tags</option>
+                {tagsOnLeads(context.leads).map((tag) => (
+                  <option key={tag.id} value={tag.id}>
+                    {tag.name}
                   </option>
                 ))}
               </select>
@@ -140,11 +158,17 @@ export default function SalesPipeline({
             <LeadList leads={openLeads} selectedId={selectedId} onSelect={setSelectedId} />
           )}
 
-          <LostLeads leads={lostLeads} selectedId={selectedId} onSelect={setSelectedId} />
+          {fromOdoo ? (
+            <p className="mt-6 text-[11px] text-(--crm-muted)">
+              Lost leads are archived in Odoo and aren&apos;t listed here.
+            </p>
+          ) : (
+            <LostLeads leads={lostLeads} selectedId={selectedId} onSelect={setSelectedId} />
+          )}
 
           {context.moreLeads && (
             <p className="mt-4 text-[11px] text-(--crm-muted)">
-              Showing the latest 100 leads only.
+              Showing the latest 100 leads from Odoo only.
             </p>
           )}
         </section>

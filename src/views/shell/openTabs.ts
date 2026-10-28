@@ -8,7 +8,8 @@ import { useSyncExternalStore } from "react";
    src/components/shell/workspace/openTabs.ts and pageTabs.ts.
 
    Companion keeps "Today" as a fixed first tab. Today (C01) doesn't exist here
-   yet, so every tab can be closed. The tabs last for this browser tab's session.
+   yet, so every tab can be closed. The tabs last for this browser tab's session,
+   and are cleared whenever a staff member signs in or out.
 */
 
 export type WorkspaceTab = { href: string; label: string };
@@ -91,6 +92,13 @@ export function openWorkspaceTabIfMissing(tab: WorkspaceTab) {
   openWorkspaceTab(tab);
 }
 
+// Every tab goes: member names and record addresses must not outlive the staff
+// member who opened them (called on sign-in and sign-out, staffSession.ts)
+export function clearWorkspaceTabs() {
+  load();
+  save([]);
+}
+
 export function closeWorkspaceTab(href: string) {
   load();
   save(tabs.filter((open) => open.href !== href));
@@ -101,7 +109,9 @@ export function tabForPage(pathname: string): PageTab | null {
   if (pathname === "/people") return { href: pathname, label: "People", final: true };
   if (/^\/people\/[^/]+$/.test(pathname)) return { href: pathname, label: "Member", final: false };
   if (pathname === "/crm") return { href: pathname, label: "Sales", final: true };
+  if (pathname === "/crm/follow-ups") return { href: pathname, label: "Follow-ups", final: true };
   if (/^\/crm\/leads\/[^/]+$/.test(pathname)) return { href: pathname, label: "Lead", final: false };
   if (pathname === "/inbox") return { href: pathname, label: "Inbox", final: true };
+  if (pathname === "/front-desk") return { href: pathname, label: "Front Desk", final: true };
   return null;
 }

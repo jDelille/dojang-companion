@@ -24,8 +24,9 @@ function initials(name: string) {
     .join("");
 }
 
-// "Pee Wee", or "Not recorded" when the lead has no program tag
-export function programOf(lead: Lead) {
+// "Pee Wee, Website", or "Not recorded" when the lead has no tags. Odoo's lead
+// tags mix programs, sources and ages, so they're shown as tags, not as a program.
+export function tagsOf(lead: Lead) {
   if (lead.tags.length === 0) return "Not recorded";
   return lead.tags.map((tag) => tag.name).join(", ");
 }
@@ -63,7 +64,7 @@ function LeadCard({ lead, selectedId, onSelect }: { lead: Lead } & SelectProps) 
         </span>
       </span>
       <span className="mt-2.5 flex items-center justify-between gap-2 text-[11px]">
-        <span className="truncate text-(--crm-text-secondary)">{programOf(lead)}</span>
+        <span className="truncate text-(--crm-text-secondary)">{tagsOf(lead)}</span>
         <span className="shrink-0 text-(--crm-muted)">{lead.owner}</span>
       </span>
     </button>
@@ -123,7 +124,7 @@ export function LeadList({ leads, selectedId, onSelect }: { leads: Lead[] } & Se
           <tr>
             <th className={headerCell}>Lead</th>
             <th className={headerCell}>Stage</th>
-            <th className={headerCell}>Program</th>
+            <th className={headerCell}>Tags</th>
             <th className={headerCell}>Owner</th>
             <th className={headerCell}>Source</th>
           </tr>
@@ -150,7 +151,7 @@ export function LeadList({ leads, selectedId, onSelect }: { leads: Lead[] } & Se
                   </button>
                 </td>
                 <td className="px-3 py-2.5 text-(--crm-text)">{lead.stage}</td>
-                <td className="px-3 py-2.5 text-(--crm-text-secondary)">{programOf(lead)}</td>
+                <td className="px-3 py-2.5 text-(--crm-text-secondary)">{tagsOf(lead)}</td>
                 <td className="px-3 py-2.5 text-(--crm-text-secondary)">{lead.owner}</td>
                 <td className="px-3 py-2.5 text-(--crm-text-secondary)">{lead.source}</td>
               </tr>

@@ -56,4 +56,7 @@ export type CompanionContext = {
   featured?: { suggestion: Suggestion; summary: string }; // the "Suggested" card
   suggestions: Suggestion[];
   receipts: Receipt[];
+  // DreamOS addition: records to open (e.g. Front Desk's due follow-ups), each
+  // with "Open". Plain links to Odoo records, never suggestions or AI output.
+  links?: { id: string; title: string; detail?: string; href: string }[];
 };

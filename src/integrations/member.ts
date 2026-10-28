@@ -1,6 +1,13 @@
 import { cache } from "react";
 import { explainHubError } from "@/domain/hubAction";
-import type { CheckIn, Member, MemberAttendance, MemberBooking, MembershipState } from "@/domain/member";
+import type {
+  CheckIn,
+  Member,
+  MemberAttendance,
+  MemberBooking,
+  MembershipState,
+  WindowCount,
+} from "@/domain/member";
 import { hubEnabled, readHubAsStaff } from "@/server/hub-gateway";
 import { devMembers } from "@/server/member-fixture";
 
@@ -53,6 +60,15 @@ function memberFromList(entry: unknown): Member | null {
   return { id: entry.id, name: entry.name, membershipState: entry.state, rank: { name: entry.rank } };
 }
 
+// member_details.limits: how many bookings / check-ins the Hub sends at most.
+// Without a limit DreamOS can't tell a full list from a cut-off one.
+function limitOf(details: Record<string, unknown>, name: string): number | null {
+  const limits = details.limits;
+  if (!isObject(limits)) return null;
+  const limit = limits[name];
+  return typeof limit === "number" && Number.isSafeInteger(limit) && limit > 0 ? limit : null;
+}
+
 // member_details.member: { id, name, version, partnerVersion, phone, email,
 // dateOfBirth, photo, state, rank, stripes }. Contact fields aren't shown yet.
 function memberFromDetails(details: Record<string, unknown>): Member | null {
@@ -61,22 +77,30 @@ function memberFromDetails(details: Record<string, unknown>): Member | null {
     return null;
   }
   const stripes = typeof member.stripes === "number" ? member.stripes : undefined;
+  const bookings = bookingsFromDetails(details.bookings);
+  const bookingsLimit = limitOf(details, "bookings");
   return {
     id: member.id,
     name: member.name,
     membershipState: member.state,
     rank: { name: member.rank, stripes },
-    bookings: bookingsFromDetails(details.bookings),
+    bookings,
+    // No known limit: assume the list may be cut off
+    bookingsCapped: bookings ? bookingsLimit === null || bookings.length >= bookingsLimit : undefined,
   };
 }
 
 // member_details.bookings: registered classes that haven't ended
 // { id, sessionId, title, startsAt, attendanceState, replaceable }
+// One unreadable entry makes the whole list unknown (undefined), never a
+// shorter list or a confirmed 0.
 function bookingsFromDetails(value: unknown): MemberBooking[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const bookings: MemberBooking[] = [];
   for (const entry of value) {
-    if (!isObject(entry) || !isText(entry.sessionId) || !isText(entry.title) || !isText(entry.startsAt)) continue;
+    if (!isObject(entry) || !isText(entry.sessionId) || !isText(entry.title) || !isText(entry.startsAt)) {
+      return undefined;
+    }
     bookings.push({ sessionId: entry.sessionId, title: entry.title, startsAt: entry.startsAt });
   }
   return bookings;
@@ -84,20 +108,33 @@ function bookingsFromDetails(value: unknown): MemberBooking[] | undefined {
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-// member_details.attendance: the last 30 present-or-late check-ins, newest first
-// { id, sessionId, title, checkedInAt, checkedOutAt }
-function attendanceFromDetails(value: unknown): MemberAttendance | null {
+// Check-ins in the last 7 days, from a newest-first list that may be cut off at
+// its limit. Exact when the list is shorter than the limit, or when it already
+// reaches back past the 7 days (then every check-in inside them is in the list).
+// Otherwise it's only "at least".
+function lastSevenDays(history: CheckIn[], limit: number | null): WindowCount {
+  const since = Date.now() - SEVEN_DAYS_MS;
+  const count = history.filter((checkIn) => Date.parse(checkIn.checkedInAt) >= since).length;
+  const oldest = history[history.length - 1];
+  const shorterThanLimit = limit !== null && history.length < limit;
+  const reachesPastWindow = !!oldest && Date.parse(oldest.checkedInAt) < since;
+  return { count, complete: shorterThanLimit || reachesPastWindow };
+}
+
+// member_details.attendance: the latest present-or-late check-ins (30 at most,
+// limits.attendance), newest first: { id, sessionId, title, checkedInAt, checkedOutAt }
+function attendanceFromDetails(details: Record<string, unknown>): MemberAttendance | null {
+  const value = details.attendance;
   if (!Array.isArray(value)) return null;
   const history: CheckIn[] = [];
   for (const entry of value) {
     if (!isObject(entry) || !isText(entry.title) || !isText(entry.checkedInAt)) return null;
+    if (!Number.isFinite(Date.parse(entry.checkedInAt))) return null;
     history.push({ sessionTitle: entry.title, checkedInAt: entry.checkedInAt });
   }
-  const since = Date.now() - SEVEN_DAYS_MS;
   return {
     latest: history[0] ?? null,
-    // From the last 30 check-ins only; a week with more than 30 would show 30
-    lastSevenDays: history.filter((checkIn) => Date.parse(checkIn.checkedInAt) >= since).length,
+    lastSevenDays: lastSevenDays(history, limitOf(details, "attendance")),
     history,
   };
 }
@@ -122,8 +159,10 @@ const readHubMember = cache(async (id: string): Promise<MemberRecordAnswer> => {
   const answer = await readHubAsStaff("member_details", { memberId: id });
   if (!answer.ok) return unavailable(answer.code);
   const member = memberFromDetails(answer.result);
-  const attendance = attendanceFromDetails(answer.result.attendance);
+  const attendance = attendanceFromDetails(answer.result);
   if (!member || !attendance) return UNREADABLE;
+  // Never show a different member under /people/<id>
+  if (member.id !== id) return UNREADABLE;
   return { outcome: "loaded", member, attendance };
 });
 
@@ -144,7 +183,12 @@ export async function getMemberRecord(id: string): Promise<MemberRecordAnswer> {
     const member = devMembers.find((each) => each.id === id);
     if (!member) return { outcome: "missing" };
     // Sample members have no check-ins: the development kiosk uses its own students
-    return { outcome: "loaded", member, attendance: { latest: null, lastSevenDays: 0, history: [] } };
+    const attendance: MemberAttendance = {
+      latest: null,
+      lastSevenDays: { count: 0, complete: true },
+      history: [],
+    };
+    return { outcome: "loaded", member, attendance };
   }
   throw new Error(NOT_CONNECTED);
 }

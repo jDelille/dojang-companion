@@ -1,23 +1,34 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { signInToHub } from "@/integrations/hub";
+import { useResetOnAuthenticationLoss, useStaffSessionReset } from "./staffSession";
 
 /*
    Staff sign-in to the real Hub, shown where a page needs Odoo data and nobody is
    signed in. The login and password go to this app's server, which signs in to
    Odoo and keeps only a sealed session cookie (src/server/hub-gateway.ts). Like
    Companion's sign-in, with the staff member's own Odoo account.
+
+   It only appears when the Hub said nobody is signed in (SIGN_IN_REQUIRED or
+   UNAUTHENTICATED: never signed in, signed out, or the session expired), so it
+   also clears the open record tabs and the Do For Me rail when it appears.
+   Signing in reloads the page's server data (router.refresh), so the site control
+   and nav rail show who is signed in; onSignedIn is for a page's own reads.
 */
 
 const field =
   "mt-1 h-10 w-full rounded-lg border border-(--crm-line) bg-(--crm-canvas) px-3 text-[13px] text-(--crm-text) focus:border-(--crm-muted) focus:outline-none";
 
-export default function StaffSignIn({ onSignedIn }: { onSignedIn: () => void }) {
+export default function StaffSignIn({ onSignedIn }: { onSignedIn?: () => void }) {
+  const router = useRouter();
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const resetStaffSession = useStaffSessionReset();
+  useResetOnAuthenticationLoss();
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -26,8 +37,14 @@ export default function StaffSignIn({ onSignedIn }: { onSignedIn: () => void }) 
     const failure = await signInToHub(login.trim(), password);
     setBusy(false);
     setPassword("");
-    if (failure) setError(failure);
-    else onSignedIn();
+    if (failure) {
+      setError(failure);
+      return;
+    }
+    // A new staff session: nothing from a previous one carries over
+    resetStaffSession();
+    if (onSignedIn) onSignedIn();
+    router.refresh();
   }
 
   return (

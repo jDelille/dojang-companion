@@ -95,12 +95,15 @@ export default function FollowUpReview({
   onDone,
   onCancel,
   onReload,
+  applyUnavailable,
 }: {
   lead: Lead;
   suggestion: Suggestion;
   onDone: (result: PrepareLeadActionResult) => void;
   onCancel: () => void;
   onReload: () => void; // fetch the lead again (after a conflict)
+  // Why Apply can't run here (the read-only Hub connection), or null when it can
+  applyUnavailable: string | null;
 }) {
   const [reason, setReason] = useState(suggestion.explanation.slice(0, 800));
   const [due, setDue] = useState(tomorrow);
@@ -220,11 +223,21 @@ export default function FollowUpReview({
         )}
       </div>
 
+      {applyUnavailable && (
+        <p role="note" className="mb-3 text-[12px] text-(--crm-text-secondary)">
+          {applyUnavailable}
+        </p>
+      )}
+
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={onCancel} disabled={pending} className={secondaryButton}>
           Cancel
         </button>
-        {status === "conflict" ? (
+        {applyUnavailable ? (
+          <button type="button" disabled title={applyUnavailable} className={primaryButton}>
+            {suggestion.actionLabel}
+          </button>
+        ) : status === "conflict" ? (
           <button type="button" onClick={reload} className={secondaryButton}>
             Reload lead
           </button>

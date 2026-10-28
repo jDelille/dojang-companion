@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ArrowUp, Sparkles, X } from "lucide-react";
 import type { CompanionContext, Suggestion } from "@/domain/companion";
 
@@ -109,7 +110,27 @@ function PlanTab({
   return (
     <>
       <span className={`${sectionLabel} text-(--crm-agent)`}>{context.intelTitle}</span>
-      <FactList facts={context.intel} />
+      {context.intel.length > 0 && <FactList facts={context.intel} />}
+
+      {/* Records to open (Front Desk's due follow-ups): links, not suggestions */}
+      {context.links && context.links.length > 0 && (
+        <ul className="mb-5">
+          {context.links.map((link) => (
+            <li
+              key={link.id}
+              className="flex items-center justify-between gap-3 border-b border-(--crm-line) py-3 text-[12px]"
+            >
+              <span className="min-w-0">
+                <span className="block font-semibold text-(--crm-text)">{link.title}</span>
+                {link.detail && <span className="block text-[11px] text-(--crm-muted)">{link.detail}</span>}
+              </span>
+              <Link href={link.href} className="shrink-0 text-(--crm-muted) hover:text-(--crm-text)">
+                Open
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {context.guidance && (
         <p className="mb-4 rounded-lg border border-(--crm-line) bg-(--crm-raised) px-3 py-2.5 text-[12px] leading-relaxed text-(--crm-text-secondary)">
@@ -339,7 +360,7 @@ export default function DoForMeRail({ context, tab, picked, onTab, onDoForMe, on
         className="flex-1 overflow-y-auto px-5 py-5"
       >
         {!context ? (
-          <p className="text-[12px] text-(--crm-muted)">Loading context…</p>
+          <p className="text-[12px] text-(--crm-muted)">No record in focus.</p>
         ) : (
           <>
             {/* What Do For Me is focused on, as Companion's "Front desk context" line

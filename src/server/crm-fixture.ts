@@ -6,10 +6,12 @@
 // New > Contacted > Trial booked > Trial attended > Decision > Enrolled, with
 // Lost kept apart. Jordan Parker and Riley Lee match Companion's front-desk sample.
 
+import type { FollowUp } from "../domain/followUp";
 import type { CrmContext, CrmStage, Lead, LeadEvidence, LeadTag } from "../domain/lead";
 import type { LeadDetails, LeadTask, LeadTimelineEntry } from "../domain/leadDetails";
 import type { PrepareLeadActionResult } from "../domain/hubAction";
 import { cleanText, fail, fingerprint, isRecordId, type ActionAnswer } from "./hub-fixture-common";
+import { devMembers } from "./member-fixture";
 
 const STAGES: CrmStage[] = [
   { id: "stage-new", name: "New" },
@@ -165,7 +167,58 @@ const LEADS: LeadSeed[] = [
 ];
 
 export function devCrmContext(): CrmContext {
-  return { stages: STAGES, leads: LEADS.map(currentLead), moreLeads: false };
+  return {
+    stages: STAGES,
+    leads: LEADS.map(currentLead),
+    moreLeads: false,
+    followUps: { outcome: "loaded", tasks: devFollowUps(), moreTasks: false },
+    assignees: [
+      { id: MASTER_KIM.ownerId, name: MASTER_KIM.owner },
+      { id: JAMIE.ownerId, name: JAMIE.owner },
+    ],
+  };
+}
+
+// crm_context.tasks: every open task on a lead that isn't archived (lost), like
+// the Hub, plus one on a sample member (src/server/member-fixture.ts) so member
+// follow-ups show too
+function devFollowUps(): FollowUp[] {
+  const leadTasks = LEADS.filter((lead) => !lead.lostReason).flatMap((lead) =>
+    tasksOf(lead.id)
+      .filter((task) => task.state !== "done")
+      .map(
+        (task): FollowUp => ({
+          id: task.id,
+          relatedType: "lead",
+          relatedId: lead.id,
+          relatedName: lead.name,
+          summary: task.summary,
+          due: task.due,
+          owner: task.owner,
+          state: task.state,
+          version: 1,
+          canComplete: true,
+        }),
+      ),
+  );
+  const member = devMembers.find((each) => each.id === "5001");
+  const memberTasks: FollowUp[] = member
+    ? [
+        {
+          id: "task-member-5001-1",
+          relatedType: "member",
+          relatedId: member.id,
+          relatedName: member.name,
+          summary: "Call about missed classes",
+          due: dayFromToday(1),
+          owner: UNASSIGNED.owner,
+          state: "planned",
+          version: 1,
+          canComplete: true,
+        },
+      ]
+    : [];
+  return [...leadTasks, ...memberTasks];
 }
 
 // ---------------------------------------------------------------------------

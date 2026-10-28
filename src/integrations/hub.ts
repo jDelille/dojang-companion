@@ -1,3 +1,4 @@
+import type { RosterMember, SessionRoster } from "@/domain/arrivals";
 import {
   explainHubError,
   type PrepareLeadActionPayload,
@@ -137,6 +138,89 @@ export async function getInboxContext(): Promise<InboxContextAnswer> {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Front Desk arrivals: one class's roster (Hub operation "session_roster", a read)
+
+export type SessionRosterAnswer =
+  | { outcome: "loaded"; roster: SessionRoster }
+  | { outcome: "unavailable"; code: string | null; text: string };
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === "object" && !Array.isArray(value);
+const isText = (value: unknown): value is string => typeof value === "string";
+
+function rosterMemberFrom(entry: unknown): RosterMember | null {
+  if (!isObject(entry) || !isText(entry.id) || !isText(entry.name) || !isText(entry.rank) || !isText(entry.attendance)) {
+    return null;
+  }
+  return { id: entry.id, name: entry.name, rank: entry.rank, attendance: entry.attendance };
+}
+
+// The whole roster, or null if any part is unreadable (never a shorter list)
+function rosterFrom(body: unknown): SessionRoster | null {
+  if (!isObject(body) || !isObject(body.session) || !Array.isArray(body.members)) return null;
+  const session = body.session;
+  if (
+    !isText(session.id) ||
+    !isText(session.name) ||
+    !isText(session.startsAt) ||
+    !isText(session.endsAt) ||
+    !(session.instructor === null || isText(session.instructor)) ||
+    !isText(session.state) ||
+    !isText(body.timeZone) ||
+    !isText(body.generatedAt)
+  ) {
+    return null;
+  }
+  const members: RosterMember[] = [];
+  for (const entry of body.members) {
+    const member = rosterMemberFrom(entry);
+    if (!member) return null;
+    members.push(member);
+  }
+  return {
+    session: {
+      id: session.id,
+      name: session.name,
+      startsAt: session.startsAt,
+      endsAt: session.endsAt,
+      instructor: session.instructor,
+      state: session.state,
+    },
+    timeZone: body.timeZone,
+    generatedAt: body.generatedAt,
+    members,
+  };
+}
+
+export async function getSessionRoster(sessionId: string): Promise<SessionRosterAnswer> {
+  let response: Response;
+  let body: unknown;
+  try {
+    response = await fetch("/api/hub", {
+      method: "POST",
+      cache: "no-store",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ operation: "session_roster", payload: { sessionId }, requestKey: null }),
+      signal: AbortSignal.timeout(TIMEOUT_SECONDS * 1000),
+    });
+    body = await response.json();
+  } catch {
+    return { outcome: "unavailable", code: null, text: "Odoo isn't reachable right now." };
+  }
+
+  if (!response.ok) {
+    const code = errorCode(body);
+    return { outcome: "unavailable", code, text: code ? explainHubError(code) : "The class roster couldn't be loaded." };
+  }
+  const roster = rosterFrom(body);
+  // Never show another class's roster under this one
+  if (!roster || roster.session.id !== sessionId) {
+    return { outcome: "unavailable", code: null, text: "Odoo sent a class roster DreamOS can't read." };
+  }
+  return { outcome: "loaded", roster };
+}
+
 // Staff sign-in to the real Hub: the server signs in to Odoo and keeps the
 // session in an HttpOnly cookie. Returns null when signed in, else what went wrong.
 export async function signInToHub(login: string, password: string): Promise<string | null> {
@@ -156,18 +240,26 @@ export async function signInToHub(login: string, password: string): Promise<stri
   }
 }
 
-// Ends the Odoo session and clears the cookie
-export async function signOutOfHub(): Promise<void> {
+// Ends the Odoo session and clears the cookie. True only when the server
+// confirmed it: { signedOut: true }, or SIGN_IN_REQUIRED (this browser had no
+// usable session). Anything else, including no answer, is false: the staff member
+// may still be signed in.
+export async function signOutOfHub(): Promise<boolean> {
   try {
-    await fetch("/api/hub", {
+    const response = await fetch("/api/hub", {
       method: "POST",
       cache: "no-store",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ operation: "logout" }),
       signal: AbortSignal.timeout(TIMEOUT_SECONDS * 1000),
     });
+    const body: unknown = await response.json();
+    if (response.ok) {
+      return !!body && typeof body === "object" && (body as { signedOut?: unknown }).signedOut === true;
+    }
+    return errorCode(body) === "SIGN_IN_REQUIRED";
   } catch {
-    // The cookie expires on its own within two hours
+    return false;
   }
 }
 

@@ -1,5 +1,5 @@
-// DEVELOPMENT-ONLY Hub inbox: the "context" read and the resolve / draft /
-// approve_reply writes, ported from Jodi's dojo_companion_hub (16 Oct 2026):
+// DEVELOPMENT-ONLY Hub inbox: the "context" and "session_roster" reads and the
+// resolve / draft / approve_reply writes, ported from Jodi's dojo_companion_hub (16 Oct 2026):
 // service.py _context, _resolve, _draft, _approve_reply, _message, _binding and
 // _dispatch (request keys); records.py (message, guardian binding, delivery).
 //
@@ -11,6 +11,7 @@
 // One store per server process, on globalThis like kiosk-mock.ts. Restarting the
 // dev server resets it (or DELETE /api/dev/inbox-scenario).
 
+import type { SessionRoster } from "../domain/arrivals";
 import type {
   ApproveReplyResult,
   DeliveryState,
@@ -289,6 +290,34 @@ export function devInboxContext(payload: unknown): ActionAnswer<HubContext> {
         ebGym: "bridge_not_installed",
         productionReady: false,
       },
+    },
+  };
+}
+
+// session_roster: one sample class's booked members (payload { sessionId }).
+// The fixture records no attendance, so everyone is "pending" (not arrived).
+export function devSessionRoster(payload: unknown): ActionAnswer<SessionRoster> {
+  if (!hasExactKeys(payload, ["sessionId"])) return fail("INVALID_COMMAND", 400);
+  const session = store().sessions.find((each) => each.id === payload.sessionId);
+  if (!session) return fail("SESSION_UNAVAILABLE", 404);
+  const members = devMembers
+    .filter((member) => session.memberIds.includes(member.id))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((member) => ({ id: member.id, name: member.name, rank: member.rank.name, attendance: "pending" }));
+  return {
+    status: 200,
+    body: {
+      session: {
+        id: session.id,
+        name: session.title,
+        startsAt: session.start.toISOString(),
+        endsAt: session.end.toISOString(),
+        instructor: null,
+        state: "open",
+      },
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      generatedAt: new Date().toISOString(),
+      members,
     },
   };
 }

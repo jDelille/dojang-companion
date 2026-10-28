@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 import type { CompanionContext, Suggestion } from "@/domain/companion";
 import DoForMeRail, { type RailTab } from "./doForMeRail";
 
@@ -15,8 +23,12 @@ import DoForMeRail, { type RailTab } from "./doForMeRail";
    - Each page says what the rail is focused on with <DoForMeFocus> ("people",
      "member:5001", "sales", "lead:9005") and hands it that focus's context, which
      the page read on the server through src/integrations/companion.ts.
+   - When the page that set a focus goes away (another page, or sign-in / error
+     replacing it), its focus is cleared, so the rail never keeps showing a record
+     that's no longer on screen.
    - The rail keeps its tab and picked task per focus, so going back to a record
-     finds the rail as it was left. The layout isn't re-mounted while staff move
+     finds the rail as it was left. reset() forgets all of it; staff sign-in and
+     sign-out call it (views/shell/staffSession.ts). The layout isn't re-mounted while staff move
      between Dojang pages, so this survives navigation (not a page reload).
    - A page's "Do For Me" button calls useDoForMe().aim(key), like Companion's
      dojang:do-for-me event: the focus's top suggestion opens, otherwise Plan.
@@ -37,11 +49,12 @@ type RailActions = {
   aim: (key: string) => void;
   pickedFor: (key: string) => Suggestion | null;
   settle: (key: string, tab: RailTab) => void;
+  reset: () => void;
 };
 
 // Two contexts: the setter never changes, so pages that only set the focus
 // don't re-run their effect every time the rail changes
-const SetFocusContext = createContext<((focus: Focus) => void) | null>(null);
+const SetFocusContext = createContext<Dispatch<SetStateAction<Focus | null>> | null>(null);
 const ActionsContext = createContext<RailActions | null>(null);
 
 // What the shell needs to draw the rail, and to open or close it
@@ -105,9 +118,15 @@ export function DoForMeProvider({ children }: { children: ReactNode }) {
     update(key, { tab, picked: null });
   }
 
+  // Forget every focus and its tab/picked task (the staff member changed)
+  function reset() {
+    setFocus(null);
+    setStateByKey({});
+  }
+
   return (
     <SetFocusContext.Provider value={setFocus}>
-      <ActionsContext.Provider value={{ aim, pickedFor, settle }}>
+      <ActionsContext.Provider value={{ aim, pickedFor, settle, reset }}>
         <RailViewContext.Provider value={{ focus, current, open, setOpen, showTab, doForMe }}>
           {children}
         </RailViewContext.Provider>
@@ -149,6 +168,8 @@ export function DoForMeFocus({
   const setFocus = useContext(SetFocusContext);
   useEffect(() => {
     setFocus?.({ key: focusKey, context });
+    // Gone from the page: clear the rail, unless another page has focused it since
+    return () => setFocus?.((current) => (current?.key === focusKey ? null : current));
   }, [setFocus, focusKey, context]);
   return null;
 }
@@ -160,5 +181,6 @@ export function useDoForMe(): RailActions {
     aim: (key) => actions?.aim(key),
     pickedFor: (key) => actions?.pickedFor(key) ?? null,
     settle: (key, tab) => actions?.settle(key, tab),
+    reset: () => actions?.reset(),
   };
 }

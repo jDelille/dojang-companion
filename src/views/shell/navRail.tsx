@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { User } from "lucide-react";
+import { roleLabel, type StaffConnection } from "@/domain/staff";
 import { all_routes } from "@/routes/all_routes";
 import { dojangMenu, type SidebarLeaf } from "@/utils/json/sidebarMenu";
+import { useStaffConnection } from "./staffConnection";
 
 /*
    The narrow navigation rail on the far left of the mockup
@@ -30,8 +32,29 @@ function isActive(link: NavLink, pathname: string) {
   return pathname === link.href || (link.matchSubpaths && pathname.startsWith(`${link.href}/`));
 }
 
+// "Jamie Rivera" -> "JR"
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join("");
+}
+
+// What the staff circle at the bottom says (its tooltip and screen-reader label)
+function staffLabel(connection: StaffConnection | null) {
+  if (!connection) return "Staff";
+  if (connection.state === "signedIn") return `${connection.name} · ${roleLabel(connection.role)}`;
+  if (connection.state === "signedOut") return "Not signed in";
+  if (connection.state === "development") return "Development · sample data, not Odoo";
+  return `Odoo unavailable · ${connection.text}`;
+}
+
 export default function NavRail() {
   const pathname = usePathname();
+  const connection = useStaffConnection();
+  const label = staffLabel(connection);
 
   return (
     <nav
@@ -77,14 +100,20 @@ export default function NavRail() {
           })}
         </ul>
 
-        {/* No staff sign-in yet (it will be the Odoo login through the Hub) */}
+        {/* The signed-in staff member (Odoo login through the Hub), or why there's none */}
         <div
           role="img"
-          aria-label="Staff · Not signed in · Development"
-          title="Staff · Not signed in · Development"
+          aria-label={label}
+          title={label}
           className="grid size-10 shrink-0 place-items-center rounded-full border border-(--crm-line) bg-(--crm-raised) text-(--crm-muted)"
         >
-          <User size={16} aria-hidden="true" />
+          {connection?.state === "signedIn" && initials(connection.name) ? (
+            <span className="font-(family-name:--crm-font-label) text-[11px] font-bold text-(--crm-text)">
+              {initials(connection.name)}
+            </span>
+          ) : (
+            <User size={16} aria-hidden="true" />
+          )}
         </div>
       </div>
     </nav>

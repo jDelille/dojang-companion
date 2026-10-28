@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOutOfHub, SIGN_IN_CODES } from "@/integrations/hub";
+import { useMarkSignedOut } from "./staffConnection";
 import StaffSignIn from "./staffSignIn";
+import { useStaffSessionReset } from "./staffSession";
 
 /*
    What a server-rendered page shows when its real Hub read failed: the staff
@@ -14,7 +17,8 @@ export default function HubUnavailable({ code, text }: { code: string; text: str
   const router = useRouter();
 
   if (SIGN_IN_CODES.includes(code)) {
-    return <StaffSignIn onSignedIn={() => router.refresh()} />;
+    // Signing in reloads the page (StaffSignIn), which reads it again
+    return <StaffSignIn />;
   }
   return (
     <div role="alert" className="grid min-h-60 place-items-center p-6 text-center">
@@ -32,19 +36,46 @@ export default function HubUnavailable({ code, text }: { code: string; text: str
   );
 }
 
-// "Sign out" in a page's Odoo banner
-export function HubSignOutButton() {
+// "Sign out" in a page's Odoo banner. Only a confirmed sign-out clears the tabs
+// and the rail, shows "not signed in" in the site control and reloads the page;
+// otherwise it says sign-out didn't complete.
+export function HubSignOutButton({ onSignedOut }: { onSignedOut?: () => void }) {
   const router = useRouter();
+  const resetStaffSession = useStaffSessionReset();
+  const markSignedOut = useMarkSignedOut();
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function signOut() {
+    setBusy(true);
+    setFailed(false);
+    const confirmed = await signOutOfHub();
+    setBusy(false);
+    if (!confirmed) {
+      setFailed(true);
+      return;
+    }
+    resetStaffSession();
+    markSignedOut();
+    if (onSignedOut) onSignedOut();
+    else router.refresh();
+  }
+
   return (
-    <button
-      type="button"
-      onClick={async () => {
-        await signOutOfHub();
-        router.refresh();
-      }}
-      className="font-bold text-(--crm-text) hover:underline"
-    >
-      Sign out
-    </button>
+    <span className="flex items-center gap-3">
+      {failed && (
+        <span role="alert" className="text-(--crm-danger)">
+          Sign-out didn&apos;t complete. You may still be signed in. Try again.
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={signOut}
+        disabled={busy}
+        className="font-bold text-(--crm-text) hover:underline disabled:opacity-50"
+      >
+        {busy ? "Signing out…" : "Sign out"}
+      </button>
+    </span>
   );
 }

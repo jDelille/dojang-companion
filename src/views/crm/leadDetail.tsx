@@ -7,8 +7,9 @@ import { ArrowLeft, Sparkles } from "lucide-react";
 import type { PrepareLeadActionResult } from "@/domain/hubAction";
 import type { LeadDetails, LeadTask } from "@/domain/leadDetails";
 import { useDoForMe } from "@/views/doForMe/doForMeProvider";
+import { HubSignOutButton } from "@/views/shell/hubUnavailable";
 import FollowUpReview, { FollowUpPrepared } from "./followUpReview";
-import { programOf } from "./leadViews";
+import { tagsOf } from "./leadViews";
 import { DateLabel, TimeLabel } from "./localTime";
 
 /*
@@ -97,13 +98,14 @@ function Facts({ facts }: { facts: { label: string; value: React.ReactNode }[] }
 export default function LeadDetail({
   details,
   showsSampleData,
-  peopleFromOdoo,
+  hubMode,
 }: {
   details: LeadDetails;
   showsSampleData: boolean;
-  // People reads real Odoo members (Hub mode) while this lead is sample data:
-  // its member id would open an unrelated real record, so no link
-  peopleFromOdoo: boolean;
+  // DOJANG_HUB_ENABLED=true: the lead is the real Odoo lead (lead_details). The
+  // server's Hub connection is read-only and refuses prepare_lead_action, so the
+  // follow-up review can't offer Apply.
+  hubMode: boolean;
 }) {
   const { lead, tasks, trial, notes, timeline, memberId } = details;
   const doForMe = useDoForMe();
@@ -133,6 +135,12 @@ export default function LeadDetail({
         <p className="border-b border-(--crm-line) px-5 py-3 text-[11px] text-(--crm-text-secondary) sm:px-6">
           Sample lead · Development preview, not connected to Odoo
         </p>
+      )}
+      {hubMode && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-(--crm-line) px-5 py-3 text-[11px] text-(--crm-text-secondary) sm:px-6">
+          <p>Lead from Odoo · Read-only here</p>
+          <HubSignOutButton />
+        </div>
       )}
 
       <article className="p-5 sm:p-6" data-lead-id={lead.id}>
@@ -196,6 +204,9 @@ export default function LeadDetail({
             onDone={followUpDone}
             onCancel={() => doForMe.settle(railKey, "plan")}
             onReload={() => router.refresh()}
+            applyUnavailable={
+              hubMode ? "DreamOS only reads from Odoo for now, so this can't be applied here." : null
+            }
           />
         )}
         {!reviewing && prepared && (
@@ -269,7 +280,11 @@ export default function LeadDetail({
 
             <section className={card} aria-label="Notes">
               <span className={cardLabel}>Notes</span>
-              {notes.length === 0 ? (
+              {notes === null ? (
+                <p className="text-[12px] text-(--crm-muted)">
+                  This Odoo version doesn&apos;t send lead notes. They&apos;re in Odoo.
+                </p>
+              ) : notes.length === 0 ? (
                 <p className="text-[12px] text-(--crm-muted)">No internal notes.</p>
               ) : (
                 <ul>
@@ -293,7 +308,7 @@ export default function LeadDetail({
                 facts={[
                   { label: "Stage", value: lead.stage },
                   { label: "Owner", value: lead.owner },
-                  { label: "Program interest", value: programOf(lead) },
+                  { label: "Tags", value: tagsOf(lead) },
                   { label: "Source", value: lead.source },
                   { label: "Phone", value: lead.phone || NOT_RECORDED },
                   { label: "Email", value: lead.email || NOT_RECORDED },
@@ -318,11 +333,7 @@ export default function LeadDetail({
 
             <section className={card} aria-label="Related person">
               <span className={cardLabel}>Member record</span>
-              {memberId && peopleFromOdoo ? (
-                <p className="text-[12px] text-(--crm-muted)">
-                  Sample lead: its member link isn&apos;t shown while People reads from Odoo.
-                </p>
-              ) : memberId ? (
+              {memberId ? (
                 <Link
                   href={`/people/${memberId}`}
                   className="text-[12px] font-bold text-(--crm-text) underline-offset-4 hover:underline"

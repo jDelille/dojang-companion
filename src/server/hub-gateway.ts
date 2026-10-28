@@ -45,7 +45,12 @@ const TIMEOUT_MS = 45000;
 // The Hub reads DreamOS forwards. Everything else is refused (see above).
 //   context          Inbox, and the People member list
 //   member_details   Member 360 (owner, manager or instructor grants only)
-const FORWARDED_READS = new Set(["context", "member_details"]);
+//   crm_context      the Sales pipeline (payload exactly { query })
+//   lead_details     one lead's record (payload exactly { leadId })
+//   session_roster   one class's booked members and their attendance, for Front
+//                    Desk arrivals (payload exactly { sessionId }; instructors
+//                    only their own classes)
+const FORWARDED_READS = new Set(["context", "member_details", "crm_context", "lead_details", "session_roster"]);
 
 const RESPONSE_HEADERS = { "cache-control": "private, no-store", vary: "Cookie" };
 
@@ -251,10 +256,11 @@ async function forwardRead(
   }
 }
 
-// For server components (People, Member 360): a Hub read as the staff member
-// signed in through /api/hub, from the same sealed cookie. Never a fallback.
+// For server components (People, Member 360, Sales, lead records): a Hub read as
+// the staff member signed in through /api/hub, from the same sealed cookie. Never
+// a fallback.
 export async function readHubAsStaff(
-  operation: "context" | "member_details",
+  operation: "context" | "member_details" | "crm_context" | "lead_details",
   payload: Record<string, unknown>,
 ): Promise<ReadAnswer> {
   let config: Config;

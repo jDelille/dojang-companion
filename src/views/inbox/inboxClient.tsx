@@ -4,12 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import { Inbox as InboxIcon, MessageSquare } from "lucide-react";
 import { focusKey } from "@/domain/companion";
 import type { HubMessage } from "@/domain/inbox";
-import { getInboxContext, signOutOfHub, SIGN_IN_CODES, type InboxContextAnswer } from "@/integrations/hub";
+import { getInboxContext, SIGN_IN_CODES, type InboxContextAnswer } from "@/integrations/hub";
 import { DoForMeFocus, useDoForMe } from "@/views/doForMe/doForMeProvider";
 import { deliveryOf, inboxRailContext, messageRailContext, needsStaff } from "./inboxCompanion";
 import InboxList from "./inboxList";
 import { EmptyState, ErrorBlock, LoadingBlock, Tabs } from "./inboxStates";
+import MemberContextPanel from "./memberContextPanel";
 import MessageView from "./messageView";
+import { HubSignOutButton } from "@/views/shell/hubUnavailable";
 import StaffSignIn from "@/views/shell/staffSignIn";
 
 /*
@@ -24,6 +26,9 @@ import StaffSignIn from "@/views/shell/staffSignIn";
    - "hub": the real Hub in Odoo, after staff sign in. Read-only here: the
      message actions stay off and Do For Me offers none.
    - "fixture": development sample messages, labelled as such.
+
+   Beside the selected message, the Odoo member it's linked to
+   (memberContextPanel.tsx, the same member read as Member 360).
 */
 
 type Filter = "needs" | "replied" | "all";
@@ -68,11 +73,6 @@ export default function InboxClient({
     void load();
   }
 
-  async function signOut() {
-    await signOutOfHub();
-    retry();
-  }
-
   const readOnly = source === "hub";
   const needsSignIn = answer?.outcome === "unavailable" && SIGN_IN_CODES.includes(answer.code ?? "");
   const loaded = answer?.outcome === "loaded" ? answer : null;
@@ -107,9 +107,7 @@ export default function InboxClient({
             Odoo · {context.principal.name} ({context.principal.role}) · site {context.principal.siteId} ·
             Read-only here: resolving, drafting and approving stay in Companion for now.
           </p>
-          <button type="button" onClick={signOut} className="font-bold text-(--crm-text) hover:underline">
-            Sign out
-          </button>
+          <HubSignOutButton onSignedOut={retry} />
         </div>
       )}
 
@@ -127,7 +125,8 @@ export default function InboxClient({
         <header className="mb-4">
           <h1 className="text-xl font-bold leading-tight text-(--crm-text)">Inbox</h1>
           <p className="mt-1 text-sm text-(--crm-text-secondary)">
-            Guardian messages received through WhatsMax, one per row. Replies are reviewed and approved here.
+            Guardian messages received through WhatsMax, one per row.
+            {readOnly ? " Read-only here for now." : " Replies are reviewed and approved here."}
           </p>
         </header>
 
@@ -152,7 +151,9 @@ export default function InboxClient({
             <StaffSignIn onSignedIn={retry} />
           </div>
         ) : (
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[330px_minmax(0,1fr)]">
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[330px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)_18rem]">
+          {/* Messages | message | linked member. The member pane sits under the
+              message until there's room for a third column. */}
           <section
             aria-label="Messages"
             className="flex max-h-[calc(100vh-15rem)] min-h-64 flex-col overflow-hidden rounded-xl border border-(--crm-line) bg-(--crm-panel)"
@@ -196,6 +197,17 @@ export default function InboxClient({
               />
             )}
           </section>
+
+          {context && selected && (
+            <div className="min-w-0 lg:col-start-2 2xl:col-start-3 2xl:row-start-1">
+              <MemberContextPanel
+                key={selected.memberId ?? "none"}
+                message={selected}
+                source={source}
+                staffRole={context.principal.role}
+              />
+            </div>
+          )}
         </div>
         )}
       </div>

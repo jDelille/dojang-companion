@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Lead } from "@/domain/lead";
-import { programOf } from "./leadViews";
+import { tagsOf } from "./leadViews";
 
 /*
    The contextual tray beside the pipeline (Jodi's C03: "Lead inbox + pipeline +
@@ -56,7 +56,7 @@ export default function LeadTray({
               { label: "Phone", value: lead.phone || NOT_RECORDED },
               { label: "Email", value: lead.email || NOT_RECORDED },
               { label: "Owner", value: lead.owner },
-              { label: "Program interest", value: programOf(lead) },
+              { label: "Tags", value: tagsOf(lead) },
               { label: "Source", value: lead.source },
               ...(lead.lostReason ? [{ label: "Lost reason", value: lead.lostReason }] : []),
             ].map((fact) => (

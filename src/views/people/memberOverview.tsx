@@ -10,11 +10,14 @@ import { membershipLabel } from "@/domain/member-presentation";
    left, Training and Progression on the right. Ported from Companion 1cab554b
    src/components/people/member-360/member-grid/MemberGrid.tsx.
 
-   Only real records are shown; anything the source doesn't send says "Not recorded".
+   Only real records are shown. A field DreamOS doesn't receive from its source
+   (the Hub read has no such field, or the fixture leaves it out) says
+   "Not connected": that is DreamOS not knowing, not Odoo recording nothing.
    The ✎ buttons aren't connected yet.
 */
 
-const NOT_RECORDED = "Not recorded";
+const NOT_CONNECTED = "Not connected";
+const NOT_CONNECTED_HINT = "DreamOS doesn't receive this field yet";
 
 const cardLabel =
   "block font-(family-name:--crm-font-label) text-[10px] font-bold uppercase tracking-[0.16em] text-(--crm-muted)";
@@ -32,8 +35,9 @@ function StatList({ stats }: { stats: Stat[] }) {
           {stat.label}
           <div className="flex items-center gap-2 text-right">
             <span
+              title={stat.value === NOT_CONNECTED ? NOT_CONNECTED_HINT : undefined}
               className={
-                stat.value === NOT_RECORDED
+                stat.value === NOT_CONNECTED
                   ? "font-medium text-(--crm-muted)"
                   : "font-bold text-(--crm-text)"
               }
@@ -51,14 +55,21 @@ function StatList({ stats }: { stats: Stat[] }) {
 // One plain sentence from real records only, e.g. "Active member · 4 check-ins this week."
 function storyHeadline(member: Member, attendance: MemberAttendance) {
   const state = `${membershipLabel(member)} member`;
-  const count = attendance.lastSevenDays;
+  const { count, complete } = attendance.lastSevenDays;
+  const checkIns = `${count} ${count === 1 ? "check-in" : "check-ins"}`;
+  // The source's list was cut off (or its limit unknown): the real number may be
+  // higher, so an incomplete 0 is unknown, never "none"
+  if (!complete) {
+    if (count === 0) return `${state} · this week's check-ins can't be counted exactly.`;
+    return `${state} · at least ${checkIns} this week.`;
+  }
   if (count === 0) return `${state} · no check-ins this week.`;
-  return `${state} · ${count} ${count === 1 ? "check-in" : "check-ins"} this week.`;
+  return `${state} · ${checkIns} this week.`;
 }
 
 // "Jan 2025"
 function joinDate(iso?: string) {
-  if (!iso) return NOT_RECORDED;
+  if (!iso) return NOT_CONNECTED;
   return new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", {
     month: "short",
     year: "numeric",
@@ -80,7 +91,17 @@ function DayLabel({ iso }: { iso: string }) {
   return <time dateTime={iso}>{text}</time>;
 }
 
-// The last three check-ins, newest first
+// What Recent says when there are no check-ins to list. Only a complete source
+// confirms there are none (lastSevenDays.complete: the list wasn't cut off and
+// its limit is known); without a history at all, DreamOS doesn't receive it.
+function noRecentText(attendance: MemberAttendance) {
+  if (attendance.history === undefined) return "Check-in history isn't connected.";
+  if (!attendance.lastSevenDays.complete) return "Check-in history couldn't be confirmed.";
+  return "Nothing recorded yet.";
+}
+
+// The last three check-ins, newest first (the newest are always in the source's
+// list, even when it's cut off)
 function recentCheckIns(attendance: MemberAttendance) {
   if (attendance.history?.length) return attendance.history.slice(0, 3);
   if (attendance.latest) return [attendance.latest];
@@ -127,10 +148,10 @@ export default function MemberOverview({
               label: "Attendance",
               value:
                 member.attendanceRate === undefined
-                  ? NOT_RECORDED
+                  ? NOT_CONNECTED
                   : `${Math.round(member.attendanceRate * 100)}%`,
             },
-            { label: "Classes", value: member.classesAttended ?? NOT_RECORDED },
+            { label: "Classes", value: member.classesAttended ?? NOT_CONNECTED },
             { label: "Current rank", value: member.rank.name },
             { label: "Join date", value: joinDate(member.joinedOn) },
           ]}
@@ -159,7 +180,7 @@ export default function MemberOverview({
             ))}
           </ul>
         ) : (
-          <p className="mt-2 text-[13px] text-(--crm-muted)">Nothing recorded yet.</p>
+          <p className="mt-2 text-[13px] text-(--crm-muted)">{noRecentText(attendance)}</p>
         )}
       </section>
 
@@ -171,22 +192,22 @@ export default function MemberOverview({
           stats={[
             {
               label: "Program",
-              value: member.training?.program ?? NOT_RECORDED,
+              value: member.training?.program ?? NOT_CONNECTED,
               action: <EditButton field="program" />,
             },
             {
               label: "Primary instructor",
-              value: member.training?.primaryInstructor ?? NOT_RECORDED,
+              value: member.training?.primaryInstructor ?? NOT_CONNECTED,
               action: <EditButton field="primary instructor" />,
             },
             {
               label: "Team",
-              value: member.training?.team ?? NOT_RECORDED,
+              value: member.training?.team ?? NOT_CONNECTED,
               action: <EditButton field="team" />,
             },
             {
               label: "Home location",
-              value: member.training?.homeLocation ?? NOT_RECORDED,
+              value: member.training?.homeLocation ?? NOT_CONNECTED,
               action: <EditButton field="home location" />,
             },
           ]}

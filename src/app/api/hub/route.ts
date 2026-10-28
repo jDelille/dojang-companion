@@ -7,12 +7,14 @@
 // Two data sources, chosen on the server (src/server/hub-gateway.ts):
 //
 //   DOJANG_HUB_ENABLED=true   the real Hub (Odoo). Staff sign in with their Odoo
-//                             login; READ-ONLY: only "context" is forwarded, every
-//                             write is refused with HUB_READ_ONLY. If Odoo is down or
-//                             sign-in fails, the error is returned as it is. There is
-//                             no fallback to the fixtures.
+//                             login; READ-ONLY: only the reads in hub-gateway.ts's
+//                             FORWARDED_READS go through, every write is refused with
+//                             HUB_READ_ONLY. If Odoo is down or sign-in fails, the
+//                             error is returned as it is. There is no fallback to
+//                             the fixtures.
 //   otherwise                 DEVELOPMENT-ONLY fixtures (503 in production):
-//     context, resolve, draft, approve_reply   src/server/inbox-fixture.ts
+//     context, session_roster,
+//     resolve, draft, approve_reply            src/server/inbox-fixture.ts
 //     prepare_lead_action                      src/server/crm-fixture.ts
 //
 // Screens call it the same way either way (src/integrations/hub.ts).
@@ -24,6 +26,7 @@ import {
   devInboxContext,
   devInboxOutboundSimulated,
   devInboxWrite,
+  devSessionRoster,
   isInboxWrite,
 } from "@/server/inbox-fixture";
 
@@ -72,6 +75,7 @@ export async function POST(request: Request) {
   const { operation, payload, requestKey } = body as Record<string, unknown>;
 
   if (operation === "context") return reply(devInboxContext(payload));
+  if (operation === "session_roster") return reply(devSessionRoster(payload));
 
   if (!isRequestKey(requestKey)) return problem("INVALID_COMMAND", 400);
   if (operation === "prepare_lead_action") return reply(devPrepareLeadAction(payload, requestKey));

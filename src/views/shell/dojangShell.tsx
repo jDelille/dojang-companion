@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import { isDojangPage } from "@/config/dojang";
 import PublicLayout from "@/layout/publicLayout";
 import { ConnectedDoForMeRail } from "@/views/doForMe/doForMeProvider";
+import type { StaffConnection } from "@/domain/staff";
 import { ContextPaneSlot } from "./contextPane";
 import NavRail from "./navRail";
+import { StaffConnectionProvider } from "./staffConnection";
 import TopBar from "./topBar";
 import WorkspaceTabs from "./workspaceTabs";
 
@@ -23,10 +25,20 @@ import WorkspaceTabs from "./workspaceTabs";
    the template shell (sidebar and header).
 */
 
-export default function StaffShell({ children }: { children: ReactNode }) {
+export default function StaffShell({
+  connection,
+  children,
+}: {
+  connection: StaffConnection; // who is signed in (app/(main)/layout.tsx)
+  children: ReactNode;
+}) {
   const pathname = usePathname();
   if (!isDojangPage(pathname)) return <PublicLayout>{children}</PublicLayout>;
-  return <DojangShell>{children}</DojangShell>;
+  return (
+    <StaffConnectionProvider connection={connection}>
+      <DojangShell>{children}</DojangShell>
+    </StaffConnectionProvider>
+  );
 }
 
 function DojangShell({ children }: { children: ReactNode }) {

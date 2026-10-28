@@ -37,6 +37,8 @@ export type LeadDetails = {
   tasks: LeadTask[]; // open ones first, soonest due first (the Hub's order)
   memberId: string | null; // the member this lead is linked to, when there is one
   trial: { title: string; startsAt: string } | null; // the booked trial class
-  notes: LeadNote[]; // newest first
+  // Newest first. null when the Hub didn't send notes (its CRM update isn't
+  // installed): unknown, never "no notes".
+  notes: LeadNote[] | null;
   timeline: LeadTimelineEntry[]; // in the order the Hub sends them
 };

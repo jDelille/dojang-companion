@@ -53,6 +53,7 @@ const MESSAGES: Record<string, string> = {
   MESSAGE_UNAVAILABLE: "This message is unavailable with your current access.",
   MEMBER_UNAVAILABLE: "This student is unavailable with your current access.",
   SESSION_UNAVAILABLE: "This class is unavailable with your current access.",
+  REPORT_TOO_LARGE: "This class has more bookings than Odoo will list at once (500).",
   BACKEND_UNAVAILABLE: "Odoo isn't reachable right now.",
   VERSION_CONFLICT: "This lead changed since you opened it. Reload it and review again.",
   IDEMPOTENCY_CONFLICT: "This request was already used for a different change. Start the review again.",

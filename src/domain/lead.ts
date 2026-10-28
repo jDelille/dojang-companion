@@ -1,7 +1,9 @@
 // A CRM lead as the Sales pipeline (CRM screen C03) shows it. Shaped like the
 // Hub's crm_context read (Companion 1cab554b app/(companion)/hub/CrmWorkspace.tsx;
-// Jodi's dojo_companion_hub models/crm.py _lead_row), without canEditContact
-// and without tasks yet.
+// Jodi's dojo_companion_hub models/crm.py _lead_row), without canEditContact.
+// The read's tasks are the follow-ups (domain/followUp.ts).
+
+import type { FollowUpsRead } from "./followUp";
 
 export type CrmStage = {
   id: string; // Odoo crm.stage id. Never hardcode these: always read them from the context
@@ -38,7 +40,8 @@ export type Lead = {
   owner: string;
   source: string; // "Website", "Walk-in", "Referral"…
   // PROVISIONAL: the Hub sends interests as lead tags ("All tags / interests").
-  // The Program filter reads them until there's an agreed program field.
+  // Odoo's tags mix programs, sources and ages, so screens show them as "Tags"
+  // until there's an agreed program field.
   tags: LeadTag[];
   evidence?: LeadEvidence; // absent when the Hub's CRM update isn't installed
   // PROVISIONAL: Odoo marks a lost lead by archiving it with a lost reason, so Lost
@@ -46,8 +49,15 @@ export type Lead = {
   lostReason?: string;
 };
 
+// Someone CRM work can be assigned to (crm_context.assignees: the site's owner
+// and manager grants). Read for the follow-up owner filter, and for assigning
+// leads and tasks once those writes are enabled.
+export type CrmAssignee = { id: string; name: string };
+
 export type CrmContext = {
   stages: CrmStage[]; // in pipeline order
   leads: Lead[];
   moreLeads: boolean; // true when the Hub capped the list (it sends the latest 100)
+  followUps: FollowUpsRead; // open tasks on leads and members (domain/followUp.ts)
+  assignees: CrmAssignee[] | null; // null when this Hub version doesn't send them
 };
