@@ -7,9 +7,10 @@
 // Two data sources, chosen on the server (src/server/hub-gateway.ts):
 //
 //   DOJANG_HUB_ENABLED=true   the real Hub (Odoo). Staff sign in with their Odoo
-//                             login; READ-ONLY: only the reads in hub-gateway.ts's
-//                             FORWARDED_READS go through, every write is refused with
-//                             HUB_READ_ONLY. If Odoo is down or sign-in fails, the
+//                             login; an allowlist: only hub-gateway.ts's
+//                             FORWARDED_READS and FORWARDED_ACTIONS (prepare_lead_action,
+//                             kind follow_up) go through, every other operation is
+//                             refused with HUB_READ_ONLY. If Odoo is down or sign-in fails, the
 //                             error is returned as it is. There is no fallback to
 //                             the fixtures.
 //   otherwise                 DEVELOPMENT-ONLY fixtures (503 in production):

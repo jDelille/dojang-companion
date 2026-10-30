@@ -7,6 +7,7 @@ import type { Lead } from "@/domain/lead";
 import {
   explainHubError,
   newRequestKey,
+  type PrepareLeadActionPayload,
   type PrepareLeadActionResult,
 } from "@/domain/hubAction";
 import { prepareLeadAction } from "@/integrations/hub";
@@ -95,15 +96,12 @@ export default function FollowUpReview({
   onDone,
   onCancel,
   onReload,
-  applyUnavailable,
 }: {
   lead: Lead;
   suggestion: Suggestion;
   onDone: (result: PrepareLeadActionResult) => void;
   onCancel: () => void;
   onReload: () => void; // fetch the lead again (after a conflict)
-  // Why Apply can't run here (the read-only Hub connection), or null when it can
-  applyUnavailable: string | null;
 }) {
   const [reason, setReason] = useState(suggestion.explanation.slice(0, 800));
   const [due, setDue] = useState(tomorrow);
@@ -112,15 +110,21 @@ export default function FollowUpReview({
   // One key per attempt; kept only while the result is unconfirmed
   const requestKey = useRef<string | null>(null);
 
+  // The request sent with that key. A retry after an unconfirmed result resends
+  // exactly this, so the Hub can replay its first save instead of making a
+  // second task (a changed request under the same key would be refused).
+  const sentPayload = useRef<PrepareLeadActionPayload | null>(null);
+
   const reasonValid = reason.trim().length >= 1 && reason.trim().length <= 800;
   const dueValid = /^\d{4}-\d{2}-\d{2}$/.test(due);
   const pending = status === "pending";
+  // Reason and due can't change while a request may already be saved
+  const locked = pending || status === "notConfirmed";
 
   async function apply() {
-    requestKey.current ??= newRequestKey();
-    setStatus("pending");
-    const answer = await prepareLeadAction(
-      {
+    if (!requestKey.current || !sentPayload.current) {
+      requestKey.current = newRequestKey();
+      sentPayload.current = {
         leadId: lead.id,
         // The version this page shows. If someone changed the lead since, the Hub
         // answers VERSION_CONFLICT and nothing is saved.
@@ -128,20 +132,23 @@ export default function FollowUpReview({
         kind: "follow_up",
         reason: reason.trim(),
         due,
-      },
-      requestKey.current,
-    );
+      };
+    }
+    setStatus("pending");
+    const answer = await prepareLeadAction(sentPayload.current, requestKey.current);
 
     if (answer.outcome === "done") {
       requestKey.current = null;
+      sentPayload.current = null;
       onDone(answer.result);
       return;
     }
     if (answer.outcome === "notConfirmed") {
-      setStatus("notConfirmed"); // keep the key: the retry must be the same request
+      setStatus("notConfirmed"); // keep the key and request: the retry must be the same
       return;
     }
     requestKey.current = null; // a definite "no": a new try is a new request
+    sentPayload.current = null;
     setErrorCode(answer.code);
     setStatus(answer.code === "VERSION_CONFLICT" ? "conflict" : "failed");
   }
@@ -150,6 +157,9 @@ export default function FollowUpReview({
     onReload();
     setStatus("review");
   }
+
+  // A proposal from a fixed Odoo rule (domain/leadFollowUp.ts), not AI
+  const fixedRule = suggestion.basis === "rule";
 
   // What will change, with the due date staff chose
   const preview = [
@@ -160,12 +170,21 @@ export default function FollowUpReview({
   return (
     <section
       aria-label="Review follow-up"
-      className="mb-6 rounded-xl border border-(--crm-agent)/50 bg-(--crm-panel) p-5"
+      className={`mb-6 rounded-xl border bg-(--crm-panel) p-5 ${
+        fixedRule ? "border-(--crm-line)" : "border-(--crm-agent)/50"
+      }`}
     >
-      <span className={`${cardLabel} flex items-center gap-1.5 text-(--crm-agent)`}>
-        <Sparkles size={11} aria-hidden="true" />
-        Do For Me · Review before saving
-      </span>
+      {/* A fixed rule gets no AI styling (no ✦, no AI colour) and says what it is */}
+      {fixedRule ? (
+        <span className={`${cardLabel} text-(--crm-muted)`}>
+          Do For Me · Review before saving · Fixed Odoo rule · Not AI
+        </span>
+      ) : (
+        <span className={`${cardLabel} flex items-center gap-1.5 text-(--crm-agent)`}>
+          <Sparkles size={11} aria-hidden="true" />
+          Do For Me · Review before saving
+        </span>
+      )}
       <h2 className="text-[15px] font-bold text-(--crm-text)">{suggestion.title}</h2>
       <p className="mt-1 mb-4 text-[12px] leading-relaxed text-(--crm-text-secondary)">
         {suggestion.explanation}
@@ -182,7 +201,7 @@ export default function FollowUpReview({
             onChange={(event) => setReason(event.target.value)}
             maxLength={800}
             rows={3}
-            disabled={pending}
+            disabled={locked}
             className={`${field} mt-1 resize-y`}
           />
         </label>
@@ -192,7 +211,7 @@ export default function FollowUpReview({
             type="date"
             value={due}
             onChange={(event) => setDue(event.target.value)}
-            disabled={pending}
+            disabled={locked}
             className={`${field} mt-1`}
           />
         </label>
@@ -218,26 +237,17 @@ export default function FollowUpReview({
         {status === "notConfirmed" && (
           <p className="mb-3 text-(--crm-text)">
             No answer came back, so the task may or may not have been saved. Try again
-            sends the same request: if it was saved, nothing is created twice.
+            sends the same request (the reason and due date stay as they were): if it
+            was saved, nothing is created twice.
           </p>
         )}
       </div>
-
-      {applyUnavailable && (
-        <p role="note" className="mb-3 text-[12px] text-(--crm-text-secondary)">
-          {applyUnavailable}
-        </p>
-      )}
 
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={onCancel} disabled={pending} className={secondaryButton}>
           Cancel
         </button>
-        {applyUnavailable ? (
-          <button type="button" disabled title={applyUnavailable} className={primaryButton}>
-            {suggestion.actionLabel}
-          </button>
-        ) : status === "conflict" ? (
+        {status === "conflict" ? (
           <button type="button" onClick={reload} className={secondaryButton}>
             Reload lead
           </button>

@@ -106,6 +106,7 @@ export function closeWorkspaceTab(href: string) {
 
 // Which tab a Dojang page gets. Query values (/inbox?message=4001) don't make a new tab.
 export function tabForPage(pathname: string): PageTab | null {
+  if (pathname === "/today") return { href: pathname, label: "Today", final: true };
   if (pathname === "/people") return { href: pathname, label: "People", final: true };
   if (/^\/people\/[^/]+$/.test(pathname)) return { href: pathname, label: "Member", final: false };
   if (pathname === "/crm") return { href: pathname, label: "Sales", final: true };

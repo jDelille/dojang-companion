@@ -5,14 +5,15 @@
 // and Maya's suggestion). As there, the facts are built from the records
 // themselves (sample members and leads), never from mockup numbers. Suggestions:
 // Maya's (from Companion), and a lead follow-up wherever the Hub's lead evidence
-// recommends one (followUpSuggestion). It maps to the Hub's prepare_lead_action.
+// recommends one (the shared fixed rule in domain/leadFollowUp.ts, the same one
+// Odoo leads use). It maps to the Hub's prepare_lead_action.
 
 import type {
   CompanionContext,
   CompanionFocus,
   Suggestion,
 } from "../domain/companion";
-import type { LeadDetails, LeadTask } from "../domain/leadDetails";
+import { leadCompanionContext } from "../domain/leadFollowUp";
 import { membershipLabel } from "../domain/member-presentation";
 import { devCrmContext, devLeadDetails } from "./crm-fixture";
 import { devMembers } from "./member-fixture";
@@ -98,89 +99,11 @@ function salesContext(): CompanionContext {
   };
 }
 
-// "Confirm trial with guardian · due today"
-function describeTask(task: LeadTask) {
-  if (task.state === "today") return `${task.summary} · due today`;
-  if (task.state === "overdue") return `${task.summary} · overdue`;
-  return `${task.summary} · due ${task.due}`;
-}
-
-// PROPOSED (DreamOS) rule for suggesting a lead follow-up: the Hub's own lead
-// evidence recommends one (nextAction "follow_up") and no open next action is
-// recorded. Built only from that evidence and the lead record; nothing is sent.
-function followUpSuggestion(details: LeadDetails): Suggestion | null {
-  const { lead, trial } = details;
-  const evidence = lead.evidence;
-  if (!evidence || lead.lostReason) return null;
-  if (evidence.nextAction !== "follow_up" || evidence.openTasks > 0) return null;
-  if (evidence.journey === "Won" || evidence.journey === "Lost") return null;
-
-  return {
-    id: `lead-follow-up:${lead.id}`,
-    title: `Prepare a follow-up for ${lead.name}`,
-    explanation: `${evidence.priorityReason} ${lead.name} is at ${lead.stage}, owned by ${lead.owner}${
-      trial ? `, after a ${trial.title} trial` : ""
-    }. A follow-up task records the next step for staff.`,
-    actionLabel: "Prepare follow-up task",
-    capability: "crm.lead.prepare_follow_up",
-    risk: "low",
-    review: "page",
-    preview: [
-      { label: "Creates", value: "One internal task on this lead in Odoo" },
-      { label: "Task", value: `Prepare follow-up: ${lead.name}` },
-      { label: "Assigned to", value: "You" },
-      { label: "Message", value: "None. Nothing is sent to the lead." },
-      { label: "Stage, booking, membership", value: "Unchanged" },
-    ],
-    evidence: [
-      { label: "Priority", value: `${evidence.priority} · ${evidence.priorityReason}` },
-      { label: "Recommended next action", value: "Follow-up" },
-      { label: "Stage", value: lead.stage },
-      { label: "Owner", value: lead.owner },
-      { label: "Open tasks", value: String(evidence.openTasks) },
-      { label: "Trial linked", value: evidence.trialLinked ? "Yes" : "No" },
-    ],
-  };
-}
-
+// A sample lead's context: the same shared rule and context as an Odoo lead
+// (domain/leadFollowUp.ts), from the sample lead's record
 function leadContext(leadId: string): CompanionContext | null {
   const details = devLeadDetails(leadId);
-  if (!details) return null;
-  const { lead, tasks, trial, timeline } = details;
-  const nextTask = tasks.find((task) => task.state !== "done");
-  const suggestion = followUpSuggestion(details);
-
-  // History: the Hub's receipts for Do For Me's lead write
-  const receipts = timeline
-    .filter((entry) => entry.action === "prepare_lead_action")
-    .map((entry) => ({
-      id: entry.id,
-      suggestionId: `lead-follow-up:${lead.id}`,
-      summary: "Prepared a follow-up task (no message sent)",
-      actor: entry.actor,
-      at: entry.at,
-    }));
-
-  const intel = [
-    { label: "Stage", value: lead.lostReason ? `Lost · ${lead.stage}` : lead.stage },
-    { label: "Owner", value: lead.owner },
-    { label: "Next action", value: nextTask ? describeTask(nextTask) : "No open tasks" },
-    { label: "Trial", value: trial ? trial.title : "Not booked" },
-  ];
-  if (lead.evidence) {
-    intel.push({ label: "Priority", value: `${lead.evidence.priority} · ${lead.evidence.priorityReason}` });
-  }
-
-  return {
-    suggestions: [],
-    receipts,
-    label: `Lead context · ${lead.name}`,
-    intelTitle: "Lead",
-    intel,
-    featured: suggestion
-      ? { suggestion, summary: lead.evidence?.priorityReason ?? suggestion.explanation }
-      : undefined,
-  };
+  return details ? leadCompanionContext(details) : null;
 }
 
 // null for an unknown member or lead: a context never borrows another record's tasks

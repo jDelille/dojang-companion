@@ -13,8 +13,9 @@ import type { CompanionContext, Suggestion } from "@/domain/companion";
    One rail for the whole Dojang staff layout: doForMeProvider.tsx holds what it's
    focused on and its tab/picked task per focus.
 
-   Read-only for now: Plan, Work, Evidence and History show what the context
-   says, but nothing can be applied and the agent can't be asked yet.
+   Plan, Work, Evidence and History show what the context says. Nothing is
+   applied from the rail itself and the agent can't be asked yet; the one action
+   (a lead's follow-up, a fixed Odoo rule) is reviewed and applied on the lead page.
 */
 
 export type RailTab = "plan" | "work" | "evidence" | "history";
@@ -74,7 +75,10 @@ function SuggestedCard({
 
   return (
     <div className="rounded-xl bg-(--crm-raised) p-4">
-      <p className="text-[12px] text-(--crm-text-secondary)">Suggested</p>
+      {/* Says when it's a fixed rule over Odoo's records, so it never reads as AI */}
+      <p className="text-[12px] text-(--crm-text-secondary)">
+        {suggestion.basis === "rule" ? "Fixed Odoo rule · Not AI" : "Suggested"}
+      </p>
       <h4 className="mt-1 text-[13px] font-bold text-(--crm-text)">{suggestion.title}</h4>
       <p className="mt-1.5 text-[12px] leading-relaxed text-(--crm-muted)">{summary}</p>
       <div className="mt-3 flex gap-2">

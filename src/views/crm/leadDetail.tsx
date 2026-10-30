@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import type { PrepareLeadActionResult } from "@/domain/hubAction";
+import { FOLLOW_UP_CAPABILITY } from "@/domain/leadFollowUp";
 import type { LeadDetails, LeadTask } from "@/domain/leadDetails";
 import { useDoForMe } from "@/views/doForMe/doForMeProvider";
 import { HubSignOutButton } from "@/views/shell/hubUnavailable";
@@ -20,14 +21,12 @@ import { DateLabel, TimeLabel } from "./localTime";
    body, related records) and Roster's contact page (activity on the left,
    summary on the right).
 
-   The one write: a Do For Me lead follow-up (followUpReview.tsx), reviewed and
-   applied here, which creates an internal task through the Hub's
-   prepare_lead_action. Edit, draft response, booking, notes and the rest stay off.
-   "Do For Me" in the header focuses the shared rail on this lead.
+   The one write: a Do For Me lead follow-up (followUpReview.tsx; the fixed
+   rule in domain/leadFollowUp.ts proposes it), reviewed and applied here, which
+   creates an internal task through the Hub's prepare_lead_action, in Hub mode
+   and with sample data alike. Edit, draft response, booking, notes and the
+   rest stay off. "Do For Me" in the header focuses the shared rail on this lead.
 */
-
-// The suggestion the page reviews itself (see companion-fixture.ts followUpSuggestion)
-const FOLLOW_UP_CAPABILITY = "crm.lead.prepare_follow_up";
 
 const NOT_CONNECTED = "Not connected yet";
 const NOT_RECORDED = "Not recorded";
@@ -103,8 +102,8 @@ export default function LeadDetail({
   details: LeadDetails;
   showsSampleData: boolean;
   // DOJANG_HUB_ENABLED=true: the lead is the real Odoo lead (lead_details). The
-  // server's Hub connection is read-only and refuses prepare_lead_action, so the
-  // follow-up review can't offer Apply.
+  // server forwards only one write, prepare_lead_action (kind follow_up), so the
+  // follow-up review's Apply is the only change this page can make in Odoo.
   hubMode: boolean;
 }) {
   const { lead, tasks, trial, notes, timeline, memberId } = details;
@@ -138,7 +137,7 @@ export default function LeadDetail({
       )}
       {hubMode && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-(--crm-line) px-5 py-3 text-[11px] text-(--crm-text-secondary) sm:px-6">
-          <p>Lead from Odoo · Read-only here</p>
+          <p>Lead from Odoo · Only Do For Me&apos;s follow-up task can be saved here</p>
           <HubSignOutButton />
         </div>
       )}
@@ -204,9 +203,6 @@ export default function LeadDetail({
             onDone={followUpDone}
             onCancel={() => doForMe.settle(railKey, "plan")}
             onReload={() => router.refresh()}
-            applyUnavailable={
-              hubMode ? "DreamOS only reads from Odoo for now, so this can't be applied here." : null
-            }
           />
         )}
         {!reviewing && prepared && (

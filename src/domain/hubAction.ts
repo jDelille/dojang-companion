@@ -70,8 +70,8 @@ const MESSAGES: Record<string, string> = {
   SIGN_IN_FAILED_OR_MFA_REQUIRED:
     "Sign-in failed. Check the login and password. Accounts that need two-factor sign-in can't sign in here yet.",
   NO_SITE_ACCESS: "This Odoo account has no Companion access for this site.",
-  // DreamOS only reads from the real Hub for now
-  HUB_READ_ONLY: "DreamOS only reads from Odoo for now. Nothing was changed.",
+  // The server's allowlist refused it (src/server/hub-gateway.ts): not a change DreamOS makes yet
+  HUB_READ_ONLY: "DreamOS can't make this change in Odoo yet. Nothing was changed.",
 };
 
 export function explainHubError(code: string) {

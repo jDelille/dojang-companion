@@ -18,6 +18,9 @@ export type Suggestion = {
   // the evidence (Jodi's 19 Oct Do For Me spec). Otherwise Work shows the review.
   review?: "page";
   evidence?: { label: string; value: string }[]; // the records the suggestion is based on
+  // "rule": a fixed rule over Odoo's records (domain/leadFollowUp.ts), not AI.
+  // The rail and the review say so and don't use AI styling for it.
+  basis?: "rule";
 };
 
 // Comes back from the approvals route once one exists. Never built in the browser.

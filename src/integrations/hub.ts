@@ -15,8 +15,9 @@ import type {
 } from "@/domain/inbox";
 
 // The only place screens send Hub actions from (browser side). Calls POST /api/hub
-// with Companion's body. That route answers from the real Hub (Odoo, read-only,
-// after staff sign-in) or from the development fixtures, chosen on the server.
+// with Companion's body. That route answers from the real Hub (Odoo, after staff
+// sign-in; only the server's allowlisted reads and actions) or from the
+// development fixtures, chosen on the server.
 
 // What a screen does next:
 //   done          the Hub saved it (or replayed the earlier save of this key)

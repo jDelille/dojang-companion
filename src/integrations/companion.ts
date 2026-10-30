@@ -5,14 +5,17 @@ import { devCompanionContext } from "@/server/companion-fixture";
 import { hubEnabled } from "@/server/hub-gateway";
 import { getMemberRecord, getMembers } from "./member";
 
-// The only place the Do For Me rail gets its context from. Runs on the server.
+// Where the Do For Me rail gets its context from. Runs on the server.
 //
 // In Hub mode (DOJANG_HUB_ENABLED=true) the People and member focuses are built
 // only from the real Odoo records People already read (src/integrations/member.ts):
-// facts, no suggestions and no actions, because DreamOS is read-only there and
-// the Hub sends no suggestions. Sales and lead focuses get no context there yet
-// (never fixture suggestions beside real leads). Otherwise everything comes from the fixture
+// facts, no suggestions and no actions, because the Hub sends no suggestions.
+// The sales focus gets no context there yet (never fixture suggestions beside
+// real leads). Otherwise everything comes from the fixture
 // (src/server/companion-fixture.ts), outside production only.
+//
+// One lead's context isn't read here: the lead page builds it from the
+// lead_details it already read, Odoo or sample alike (domain/leadFollowUp.ts).
 
 const USES_SAMPLE_CONTEXT = process.env.NODE_ENV !== "production";
 
@@ -84,8 +87,8 @@ export async function getCompanionContext(
       const answer = await getMemberRecord(focus.memberId);
       return answer.outcome === "loaded" ? realMemberContext(answer.member, answer.attendance) : null;
     }
-    // Sales and lead suggestions aren't connected to Odoo yet: no fixture
-    // context beside real leads
+    // Sales suggestions aren't connected to Odoo yet: no fixture context beside
+    // real leads. (A lead's context comes from its page, see above.)
     if (focus.kind === "sales" || focus.kind === "lead") return null;
   }
   if (USES_SAMPLE_CONTEXT) {

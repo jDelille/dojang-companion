@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getPageMetadata } from "@/config/metadata";
 import { focusKey, type CompanionFocus } from "@/domain/companion";
-import { getCompanionContext } from "@/integrations/companion";
+import { leadCompanionContext } from "@/domain/leadFollowUp";
 import { getLeadDetails, USES_SAMPLE_LEADS } from "@/integrations/crm";
 import { DoForMeFocus } from "@/views/doForMe/doForMeProvider";
 import { hubEnabled } from "@/server/hub-gateway";
@@ -37,11 +37,13 @@ export default async function LeadPage({
 
   const details = answer.details;
   const focus: CompanionFocus = { kind: "lead", leadId: details.lead.id };
-  const companion = await getCompanionContext(focus);
+  // Do For Me's lead context and its fixed-rule follow-up proposal, built from
+  // this same lead_details read (Odoo or sample), never a second read
+  const companion = leadCompanionContext(details);
 
   return (
     <>
-      {companion && <DoForMeFocus focusKey={focusKey(focus)} context={companion} />}
+      <DoForMeFocus focusKey={focusKey(focus)} context={companion} />
       <WorkspaceTabName label={details.lead.name} />
       <LeadDetail details={details} showsSampleData={USES_SAMPLE_LEADS} hubMode={hubEnabled()} />
     </>

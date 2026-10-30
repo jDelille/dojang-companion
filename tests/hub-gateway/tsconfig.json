@@ -1,0 +1,16 @@
+{
+  "//": "Compiles src/server/hub-gateway.ts for tools/test-hub-gateway.sh (outDir comes from the runner). Not used by Next or npm run typecheck.",
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "skipLibCheck": true,
+    "baseUrl": "../..",
+    "paths": { "@/*": ["src/*"] },
+    "rootDir": "../../src"
+  },
+  "files": ["../../src/server/hub-gateway.ts"]
+}

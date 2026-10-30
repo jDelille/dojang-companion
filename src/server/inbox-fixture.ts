@@ -54,7 +54,8 @@ type GuardianBinding = {
   version: number;
 };
 
-type Session = { id: string; title: string; start: Date; end: Date; memberIds: string[] };
+// instructor: null when the class has none assigned (as session_roster sends it)
+type Session = { id: string; title: string; start: Date; end: Date; memberIds: string[]; instructor: string | null };
 
 // The message as Odoo stores it; the context read turns it into a HubMessage
 type StoredMessage = Omit<HubMessage, "guardianName"> & { bindingContactRef: string | null };
@@ -89,12 +90,15 @@ function at(dayOffset: number, hour: number, minute: number) {
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
 
 function freshStore(): InboxStore {
+  // Master Kim teaches Children Advanced (as in the other fixtures). Today's
+  // Children Beginner has no instructor assigned, so Today's coverage check has
+  // one real case to show.
   const sessions: Session[] = [
-    { id: "6101", title: "Children Advanced", start: at(0, 17, 45), end: at(0, 18, 45), memberIds: ["5001", "5006"] },
-    { id: "6102", title: "Children Beginner", start: at(0, 17, 0), end: at(0, 17, 45), memberIds: ["5002"] },
-    { id: "6103", title: "Pee Wee", start: at(1, 16, 15), end: at(1, 17, 0), memberIds: ["5003"] },
-    { id: "6104", title: "Children Advanced", start: at(1, 17, 45), end: at(1, 18, 45), memberIds: ["5001", "5006"] },
-    { id: "6105", title: "Children Beginner", start: at(1, 17, 0), end: at(1, 17, 45), memberIds: ["5002"] },
+    { id: "6101", title: "Children Advanced", start: at(0, 17, 45), end: at(0, 18, 45), memberIds: ["5001", "5006"], instructor: "Master Kim" },
+    { id: "6102", title: "Children Beginner", start: at(0, 17, 0), end: at(0, 17, 45), memberIds: ["5002"], instructor: null },
+    { id: "6103", title: "Pee Wee", start: at(1, 16, 15), end: at(1, 17, 0), memberIds: ["5003"], instructor: "Master Kim" },
+    { id: "6104", title: "Children Advanced", start: at(1, 17, 45), end: at(1, 18, 45), memberIds: ["5001", "5006"], instructor: "Master Kim" },
+    { id: "6105", title: "Children Beginner", start: at(1, 17, 0), end: at(1, 17, 45), memberIds: ["5002"], instructor: "Master Kim" },
   ];
 
   const messages: StoredMessage[] = [
@@ -312,7 +316,8 @@ export function devSessionRoster(payload: unknown): ActionAnswer<SessionRoster> 
         name: session.title,
         startsAt: session.start.toISOString(),
         endsAt: session.end.toISOString(),
-        instructor: null,
+        // ?? null: a store made before sessions had instructors (a running dev server)
+        instructor: session.instructor ?? null,
         state: "open",
       },
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,

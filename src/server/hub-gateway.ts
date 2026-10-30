@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
+import { isRequestKey } from "@/domain/hubAction";
 
 /*
    The real Hub connection: DreamOS server -> Odoo's POST /companion/hub/action
@@ -20,10 +21,13 @@ import { cookies } from "next/headers";
    components reading as the same signed-in staff member (readHubAsStaff), which
    reads the same cookie. There is no other sign-in path.
 
-   READ-ONLY in DreamOS for now: only the reads below are forwarded. Every write
-   (resolve, draft, approve_reply, prepare_lead_action, …) is refused here with
-   HUB_READ_ONLY before it reaches Odoo, so no reply can be queued and nothing
-   can be dispatched from DreamOS.
+   An allowlist, narrower than the Hub: only the reads below and the governed
+   actions in FORWARDED_ACTIONS are forwarded. Every other operation (resolve,
+   draft, approve_reply, complete_task, …) is refused here with HUB_READ_ONLY
+   before it reaches Odoo, so no reply can be queued and nothing can be
+   dispatched from DreamOS. For an allowed action the Hub still decides
+   everything: who the actor is, their role and site, the record's scope and
+   version, the request key's replay, the receipt and the Odoo change itself.
 
    Settings (server environment, never NEXT_PUBLIC_):
      DOJANG_HUB_ENABLED      "true" selects the Hub; otherwise the development fixtures
@@ -51,6 +55,29 @@ const TIMEOUT_MS = 45000;
 //                    Desk arrivals (payload exactly { sessionId }; instructors
 //                    only their own classes)
 const FORWARDED_READS = new Set(["context", "member_details", "crm_context", "lead_details", "session_roster"]);
+
+const isRecordId = (value: unknown) => typeof value === "string" && /^[1-9][0-9]{0,9}$/.test(value);
+
+// The governed actions (Hub writes) DreamOS forwards, each with the exact payload
+// it may carry. Everything else stays refused. Each needs a request key.
+//   prepare_lead_action   Do For Me's lead follow-up: one internal task on the
+//                         lead (crm.py _prepare_lead_action). Only kind
+//                         "follow_up"; no message, stage, booking or membership.
+const FORWARDED_ACTIONS = new Map<string, (payload: Record<string, unknown>) => boolean>([
+  [
+    "prepare_lead_action",
+    (payload) =>
+      Object.keys(payload).sort().join() === "due,expectedVersion,kind,leadId,reason" &&
+      isRecordId(payload.leadId) &&
+      Number.isSafeInteger(payload.expectedVersion) &&
+      payload.kind === "follow_up" &&
+      typeof payload.reason === "string" &&
+      payload.reason.trim().length >= 1 &&
+      payload.reason.trim().length <= 800 &&
+      typeof payload.due === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(payload.due),
+  ],
+]);
 
 const RESPONSE_HEADERS = { "cache-control": "private, no-store", vary: "Cookie" };
 
@@ -223,18 +250,23 @@ async function signOut(config: Config, session: string) {
 
 type ReadAnswer = { ok: true; result: Record<string, unknown> } | { ok: false; code: string; status: number };
 
-// One Hub read as the signed-in staff member, with the configured site
-async function forwardRead(
+// One Hub call as the signed-in staff member, with the configured site: a read
+// (requestKey null) or an allowed action (its request key, passed through as is,
+// so a retry with the same key replays the Hub's first result). If Odoo doesn't
+// answer, an action may still have been saved: BACKEND_UNAVAILABLE tells the
+// screen to retry with the same key, never a new one.
+async function forward(
   config: Config,
   session: string,
   operation: string,
   payload: Record<string, unknown>,
+  requestKey: string | null,
 ): Promise<ReadAnswer> {
   try {
     const { result } = await rpc(
       config,
       "/companion/hub/action",
-      { siteId: config.siteId, operation, payload, requestKey: null },
+      { siteId: config.siteId, operation, payload, requestKey },
       session,
     );
     if (!isObject(result)) throw Error("Invalid result");
@@ -273,7 +305,7 @@ export async function readHubAsStaff(
   const sealed = cookieStore.get(COOKIE_NAME)?.value;
   const session = sealed ? unseal(config, sealed) : null;
   if (!session) return { ok: false, code: "SIGN_IN_REQUIRED", status: 401 };
-  return forwardRead(config, session, operation, payload);
+  return forward(config, session, operation, payload, null);
 }
 
 // POST /api/hub when the Hub is the data source
@@ -308,10 +340,18 @@ export async function hubRoute(request: Request): Promise<Response> {
   if (Object.keys(data).sort().join() !== "operation,payload,requestKey" || !isObject(data.payload)) {
     return problem("INVALID_COMMAND", 400);
   }
-  if (!FORWARDED_READS.has(operation)) return problem("HUB_READ_ONLY", 403);
-  if (data.requestKey !== null) return problem("INVALID_COMMAND", 400);
+  let requestKey: string | null = null;
+  const actionAllows = FORWARDED_ACTIONS.get(operation);
+  if (actionAllows) {
+    // An allowed action: a request key and exactly its payload, or it never reaches Odoo
+    if (!isRequestKey(data.requestKey) || !actionAllows(data.payload)) return problem("INVALID_COMMAND", 400);
+    requestKey = data.requestKey;
+  } else {
+    if (!FORWARDED_READS.has(operation)) return problem("HUB_READ_ONLY", 403);
+    if (data.requestKey !== null) return problem("INVALID_COMMAND", 400);
+  }
 
-  const answer = await forwardRead(config, session, operation, data.payload);
+  const answer = await forward(config, session, operation, data.payload, requestKey);
   if (answer.ok) return Response.json(answer.result, { headers: RESPONSE_HEADERS });
   // A session Odoo no longer knows: also drop the stale cookie
   const clear: Record<string, string> =
