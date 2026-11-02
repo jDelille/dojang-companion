@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { useDoForMe } from "@/views/doForMe/doForMeProvider";
+import { clearPerspective } from "./currentPerspective";
 import { clearWorkspaceTabs } from "./openTabs";
 import { useMarkSignedOut } from "./staffConnection";
 
@@ -9,10 +10,12 @@ import { useMarkSignedOut } from "./staffConnection";
 // the Hub saying nobody is signed in any more): the open record tabs and
 // everything the Do For Me rail remembers. Both can hold member names, so they
 // must not carry over to the next staff member or stay on screen signed out.
+// The chosen Perspective goes too: it was that staff member's choice.
 export function useStaffSessionReset() {
   const doForMe = useDoForMe();
   return () => {
     clearWorkspaceTabs();
+    clearPerspective();
     doForMe.reset();
   };
 }

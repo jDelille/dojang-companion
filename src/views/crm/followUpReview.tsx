@@ -244,7 +244,9 @@ export default function FollowUpReview({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={onCancel} disabled={pending} className={secondaryButton}>
+        {/* Not while unconfirmed: closing the review would drop the request key,
+            and reopening it would send a new one (a second task if the first saved) */}
+        <button type="button" onClick={onCancel} disabled={locked} className={secondaryButton}>
           Cancel
         </button>
         {status === "conflict" ? (

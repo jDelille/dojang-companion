@@ -317,7 +317,7 @@ Odoo
 
 Inbox can render real Hub messages after staff authentication.
 
-Hub mode is intentionally READ-ONLY in DreamOS at this stage.
+Hub mode is intentionally read-only in DreamOS at this stage, with one explicit exception: the gateway (`src/server/hub-gateway.ts`, `FORWARDED_ACTIONS`) forwards a single write, `prepare_lead_action` with `kind: "follow_up"` and exactly `{ leadId, expectedVersion, kind, reason, due }` plus a request key, which creates one internal follow-up task on the lead (see section 11). Every other write (including Inbox resolve/draft/approve_reply) is refused with `HUB_READ_ONLY` before it reaches Odoo.
 
 Do not enable resolve/draft/approve/send simply because corresponding UI or fixture behavior exists.
 

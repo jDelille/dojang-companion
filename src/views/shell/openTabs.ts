@@ -114,5 +114,6 @@ export function tabForPage(pathname: string): PageTab | null {
   if (/^\/crm\/leads\/[^/]+$/.test(pathname)) return { href: pathname, label: "Lead", final: false };
   if (pathname === "/inbox") return { href: pathname, label: "Inbox", final: true };
   if (pathname === "/front-desk") return { href: pathname, label: "Front Desk", final: true };
+  if (pathname === "/instructor") return { href: pathname, label: "Instructor", final: true };
   return null;
 }

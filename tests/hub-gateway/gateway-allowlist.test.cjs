@@ -163,6 +163,19 @@ test("existing reads still go through with a null request key", async () => {
   assert.equal(keyed.status, 400); // reads never carry a request key
 });
 
+// A Perspective is presentation only (src/domain/perspective.ts): it can never
+// ride along to Odoo as an extra field, on a read or a write
+test("a perspective sent with a request is refused before Odoo", async () => {
+  const read = await post({ operation: "context", payload: {}, requestKey: null, perspective: "executive" }, cookie);
+  assert.equal(read.status, 400);
+  const write = await post(
+    { operation: "prepare_lead_action", payload: PAYLOAD, requestKey: KEY, perspective: "frontDesk" },
+    cookie,
+  );
+  assert.equal(write.status, 400);
+  assert.equal(hubCalls.length, 0);
+});
+
 test("an action without a sign-in is refused", async () => {
   const response = await post({ operation: "prepare_lead_action", payload: PAYLOAD, requestKey: KEY });
   assert.equal(response.status, 401);

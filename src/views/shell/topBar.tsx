@@ -3,11 +3,12 @@
 import { Plus, Sparkles } from "lucide-react";
 import { useDoForMeRailOpen } from "@/views/doForMe/doForMeProvider";
 import CommandPalette from "./commandPalette";
+import PerspectiveSwitcher from "./perspectiveSwitcher";
 import SiteControl from "./siteControl";
 
 /*
    The bar above the page in the mockup (Desktop/vercel-design-1.png) and the
-   WhatsMax writeup: [site ▾] [Search, navigate, or ask AI…] [⌘K] [+]. The
+   WhatsMax writeup: [site ▾] [perspective ▾] [Search, navigate, or ask AI…] [⌘K] [+]. The
    command bar (commandPalette.tsx) finds people, leads and pages; its actions
    beyond Open, Ask AI and live views are shown as not connected yet.
 */
@@ -20,6 +21,7 @@ export default function TopBar() {
   return (
     <header className="flex items-center gap-3 border-b border-(--crm-line) px-4 py-3">
       <SiteControl />
+      <PerspectiveSwitcher />
       <CommandPalette />
 
       <button

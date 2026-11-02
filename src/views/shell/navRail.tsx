@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { User } from "lucide-react";
+import { homeRoute } from "@/domain/perspective";
 import { roleLabel, type StaffConnection } from "@/domain/staff";
 import { all_routes } from "@/routes/all_routes";
 import { dojangMenu, type SidebarLeaf } from "@/utils/json/sidebarMenu";
+import { useCurrentPerspective } from "./currentPerspective";
 import { useStaffConnection } from "./staffConnection";
 
 /*
@@ -13,6 +15,9 @@ import { useStaffConnection } from "./staffConnection";
    (Desktop/vercel-design-1.png): the Dojang mark, one tile per section (two
    letters over the name), and the staff member at the bottom. Only the sections
    that exist are listed (the same dojangMenu as the template sidebar).
+
+   The Dojang mark is Home: the chosen Perspective's default dashboard
+   (domain/perspective.ts), or the general portal's when none is chosen.
 */
 
 type NavLink = { label: string; href: string; matchSubpaths: boolean };
@@ -54,6 +59,7 @@ function staffLabel(connection: StaffConnection | null) {
 export default function NavRail() {
   const pathname = usePathname();
   const connection = useStaffConnection();
+  const perspective = useCurrentPerspective();
   const label = staffLabel(connection);
 
   return (
@@ -64,7 +70,7 @@ export default function NavRail() {
       <div className="sticky top-0 flex h-dvh flex-col items-center gap-4 py-4 lg:h-full">
         {/* Dojang mark: the black square "D" from Companion's sidebar */}
         <Link
-          href="/"
+          href={homeRoute(perspective)}
           aria-label="Dojang home"
           className="grid size-10 shrink-0 place-items-center rounded-xl border border-(--crm-line) bg-black text-[17px] font-black text-white"
         >

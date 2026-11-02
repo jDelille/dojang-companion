@@ -15,7 +15,7 @@ import { useStaffConnection } from "./staffConnection";
      rail's staff circle.
    - signed out, Odoo unavailable and development sample data say so here,
      so sample data is never mistaken for Odoo.
-   No perspective switch yet: which perspectives go with which roles isn't agreed.
+   The Perspective switcher sits beside it (perspectiveSwitcher.tsx).
 */
 
 const box =
