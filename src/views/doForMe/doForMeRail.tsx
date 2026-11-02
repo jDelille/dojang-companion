@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowUp, Sparkles, X } from "lucide-react";
 import type { CompanionContext, Suggestion } from "@/domain/companion";
+import AgentConversation from "./agentConversation";
 
 /*
    The Do For Me rail (Jodi's mockup, Desktop/inspiration/jodi-1.png and jodi-2.png;
@@ -14,8 +15,10 @@ import type { CompanionContext, Suggestion } from "@/domain/companion";
    focused on and its tab/picked task per focus.
 
    Plan, Work, Evidence and History show what the context says. Nothing is
-   applied from the rail itself and the agent can't be asked yet; the one action
-   (a lead's follow-up, a fixed Odoo rule) is reviewed and applied on the lead page.
+   applied from the rail itself; the one action (a lead's follow-up, a fixed
+   Odoo rule) is reviewed and applied on the lead page. "Ask the agent" is
+   agentConversation.tsx: quick asks answer from the context (not AI), typed
+   questions go to /api/companion/ask, which has no agent connected yet.
 */
 
 export type RailTab = "plan" | "work" | "evidence" | "history";
@@ -33,7 +36,8 @@ const RISK_LABELS = {
   high: "High risk",
 };
 
-const NOT_CONNECTED = "Not connected yet";
+// The composer with no record in focus: nothing to ask about
+const NO_FOCUS = "Open a record to ask about it";
 
 const sectionLabel =
   "mb-2 block font-(family-name:--crm-font-label) text-[10px] font-bold uppercase tracking-[0.16em]";
@@ -300,9 +304,10 @@ type Props = {
   onTab: (tab: RailTab) => void;
   onDoForMe: (suggestion: Suggestion) => void;
   onClose: () => void;
+  focusKey: string | null; // the focus the conversation belongs to
 };
 
-export default function DoForMeRail({ context, tab, picked, onTab, onDoForMe, onClose }: Props) {
+export default function DoForMeRail({ context, tab, picked, onTab, onDoForMe, onClose, focusKey }: Props) {
   // Evidence is about the picked task, or this focus's top suggestion
   const evidenceFor =
     picked ?? context?.featured?.suggestion ?? context?.suggestions[0] ?? null;
@@ -311,6 +316,7 @@ export default function DoForMeRail({ context, tab, picked, onTab, onDoForMe, on
     <aside
       id="do-for-me-rail"
       aria-label="Do For Me"
+      tabIndex={-1}
       className="crm-scope flex min-h-0 min-w-0 flex-col border-t border-(--crm-line) bg-(--crm-canvas) lg:h-full lg:w-[17rem] lg:border-t-0 lg:border-l"
     >
       <header className="flex items-center justify-between gap-2 px-5 pt-5">
@@ -327,6 +333,7 @@ export default function DoForMeRail({ context, tab, picked, onTab, onDoForMe, on
           <X size={15} aria-hidden="true" />
         </button>
       </header>
+
 
       <div
         role="tablist"
@@ -387,28 +394,37 @@ export default function DoForMeRail({ context, tab, picked, onTab, onDoForMe, on
         )}
       </div>
 
-      {/* "Ask the agent", as in the mockup. Off until the agent is connected. */}
-      <form className="p-4" onSubmit={(event) => event.preventDefault()}>
-        <label className="flex items-center gap-2 rounded-xl border border-(--crm-line) bg-(--crm-canvas) py-1.5 pr-1.5 pl-3">
-          <span className="sr-only">Ask the agent</span>
-          <input
-            type="text"
-            disabled
-            placeholder="Ask the agent..."
-            title={NOT_CONNECTED}
-            className="min-w-0 flex-1 bg-transparent text-[12px] text-(--crm-text) placeholder:text-(--crm-muted) focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled
-            aria-label="Send"
-            title={NOT_CONNECTED}
-            className="grid size-8 place-items-center rounded-lg bg-(--crm-agent) text-white opacity-60"
-          >
-            <ArrowUp size={14} aria-hidden="true" />
-          </button>
-        </label>
-      </form>
+      {/* "Ask the agent", as in the mockup: the conversation for this focus.
+          Keyed by the focus, so another record never shows this one's turns. */}
+      {context && focusKey ? (
+        <AgentConversation
+          key={focusKey}
+          focusKey={focusKey}
+          onReview={onDoForMe}
+        />
+      ) : (
+        <form className="p-4" onSubmit={(event) => event.preventDefault()}>
+          <label className="flex items-center gap-2 rounded-xl border border-(--crm-line) bg-(--crm-canvas) py-1.5 pr-1.5 pl-3">
+            <span className="sr-only">Ask the agent</span>
+            <input
+              type="text"
+              disabled
+              placeholder="Ask the agent..."
+              title={NO_FOCUS}
+              className="min-w-0 flex-1 bg-transparent text-[12px] text-(--crm-text) placeholder:text-(--crm-muted) focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled
+              aria-label="Send"
+              title={NO_FOCUS}
+              className="grid size-8 place-items-center rounded-lg bg-(--crm-agent) text-white opacity-60"
+            >
+              <ArrowUp size={14} aria-hidden="true" />
+            </button>
+          </label>
+        </form>
+      )}
     </aside>
   );
 }

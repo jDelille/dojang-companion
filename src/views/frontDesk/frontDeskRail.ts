@@ -34,7 +34,7 @@ export function deskRailContext(crm: CrmRead): CompanionContext {
 
   return {
     label: "Front desk context",
-    intelTitle: due.length === 0 ? "No tasks due" : `${count} ${due.length === 1 ? "task" : "tasks"} due`,
+    intelTitle: due.length === 0 ? read.moreTasks ? "No due tasks in the partial response" : "No tasks due" : `${count} ${due.length === 1 ? "task" : "tasks"} due`,
     intel: [],
     links: due.slice(0, LINKS_SHOWN).map((task) => ({
       id: task.id,

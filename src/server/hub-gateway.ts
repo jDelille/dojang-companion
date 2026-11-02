@@ -1,6 +1,9 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { isRequestKey } from "@/domain/hubAction";
+import { isCompanionPayload } from "@/domain/companionHub";
+import { isAddLeadNotePayload, isCompleteTaskPayload, isCompletedTaskResult, isSavedLeadNoteResult } from "@/domain/crmWrites";
 
 /*
    The real Hub connection: DreamOS server -> Odoo's POST /companion/hub/action
@@ -23,7 +26,7 @@ import { isRequestKey } from "@/domain/hubAction";
 
    An allowlist, narrower than the Hub: only the reads below and the governed
    actions in FORWARDED_ACTIONS are forwarded. Every other operation (resolve,
-   draft, approve_reply, complete_task, …) is refused here with HUB_READ_ONLY
+   draft, approve_reply, create_task, …) is refused here with HUB_READ_ONLY
    before it reaches Odoo, so no reply can be queued and nothing can be
    dispatched from DreamOS. For an allowed action the Hub still decides
    everything: who the actor is, their role and site, the record's scope and
@@ -54,16 +57,20 @@ const TIMEOUT_MS = 45000;
 //   session_roster   one class's booked members and their attendance, for Front
 //                    Desk arrivals (payload exactly { sessionId }; instructors
 //                    only their own classes)
-const FORWARDED_READS = new Set(["context", "member_details", "crm_context", "lead_details", "session_roster"]);
+const FORWARDED_READS = new Set(["context", "member_details", "crm_context", "lead_details", "session_roster", "companion_ask"]);
 
-const isRecordId = (value: unknown) => typeof value === "string" && /^[1-9][0-9]{0,9}$/.test(value);
+const isRecordId = (value: unknown): value is string => typeof value === "string" && /^[1-9][0-9]{0,9}$/.test(value);
 
 // The governed actions (Hub writes) DreamOS forwards, each with the exact payload
 // it may carry. Everything else stays refused. Each needs a request key.
+//   complete_task         manually completable internal task, task version + feedback
+//   add_lead_note         internal-only lead note, lead version; no notifications
 //   prepare_lead_action   Do For Me's lead follow-up: one internal task on the
 //                         lead (crm.py _prepare_lead_action). Only kind
 //                         "follow_up"; no message, stage, booking or membership.
 const FORWARDED_ACTIONS = new Map<string, (payload: Record<string, unknown>) => boolean>([
+  ["complete_task", isCompleteTaskPayload],
+  ["add_lead_note", isAddLeadNotePayload],
   [
     "prepare_lead_action",
     (payload) =>
@@ -248,7 +255,9 @@ async function signOut(config: Config, session: string) {
   );
 }
 
-type ReadAnswer = { ok: true; result: Record<string, unknown> } | { ok: false; code: string; status: number };
+export type ReadAnswer = { ok: true; result: Record<string, unknown> } | { ok: false; code: string; status: number };
+type StaffReadOperation = "context" | "member_details" | "crm_context" | "lead_details" | "companion_ask";
+export type HubStaffRead = (operation: StaffReadOperation, payload: Record<string, unknown>) => Promise<ReadAnswer>;
 
 // One Hub call as the signed-in staff member, with the configured site: a read
 // (requestKey null) or an allowed action (its request key, passed through as is,
@@ -291,10 +300,11 @@ async function forward(
 // For server components (People, Member 360, Sales, lead records): a Hub read as
 // the staff member signed in through /api/hub, from the same sealed cookie. Never
 // a fallback.
-export async function readHubAsStaff(
-  operation: "context" | "member_details" | "crm_context" | "lead_details",
-  payload: Record<string, unknown>,
-): Promise<ReadAnswer> {
+export async function requireHubStaff(): Promise<
+  | { ok: true; read: HubStaffRead }
+  | { ok: false; code: string; status: number }
+> {
+  if (!hubEnabled()) return { ok: false, code: "HUB_NOT_CONFIGURED", status: 503 };
   let config: Config;
   try {
     config = hubConfig();
@@ -305,7 +315,17 @@ export async function readHubAsStaff(
   const sealed = cookieStore.get(COOKIE_NAME)?.value;
   const session = sealed ? unseal(config, sealed) : null;
   if (!session) return { ok: false, code: "SIGN_IN_REQUIRED", status: 401 };
-  return forward(config, session, operation, payload, null);
+  return { ok: true, read: (operation, payload) => {
+    if (operation === "companion_ask" && !isCompanionPayload(payload)) {
+      return Promise.resolve({ ok: false, code: "INVALID_COMMAND", status: 400 });
+    }
+    return forward(config, session, operation, payload, null);
+  } };
+}
+
+export async function readHubAsStaff(operation: StaffReadOperation, payload: Record<string, unknown>): Promise<ReadAnswer> {
+  const staff = await requireHubStaff();
+  return staff.ok ? staff.read(operation, payload) : staff;
 }
 
 // POST /api/hub when the Hub is the data source
@@ -349,10 +369,32 @@ export async function hubRoute(request: Request): Promise<Response> {
   } else {
     if (!FORWARDED_READS.has(operation)) return problem("HUB_READ_ONLY", 403);
     if (data.requestKey !== null) return problem("INVALID_COMMAND", 400);
+    if (operation === "companion_ask" && !isCompanionPayload(data.payload)) return problem("INVALID_COMMAND", 400);
   }
 
   const answer = await forward(config, session, operation, data.payload, requestKey);
-  if (answer.ok) return Response.json(answer.result, { headers: RESPONSE_HEADERS });
+  if (answer.ok) {
+    // Invalidate only after an identity-checked authoritative receipt. Reads
+    // remain no-store; the caller also refreshes its current server components.
+    const result = answer.result;
+    const returnedLeadId = result.leadId;
+    const returnedMemberId = result.memberId;
+    let leadId: string | undefined;
+    let memberId: string | undefined;
+    if (operation === "add_lead_note" && isAddLeadNotePayload(data.payload) && isSavedLeadNoteResult(result, data.payload.leadId)) leadId = data.payload.leadId;
+    if (operation === "complete_task" && isCompleteTaskPayload(data.payload)) {
+      if (isRecordId(returnedLeadId) && isCompletedTaskResult(result, data.payload.taskId, { kind: "lead", id: returnedLeadId })) leadId = returnedLeadId;
+      if (isRecordId(returnedMemberId) && isCompletedTaskResult(result, data.payload.taskId, { kind: "member", id: returnedMemberId })) memberId = returnedMemberId;
+    }
+    if (leadId || memberId) {
+      revalidatePath("/crm");
+      revalidatePath("/crm/follow-ups");
+      revalidatePath("/front-desk");
+      if (leadId) revalidatePath(`/crm/leads/${leadId}`);
+      if (memberId) revalidatePath(`/people/${memberId}`);
+    }
+    return Response.json(result, { headers: RESPONSE_HEADERS });
+  }
   // A session Odoo no longer knows: also drop the stale cookie
   const clear: Record<string, string> =
     answer.code === "SIGN_IN_REQUIRED" ? { "set-cookie": sessionCookie(config, "", 0) } : {};

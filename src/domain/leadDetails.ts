@@ -2,8 +2,8 @@ import type { Lead } from "./lead";
 
 // One lead's detail record (CRM screen C04). Shaped like the Hub's lead_details
 // read (Jodi's dojo_companion_hub models/crm.py _lead_details, 16 Oct 2026),
-// without the write-only fields (versions, canComplete) and without stages,
-// which only a stage proposal needs.
+// including task versions/manual-completion permission. Stages are omitted;
+// only a stage proposal needs them.
 
 // An Odoo activity (mail.activity) on the lead
 export type LeadTask = {
@@ -13,6 +13,8 @@ export type LeadTask = {
   owner: string;
   state: "overdue" | "today" | "planned" | "done";
   feedback: string; // what staff recorded when it was done; "" otherwise
+  version?: number; // missing on legacy reads: completion must stay unavailable
+  canComplete?: boolean; // authoritative manual-completion permission
 };
 
 // A note staff left on the lead

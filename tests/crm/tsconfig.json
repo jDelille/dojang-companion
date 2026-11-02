@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "skipLibCheck": true,
+    "baseUrl": "../..",
+    "paths": { "@/*": ["src/*"] },
+    "rootDir": "../../src"
+  },
+  "files": ["../../src/domain/leadOrganization.ts", "../../src/domain/memberReadPresentation.ts", "../../src/domain/doForMeActivation.ts", "../../src/integrations/crm.ts", "../../src/integrations/member.ts", "../../src/integrations/crmWrites.ts"]
+}

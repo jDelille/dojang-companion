@@ -9,7 +9,7 @@
 //   DOJANG_HUB_ENABLED=true   the real Hub (Odoo). Staff sign in with their Odoo
 //                             login; an allowlist: only hub-gateway.ts's
 //                             FORWARDED_READS and FORWARDED_ACTIONS (prepare_lead_action,
-//                             kind follow_up) go through, every other operation is
+//                             kind follow_up, complete_task, add_lead_note) go through; other operations are
 //                             refused with HUB_READ_ONLY. If Odoo is down or sign-in fails, the
 //                             error is returned as it is. There is no fallback to
 //                             the fixtures.

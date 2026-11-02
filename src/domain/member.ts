@@ -19,6 +19,9 @@ export type Member = {
   id: string; // in Hub mode, the Odoo dojo.member id (the same id the Inbox links to)
   memberNumber?: string; // not in the Hub's member reads
   name: string;
+  // Only present when the authoritative read supplies a visible contact field.
+  email?: string;
+  phone?: string;
   membershipState: MembershipState;
   rank: Rank;
   householdName?: string; // "Chen Family"

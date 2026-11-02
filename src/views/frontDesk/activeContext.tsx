@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Pencil, Sparkles } from "lucide-react";
 import type { HubMessage } from "@/domain/inbox";
@@ -8,7 +8,10 @@ import type { MemberBooking } from "@/domain/member";
 import { memberInitials, membershipLabel } from "@/domain/member-presentation";
 import type { MemberRecordAnswer } from "@/integrations/member";
 import { readMemberForInbox } from "@/integrations/memberForInbox";
-import { useDoForMeRailOpen } from "@/views/doForMe/doForMeProvider";
+import { DoForMeFocus, useDoForMe } from "@/views/doForMe/doForMeProvider";
+import { memberCompanionContext } from "@/domain/memberCompanion";
+import StaffSignIn from "@/views/shell/staffSignIn";
+import { SIGN_IN_CODES } from "@/integrations/hub";
 import { senderName } from "@/views/inbox/inboxCompanion";
 
 /*
@@ -20,7 +23,7 @@ import { senderName } from "@/views/inbox/inboxCompanion";
    the mockup's; only ✦ (open Do For Me) works, the rest are not connected yet.
 */
 
-export type ActiveContextItem = { kind: "member"; memberId: string } | { kind: "message"; message: HubMessage } | null;
+export type ActiveContextItem = { kind: "member"; memberId: string; message?: HubMessage } | { kind: "message"; message: HubMessage } | null;
 
 const NOT_CONNECTED = "Not connected yet";
 
@@ -38,10 +41,10 @@ function classTime(iso: string) {
   return `${time.toLocaleDateString([], { weekday: "short" })} ${clock}`;
 }
 
-function nextClass(bookings: MemberBooking[] | undefined) {
+function nextClass(bookings: MemberBooking[] | undefined, capped?: boolean) {
   if (!bookings) return { text: "Unavailable", title: "This read didn't include bookings" };
   const next = [...bookings].sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))[0];
-  if (!next) return { text: "None booked", title: undefined };
+  if (!next) return { text: capped ? "Unknown" : "None booked", title: capped ? "The booking list may be incomplete" : undefined };
   return { text: classTime(next.startsAt), title: next.title };
 }
 
@@ -58,7 +61,8 @@ function Tile({ label, value, title, muted }: { label: string; value: string; ti
 
 function MemberCard({ memberId }: { memberId: string }) {
   const [answer, setAnswer] = useState<MemberRecordAnswer | null>(null); // null while loading
-  const [, setRailOpen] = useDoForMeRailOpen();
+  const doForMe = useDoForMe();
+  const companion = useMemo(() => answer?.outcome === "loaded" ? memberCompanionContext(answer.member, answer.attendance) : null, [answer]);
 
   // One read per member; the card is keyed by the member id, so a new member starts from "loading"
   useEffect(() => {
@@ -81,17 +85,19 @@ function MemberCard({ memberId }: { memberId: string }) {
     return <p className="text-[12px] text-(--crm-text-secondary)">Member #{memberId} isn&apos;t in the member records.</p>;
   }
   if (answer.outcome === "unavailable") {
+    if (SIGN_IN_CODES.includes(answer.code)) return <StaffSignIn onSignedIn={() => { void readMemberForInbox(memberId).then(setAnswer); }} />;
     return <p role="alert" className="text-[12px] text-(--crm-text-secondary)">The member couldn&apos;t be shown. {answer.text}</p>;
   }
 
   const { member } = answer;
   const stripes = member.rank.stripes;
   const subtitle = stripes === undefined ? member.rank.name : `${member.rank.name} · ${stripes} ${stripes === 1 ? "stripe" : "stripes"}`;
-  const next = nextClass(member.bookings);
+  const next = nextClass(member.bookings, member.bookingsCapped);
   const active = member.membershipState === "active";
 
   return (
     <>
+      {companion && <DoForMeFocus focusKey={`member:${member.id}`} context={companion} />}
       <div className="flex items-start gap-4">
         <span
           aria-hidden="true"
@@ -135,9 +141,9 @@ function MemberCard({ memberId }: { memberId: string }) {
         </button>
         <button
           type="button"
-          onClick={() => setRailOpen(true)}
-          aria-label="Open Do For Me"
-          title="Open Do For Me"
+          onClick={() => doForMe.aim(`member:${member.id}`)}
+          aria-label={`Ask Companion about ${member.name}`}
+          title="Ask Companion about this member"
           className={`${actionButton} hover:border-(--crm-muted)`}
         >
           <Sparkles size={13} aria-hidden="true" className="text-(--crm-agent)" />
@@ -168,7 +174,15 @@ export default function ActiveContext({ item }: { item: ActiveContextItem }) {
           </Link>
         </div>
       ) : (
-        <MemberCard key={item.memberId} memberId={item.memberId} />
+        <>
+          {item.message && (
+            <div className="mb-4 rounded-lg border border-(--crm-line) bg-(--crm-raised) p-3">
+              <p className="text-[12px] text-(--crm-text-secondary)">Message from {senderName(item.message)} · linked by Hub member identity</p>
+              <Link href={`/inbox?message=${item.message.id}`} className="mt-2 inline-block text-[12px] font-bold text-(--crm-text) underline underline-offset-4">Open this request in Inbox →</Link>
+            </div>
+          )}
+          <MemberCard key={item.memberId} memberId={item.memberId} />
+        </>
       )}
     </section>
   );

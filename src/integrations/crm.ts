@@ -107,7 +107,7 @@ function leadFromContext(entry: unknown): Lead | null {
     !isText(entry.contact) ||
     !isText(entry.email) ||
     !isText(entry.phone) ||
-    typeof entry.version !== "number" ||
+    !isCount(entry.version) ||
     !isTextOrNull(entry.stageId) ||
     !isText(entry.stage) ||
     !isTextOrNull(entry.ownerId) ||
@@ -161,7 +161,7 @@ function followUpFromContext(entry: unknown): FollowUp | null {
     !isText(entry.due) ||
     !isText(entry.owner) ||
     !FOLLOW_UP_STATES.includes(state) ||
-    typeof entry.version !== "number" ||
+    !isCount(entry.version) ||
     typeof entry.canComplete !== "boolean"
   ) {
     return null;
@@ -246,7 +246,7 @@ const TASK_STATES: LeadTask["state"][] = ["overdue", "today", "planned", "done"]
 // One entry of lead_details.tasks: { id, relatedType, relatedId, relatedName,
 // summary, due, owner, state, version, canComplete, feedback }. Only the fields
 // the lead page shows.
-function taskFromDetails(entry: unknown): LeadTask | null {
+function taskFromDetails(entry: unknown, leadId: string): LeadTask | null {
   if (!isObject(entry)) return null;
   const state = entry.state as LeadTask["state"];
   if (
@@ -259,7 +259,16 @@ function taskFromDetails(entry: unknown): LeadTask | null {
   ) {
     return null;
   }
-  return { id: entry.id, summary: entry.summary, due: entry.due, owner: entry.owner, state, feedback: entry.feedback };
+  if (entry.version !== undefined && !isCount(entry.version)) return null;
+  if (entry.canComplete !== undefined && typeof entry.canComplete !== "boolean") return null;
+  if (entry.relatedType !== undefined && entry.relatedType !== "lead") return null;
+  if (entry.relatedId !== undefined && entry.relatedId !== leadId) return null;
+  // A completion control requires explicit authoritative task-to-lead identity.
+  const canComplete = entry.canComplete === true && entry.relatedType === "lead" && entry.relatedId === leadId;
+  return { id: entry.id, summary: entry.summary, due: entry.due, owner: entry.owner, state, feedback: entry.feedback,
+    ...(typeof entry.version === "number" ? { version: entry.version } : {}),
+    ...(typeof entry.canComplete === "boolean" ? { canComplete } : {}),
+  };
 }
 
 // One entry of lead_details.notes: { id, text, author, at }
@@ -308,7 +317,7 @@ const readHubLead = cache(async (id: string): Promise<LeadDetailsAnswer> => {
   const result = answer.result;
 
   const lead = leadFromContext(result.lead);
-  const tasks = listFrom(result.tasks, taskFromDetails);
+  const tasks = listFrom(result.tasks, (entry) => taskFromDetails(entry, id));
   const timeline = listFrom(result.timeline, timelineEntryFromDetails);
   const trial = trialFromDetails(result.trial);
   // Notes came with a later Hub update: absent means unknown, not none
@@ -328,9 +337,20 @@ const readHubLead = cache(async (id: string): Promise<LeadDetailsAnswer> => {
 
 // The Sales pipeline: stages and open leads (in Hub mode: the latest 100 this
 // staff member's grant can see on this site)
-export async function getCrmContext(): Promise<CrmAnswer> {
-  if (hubEnabled()) return readHubCrm("");
-  if (USES_SAMPLE_LEADS) return { outcome: "loaded", context: devCrmContext() };
+export async function getCrmContext(query = ""): Promise<CrmAnswer> {
+  const wanted = query.trim();
+  if (wanted.length > QUERY_LIMIT) return unavailable("INVALID_COMMAND");
+  if (hubEnabled()) return readHubCrm(wanted);
+  if (USES_SAMPLE_LEADS) {
+    const context = devCrmContext();
+    if (wanted) {
+      const lowered = wanted.toLowerCase();
+      context.leads = context.leads.filter((lead) => !lead.lostReason && (
+        lead.name.toLowerCase().includes(lowered) || lead.contact.toLowerCase().includes(lowered)
+      ));
+    }
+    return { outcome: "loaded", context };
+  }
   throw new Error(NOT_CONNECTED);
 }
 

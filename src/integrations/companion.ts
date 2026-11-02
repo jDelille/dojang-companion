@@ -1,6 +1,6 @@
 import type { CompanionContext, CompanionFocus } from "@/domain/companion";
-import type { Member, MemberAttendance, WindowCount } from "@/domain/member";
-import { membershipLabel } from "@/domain/member-presentation";
+import type { Member } from "@/domain/member";
+import { memberCompanionContext } from "@/domain/memberCompanion";
 import { devCompanionContext } from "@/server/companion-fixture";
 import { hubEnabled } from "@/server/hub-gateway";
 import { getMemberRecord, getMembers } from "./member";
@@ -19,9 +19,6 @@ import { getMemberRecord, getMembers } from "./member";
 
 const USES_SAMPLE_CONTEXT = process.env.NODE_ENV !== "production";
 
-const READ_ONLY_GUIDANCE =
-  "Read-only connection: this is the member's Odoo record. Do For Me has no suggestions or actions here yet.";
-
 function realPeopleContext(members: Member[]): CompanionContext {
   const count = (state: string) => members.filter((member) => member.membershipState === state).length;
   return {
@@ -38,40 +35,6 @@ function realPeopleContext(members: Member[]): CompanionContext {
   };
 }
 
-// "4" (exact), "at least 30" when the source's list was cut off, and "Not known
-// exactly" for an incomplete 0, which is unknown, never "none"
-function countText(value: WindowCount) {
-  if (value.complete) return String(value.count);
-  if (value.count === 0) return "Not known exactly";
-  return `at least ${value.count}`;
-}
-
-function realMemberContext(member: Member, attendance: MemberAttendance): CompanionContext {
-  const rank =
-    member.rank.stripes === undefined
-      ? member.rank.name
-      : `${member.rank.name} · ${member.rank.stripes} ${member.rank.stripes === 1 ? "stripe" : "stripes"}`;
-  const intel = [
-    { label: "Membership", value: membershipLabel(member) },
-    { label: "Rank", value: rank },
-    { label: "Check-ins, last 7 days", value: countText(attendance.lastSevenDays) },
-  ];
-  // Left out when the bookings couldn't be read (never a stand-in 0)
-  if (member.bookings) {
-    intel.push({
-      label: "Upcoming bookings",
-      value: countText({ count: member.bookings.length, complete: !member.bookingsCapped }),
-    });
-  }
-  return {
-    label: `Member context · ${member.name}`,
-    intelTitle: "Member intelligence",
-    intel,
-    guidance: READ_ONLY_GUIDANCE,
-    suggestions: [],
-    receipts: [],
-  };
-}
 
 // The context for one focus, or null when its member or lead doesn't exist or
 // can't be read (the page shows why)
@@ -85,7 +48,7 @@ export async function getCompanionContext(
     }
     if (focus.kind === "member") {
       const answer = await getMemberRecord(focus.memberId);
-      return answer.outcome === "loaded" ? realMemberContext(answer.member, answer.attendance) : null;
+      return answer.outcome === "loaded" ? memberCompanionContext(answer.member, answer.attendance) : null;
     }
     // Sales suggestions aren't connected to Odoo yet: no fixture context beside
     // real leads. (A lead's context comes from its page, see above.)

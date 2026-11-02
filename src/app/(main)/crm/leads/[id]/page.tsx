@@ -45,7 +45,7 @@ export default async function LeadPage({
     <>
       <DoForMeFocus focusKey={focusKey(focus)} context={companion} />
       <WorkspaceTabName label={details.lead.name} />
-      <LeadDetail details={details} showsSampleData={USES_SAMPLE_LEADS} hubMode={hubEnabled()} />
+      <LeadDetail key={details.lead.id} details={details} showsSampleData={USES_SAMPLE_LEADS} hubMode={hubEnabled()} />
     </>
   );
 }

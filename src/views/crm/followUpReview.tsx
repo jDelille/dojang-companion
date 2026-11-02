@@ -169,6 +169,8 @@ export default function FollowUpReview({
 
   return (
     <section
+      id="do-for-me-review"
+      tabIndex={-1}
       aria-label="Review follow-up"
       className={`mb-6 rounded-xl border bg-(--crm-panel) p-5 ${
         fixedRule ? "border-(--crm-line)" : "border-(--crm-agent)/50"

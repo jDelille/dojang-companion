@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "strict": true, "target": "ES2022", "module": "commonjs",
+    "moduleResolution": "node", "lib": ["ES2022", "DOM"],
+    "types": ["node"], "skipLibCheck": true, "jsx": "react-jsx",
+    "baseUrl": "../..", "paths": { "@/*": ["src/*"] },
+    "rootDir": "../../src"
+  },
+  "files": ["../../src/app/api/companion/ask/route.ts", "../../src/domain/doForMeActivation.ts", "../../src/views/doForMe/revealCompanion.ts", "../../src/views/doForMe/agentAnswerContent.tsx", "../../src/domain/memberCompanion.ts"]
+}

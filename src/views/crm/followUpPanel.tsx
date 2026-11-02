@@ -10,9 +10,9 @@ import { DateLabel } from "./localTime";
 /*
    The follow-up queue's context panel (like the pipeline's lead tray): the
    selected task, the lead or member it belongs to, the lead's recorded
-   evidence, and where to handle it. Read-only: the actions the Hub has for this
-   (complete_task, prepare_lead_action, add_lead_note, create_task) are listed
-   disabled as "Not connected yet", so turning one on later is wiring, not layout.
+   evidence, and where to handle it. Manual task completion opens a single
+   queue-level governed editor. Notes/follow-up review link to the lead workspace.
+   Creating arbitrary tasks remains unavailable.
 */
 
 const NOT_CONNECTED = "Not connected yet";
@@ -146,9 +146,13 @@ export type FollowUpSelection = { kind: "task"; task: FollowUp; lead: Lead | nul
 export default function FollowUpPanel({
   selection,
   onClose,
+  onCompleteTask,
+  allowWrites,
 }: {
   selection: FollowUpSelection | null;
   onClose: () => void;
+  onCompleteTask: (task: FollowUp) => void;
+  allowWrites: boolean;
 }) {
   if (!selection) {
     return (
@@ -188,7 +192,7 @@ export default function FollowUpPanel({
         <section aria-label="Actions" className="space-y-2">
           <span className={sectionLabel}>Actions</span>
           <OpenLink href={`/crm/leads/${lead.id}`} label="Open lead" />
-          {lead.evidence && <DisabledAction label={`Prepare: ${NEXT_ACTION_LABELS[lead.evidence.nextAction]}`} />}
+          {lead.evidence && <OpenLink href={`/crm/leads/${lead.id}`} label="Review next action in lead workspace" />}
           <DisabledAction label="Create task" />
         </section>
       </div>
@@ -243,17 +247,17 @@ export default function FollowUpPanel({
         <span className={sectionLabel}>Actions</span>
         <OpenLink href={recordHref(task)} label={task.relatedType === "lead" ? "Open lead" : "Open member record"} />
         {task.canComplete ? (
-          <DisabledAction label="Mark done" />
+          <button type="button" disabled={!allowWrites} onClick={() => onCompleteTask(task)} className="w-full rounded-lg bg-(--crm-brand) px-3 py-2 text-[12px] font-bold text-white disabled:opacity-50">Record outcome / complete task</button>
         ) : (
           <p className="text-[11px] text-(--crm-muted)">
-            Odoo doesn&apos;t allow completing this task by hand (it belongs to an automation).
+            Odoo doesn&apos;t allow manual completion of this task here. Review it in Odoo.
           </p>
         )}
         {task.relatedType === "lead" && lead?.evidence && (
-          <DisabledAction label={`Prepare: ${NEXT_ACTION_LABELS[lead.evidence.nextAction]}`} />
+          <OpenLink href={recordHref(task)} label="Review next action in lead workspace" />
         )}
-        {task.relatedType === "lead" && <DisabledAction label="Add note" />}
-        <p className="text-[10px] text-(--crm-muted)">Read-only for now: nothing here changes Odoo.</p>
+        {task.relatedType === "lead" && <OpenLink href={`${recordHref(task)}#lead-notes`} label="Add internal note in lead workspace" />}
+        <p className="text-[10px] text-(--crm-muted)">{allowWrites ? "Task completion is internal only. Hub verifies permissions and version before saving." : "Completion is disabled while another task editor is open or when using fixture data."}</p>
       </section>
     </div>
   );

@@ -21,6 +21,8 @@ import ActiveContext, { type ActiveContextItem } from "./activeContext";
 import ArrivingSoon, { type TodaySession } from "./arrivingSoon";
 import { deskRailContext, type CrmRead } from "./frontDeskRail";
 import ServiceQueue from "./serviceQueue";
+import CrmAttention from "./crmAttention";
+import Link from "next/link";
 
 /*
    Front Desk, laid out like Desktop/do-for-me-1.png and the "Front Desk Mode"
@@ -109,7 +111,7 @@ export default function FrontDesk({ crm, source }: { crm: CrmRead; source: "hub"
   const active: ActiveContextItem =
     chosen !== undefined ? chosen : tabMemberId ? { kind: "member", memberId: tabMemberId } : null;
   const activeMemberId = active?.kind === "member" ? active.memberId : null;
-  const activeMessageId = active?.kind === "message" ? active.message.id : null;
+  const activeMessageId = active?.kind === "message" ? active.message.id : active?.message?.id ?? null;
 
   function refresh() {
     void reload();
@@ -118,7 +120,7 @@ export default function FrontDesk({ crm, source }: { crm: CrmRead; source: "hub"
 
   return (
     <div className="crm-scope">
-      {!needsSignIn && <DoForMeFocus focusKey="front-desk" context={deskRailContext(crm)} />}
+      {context && !activeMemberId && <DoForMeFocus focusKey="front-desk" context={deskRailContext(crm)} />}
 
       {context && (
         <ContextPane>
@@ -165,7 +167,7 @@ export default function FrontDesk({ crm, source }: { crm: CrmRead; source: "hub"
         className="mb-4 flex h-14 w-full items-center gap-3 rounded-2xl border border-(--crm-line) bg-(--crm-panel) px-4 text-start text-[15px] text-(--crm-text-secondary) hover:border-(--crm-muted)"
       >
         <Search size={16} aria-hidden="true" className="text-(--crm-muted)" />
-        <span className="min-w-0 flex-1 truncate">Search member, family, lead, booking, payment, or command…</span>
+        <span className="min-w-0 flex-1 truncate">Search people, leads or pages…</span>
         <kbd className="rounded-md border border-(--crm-line) bg-(--crm-raised) px-1.5 py-0.5 font-(family-name:--crm-font-label) text-[10px] font-bold text-(--crm-text-secondary)">
           ⌘K
         </kbd>
@@ -184,17 +186,21 @@ export default function FrontDesk({ crm, source }: { crm: CrmRead; source: "hub"
           <ErrorBlock message={answer.text} onRetry={refresh} />
         </div>
       ) : (
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
+        <div className="space-y-4">
+          <nav aria-label="Front desk quick actions" className="flex flex-wrap gap-2">{[["/people", "Find a member"], ["/crm", "Find a lead"], ["/crm/follow-ups", "Review follow-ups"], ["/inbox", "Open communications"]].map(([href, label]) => <Link key={href} href={href} className="rounded-lg border border-(--crm-line) bg-(--crm-panel) px-4 py-2 text-[12px] font-semibold text-(--crm-text) hover:border-(--crm-muted)">{label}</Link>)}</nav>
+          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
           <ActiveContext item={active} />
           <ServiceQueue
             context={answer.context}
             selectedId={activeMessageId}
             onSelect={(message) =>
               setChosen(
-                message.memberId ? { kind: "member", memberId: message.memberId } : { kind: "message", message },
+                message.memberId ? { kind: "member", memberId: message.memberId, message } : { kind: "message", message },
               )
             }
           />
+          </div>
+          <CrmAttention crm={crm} />
         </div>
       )}
     </div>

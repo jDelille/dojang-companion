@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { Lead } from "@/domain/lead";
 import { tagsOf } from "./leadViews";
+import { NEXT_ACTION_LABELS } from "@/domain/followUp";
 
 /*
    The contextual tray beside the pipeline (Jodi's C03: "Lead inbox + pipeline +
@@ -15,7 +16,7 @@ const NOT_CONNECTED = "Not connected yet";
 const NOT_RECORDED = "Not recorded";
 
 const actionButton =
-  "inline-flex h-8 items-center rounded-lg border border-(--crm-line) bg-(--crm-interactive) px-3 text-[12px] font-bold text-(--crm-text) opacity-60";
+  "inline-flex h-8 items-center rounded-lg border border-(--crm-line) bg-(--crm-interactive) px-3 text-[12px] font-bold text-(--crm-text) disabled:opacity-60 hover:border-(--crm-muted)";
 
 export default function LeadTray({
   lead,
@@ -76,14 +77,14 @@ export default function LeadTray({
             ))}
           </dl>
 
+          {lead.evidence && <section className="mb-4 rounded-lg border border-(--crm-line) p-3" aria-label="Recorded next step"><h3 className="text-[12px] font-bold text-(--crm-text)">{NEXT_ACTION_LABELS[lead.evidence.nextAction]} · {lead.evidence.priority}</h3><p className="mt-1 text-[12px] text-(--crm-text-secondary)">{lead.evidence.priorityReason}</p><p className="mt-2 text-[11px] text-(--crm-muted)">{lead.evidence.openTasks} open tasks · {lead.evidence.overdueTasks} overdue · Fixed Odoo evidence, not AI.</p></section>}
+
           {!lead.lostReason && (
             <div className="flex flex-wrap gap-2">
               <button type="button" disabled title={NOT_CONNECTED} className={actionButton}>
                 Book trial
               </button>
-              <button type="button" disabled title={NOT_CONNECTED} className={actionButton}>
-                Next action
-              </button>
+              <Link href={`/crm/leads/${lead.id}`} className={actionButton}>Review next action</Link>
               <button type="button" disabled title={NOT_CONNECTED} className={actionButton}>
                 Propose stage
               </button>

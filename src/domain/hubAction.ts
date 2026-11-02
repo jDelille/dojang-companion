@@ -58,6 +58,8 @@ const MESSAGES: Record<string, string> = {
   VERSION_CONFLICT: "This lead changed since you opened it. Reload it and review again.",
   IDEMPOTENCY_CONFLICT: "This request was already used for a different change. Start the review again.",
   LEAD_UNAVAILABLE: "This lead is unavailable with your current access.",
+  TASK_UNAVAILABLE: "This task is unavailable within your current access. Refresh the task queue.",
+  AUTOMATED_TASK_REVIEW_REQUIRED: "This task belongs to an automation or cannot be completed manually. Review it in Odoo.",
   INVALID_COMMAND: "This action is unavailable or its fields are invalid.",
   FORBIDDEN: "You don't have access to do this.",
   BUSINESS_RULE_REVIEW_REQUIRED: "Odoo could not approve this change.",

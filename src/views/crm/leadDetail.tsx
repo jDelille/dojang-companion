@@ -5,13 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import type { PrepareLeadActionResult } from "@/domain/hubAction";
-import { FOLLOW_UP_CAPABILITY } from "@/domain/leadFollowUp";
+import { FOLLOW_UP_CAPABILITY, followUpSuggestion } from "@/domain/leadFollowUp";
+import { NEXT_ACTION_LABELS } from "@/domain/followUp";
 import type { LeadDetails, LeadTask } from "@/domain/leadDetails";
 import { useDoForMe } from "@/views/doForMe/doForMeProvider";
 import { HubSignOutButton } from "@/views/shell/hubUnavailable";
 import FollowUpReview, { FollowUpPrepared } from "./followUpReview";
 import { tagsOf } from "./leadViews";
 import { DateLabel, TimeLabel } from "./localTime";
+import TaskCompletion from "./taskCompletion";
+import CrmWriteForm from "./crmWriteForm";
 
 /*
    Lead detail (CRM screen C04). Product rules from Jodi's implementation handoff
@@ -21,11 +24,9 @@ import { DateLabel, TimeLabel } from "./localTime";
    body, related records) and Roster's contact page (activity on the left,
    summary on the right).
 
-   The one write: a Do For Me lead follow-up (followUpReview.tsx; the fixed
-   rule in domain/leadFollowUp.ts proposes it), reviewed and applied here, which
-   creates an internal task through the Hub's prepare_lead_action, in Hub mode
-   and with sample data alike. Edit, draft response, booking, notes and the
-   rest stay off. "Do For Me" in the header focuses the shared rail on this lead.
+   Governed internal actions: complete_task and add_lead_note in Hub mode,
+   plus the existing reviewed prepare_lead_action follow-up in Hub/fixture mode.
+   Edit, draft response and booking stay off. Do For Me focuses this lead.
 */
 
 const NOT_CONNECTED = "Not connected yet";
@@ -35,7 +36,7 @@ const card = "rounded-xl border border-(--crm-line) bg-(--crm-panel) p-5";
 const cardLabel =
   "mb-3 block font-(family-name:--crm-font-label) text-[10px] font-bold uppercase tracking-[0.16em] text-(--crm-muted)";
 const actionButton =
-  "inline-flex h-8 items-center rounded-lg border border-(--crm-line) bg-(--crm-interactive) px-3 text-[12px] font-bold text-(--crm-text) opacity-60";
+  "inline-flex h-8 items-center rounded-lg border border-(--crm-line) bg-(--crm-interactive) px-3 text-[12px] font-bold text-(--crm-text) disabled:opacity-60 hover:border-(--crm-muted)";
 
 const DUE_STYLES: Record<LeadTask["state"], string> = {
   overdue: "text-(--crm-brand)",
@@ -102,8 +103,7 @@ export default function LeadDetail({
   details: LeadDetails;
   showsSampleData: boolean;
   // DOJANG_HUB_ENABLED=true: the lead is the real Odoo lead (lead_details). The
-  // server forwards only one write, prepare_lead_action (kind follow_up), so the
-  // follow-up review's Apply is the only change this page can make in Odoo.
+  // server forwards only the approved internal CRM actions, with Hub permissions.
   hubMode: boolean;
 }) {
   const { lead, tasks, trial, notes, timeline, memberId } = details;
@@ -116,6 +116,9 @@ export default function LeadDetail({
   const reviewing = picked?.capability === FOLLOW_UP_CAPABILITY ? picked : null;
   // The last Apply's result, kept after the review closes
   const [prepared, setPrepared] = useState<PrepareLeadActionResult | null>(null);
+  const [completing, setCompleting] = useState<LeadTask | null>(null);
+  const [section, setSection] = useState<"all" | "tasks" | "timeline" | "notes">("all");
+  const recommendation = followUpSuggestion(details);
 
   function followUpDone(result: PrepareLeadActionResult) {
     setPrepared(result);
@@ -137,7 +140,7 @@ export default function LeadDetail({
       )}
       {hubMode && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-(--crm-line) px-5 py-3 text-[11px] text-(--crm-text-secondary) sm:px-6">
-          <p>Lead from Odoo · Only Do For Me&apos;s follow-up task can be saved here</p>
+          <p>Lead from Odoo · Internal notes, task completion and reviewed follow-ups</p>
           <HubSignOutButton />
         </div>
       )}
@@ -167,6 +170,9 @@ export default function LeadDetail({
             {lead.lostReason ? `Lost · ${lead.stage}` : lead.stage}
           </span>
           <div className="flex w-full flex-wrap gap-2">
+            {lead.phone && <a href={`tel:${lead.phone.replace(/[^+\d]/g, "")}`} className={actionButton}>Call contact</a>}
+            {lead.email && <a href={`mailto:${encodeURIComponent(lead.email)}`} className={actionButton}>Email contact</a>}
+            <button type="button" onClick={() => router.refresh()} className={actionButton}>Refresh record</button>
             <button type="button" disabled title={NOT_CONNECTED} className={actionButton}>
               Edit
             </button>
@@ -209,9 +215,14 @@ export default function LeadDetail({
           <FollowUpPrepared result={prepared} onClose={() => setPrepared(null)} />
         )}
 
+        {lead.evidence && <section aria-label="Companion next step" className="mb-5 rounded-xl border border-(--crm-line) bg-(--crm-panel) p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className={cardLabel}>Recorded recommendation · Fixed rule, not AI</p><h2 className="text-base font-bold text-(--crm-text)">{NEXT_ACTION_LABELS[lead.evidence.nextAction]} <span className="text-sm text-(--crm-muted)">· {lead.evidence.priority}</span></h2><p className="mt-2 text-[13px] text-(--crm-text-secondary)">{lead.evidence.priorityReason}</p></div>{recommendation && !reviewing && <button type="button" onClick={() => doForMe.aim(railKey)} className="rounded-lg bg-(--crm-brand) px-4 py-2 text-[12px] font-bold text-white">Review follow-up</button>}</div><p className="mt-3 text-[11px] text-(--crm-muted)">{lead.evidence.openTasks} open tasks · {lead.evidence.overdueTasks} overdue · {lead.evidence.dueToday} due today. Follow-up creates an internal task after review; outbound messaging is not connected here.</p></section>}
+
+        <nav aria-label="Lead workspace sections" className="mb-4 flex flex-wrap gap-2">{([['all', 'Workspace'], ['tasks', `Tasks (${tasks.length})`], ['timeline', 'Activity'], ['notes', `Notes${notes === null ? '' : ` (${notes.length})`}`]] as const).map(([value, label]) => <button type="button" key={value} aria-pressed={section === value} onClick={() => setSection(value)} className={`rounded-lg border px-3 py-2 text-[12px] font-semibold ${section === value ? "border-(--crm-brand) text-(--crm-text)" : "border-(--crm-line) text-(--crm-muted)"}`}>{label}</button>)}</nav>
+
+        {completing && <TaskCompletion key={completing.id} task={tasks.find((task) => task.id === completing.id) ?? completing} subject={{ kind: "lead", id: lead.id }} enabled={hubMode && !showsSampleData} onDone={() => router.refresh()} onReload={() => router.refresh()} onClose={() => setCompleting(null)} />}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="flex min-w-0 flex-col gap-4">
-            <section className={card} aria-label="Next action">
+            <section hidden={section !== "all" && section !== "tasks"} className={card} aria-label="Next action">
               <span className={cardLabel}>Next action</span>
               {nextAction ? (
                 <>
@@ -219,6 +230,7 @@ export default function LeadDetail({
                   <p className={`mt-1 text-[12px] font-semibold ${DUE_STYLES[nextAction.state]}`}>
                     <DueText task={nextAction} /> · {nextAction.owner}
                   </p>
+                  {hubMode && !showsSampleData && nextAction.canComplete === true && nextAction.version !== undefined && <button type="button" disabled={completing !== null} className={`${actionButton} mt-3`} onClick={() => setCompleting(nextAction)}>Record outcome / complete task</button>}
                 </>
               ) : (
                 <p className="text-[12px] text-(--crm-muted)">No open tasks on this lead.</p>
@@ -245,13 +257,14 @@ export default function LeadDetail({
                       {task.feedback && (
                         <p className="mt-1 text-[11px] text-(--crm-text-secondary)">Outcome: {task.feedback}</p>
                       )}
+                      {hubMode && !showsSampleData && task.state !== "done" && task.canComplete === true && task.version !== undefined && <button type="button" disabled={completing !== null} className={`${actionButton} mt-2`} onClick={() => setCompleting(task)}>Record outcome / complete task</button>}
                     </li>
                   ))}
                 </ul>
               )}
             </section>
 
-            <section className={card} aria-label="Timeline">
+            <section hidden={section !== "all" && section !== "timeline"} className={card} aria-label="Timeline">
               <span className={cardLabel}>Timeline</span>
               {timeline.length === 0 ? (
                 <p className="text-[12px] text-(--crm-muted)">
@@ -274,8 +287,9 @@ export default function LeadDetail({
               )}
             </section>
 
-            <section className={card} aria-label="Notes">
+            <section id="lead-notes" hidden={section !== "all" && section !== "notes"} className={card} aria-label="Notes">
               <span className={cardLabel}>Notes</span>
+              <CrmWriteForm kind="note" title="Add internal lead note" description="Record an outcome or context for staff. This is not an outbound communication." unavailable={!hubMode || showsSampleData ? "Note saving is unavailable in fixture mode." : notes === null ? "This Hub read does not expose saved notes; review notes in Odoo." : undefined} build={(note) => ({ kind: "note", payload: { leadId: lead.id, expectedVersion: lead.version, note } })} onDone={() => router.refresh()} onReload={() => router.refresh()} />
               {notes === null ? (
                 <p className="text-[12px] text-(--crm-muted)">
                   This Odoo version doesn&apos;t send lead notes. They&apos;re in Odoo.

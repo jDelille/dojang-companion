@@ -10,7 +10,9 @@ import {
   type SetStateAction,
 } from "react";
 import type { CompanionContext, Suggestion } from "@/domain/companion";
+import { doForMeActivation } from "@/domain/doForMeActivation";
 import DoForMeRail, { type RailTab } from "./doForMeRail";
+import { revealCompanion } from "./revealCompanion";
 
 /*
    The shared Do For Me rail for the Dojang staff pages.
@@ -90,22 +92,19 @@ export function DoForMeProvider({ children }: { children: ReactNode }) {
 
   // Do For Me on a suggestion
   function doForMe(suggestion: Suggestion) {
-    if (focus) update(focus.key, { tab: tabFor(suggestion), picked: suggestion });
+    if (!focus) return;
+    update(focus.key, { tab: tabFor(suggestion), picked: suggestion });
+    setOpen(true);
+    revealCompanion(suggestion.review === "page");
   }
 
   // A page's own "Do For Me" button, for the record the page is showing
   function aim(key: string) {
     if (!focus || focus.key !== key) return;
-    const top = focus.context.featured?.suggestion ?? focus.context.suggestions[0];
-    if (top) update(key, { tab: tabFor(top), picked: top });
-    else update(key, { ...current, tab: "plan" });
+    const next = doForMeActivation(focus.context);
+    update(key, { tab: next.tab, picked: next.picked });
     setOpen(true);
-    // Below lg the rail sits under the page, so bring it into view (once it's drawn)
-    requestAnimationFrame(() =>
-      document
-        .getElementById("do-for-me-rail")
-        ?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
-    );
+    revealCompanion(next.picked?.review === "page");
   }
 
   // The suggestion picked for this record, if any
@@ -142,6 +141,7 @@ export function ConnectedDoForMeRail() {
   return (
     <DoForMeRail
       context={view.focus?.context ?? null}
+      focusKey={view.focus?.key ?? null}
       tab={view.current.tab}
       picked={view.current.picked}
       onTab={view.showTab}

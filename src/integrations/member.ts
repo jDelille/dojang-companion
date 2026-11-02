@@ -82,6 +82,8 @@ function memberFromDetails(details: Record<string, unknown>): Member | null {
   return {
     id: member.id,
     name: member.name,
+    ...(typeof member.email === "string" ? { email: member.email } : {}),
+    ...(typeof member.phone === "string" ? { phone: member.phone } : {}),
     membershipState: member.state,
     rank: { name: member.rank, stripes },
     bookings,
@@ -101,6 +103,7 @@ function bookingsFromDetails(value: unknown): MemberBooking[] | undefined {
     if (!isObject(entry) || !isText(entry.sessionId) || !isText(entry.title) || !isText(entry.startsAt)) {
       return undefined;
     }
+    if (!Number.isFinite(Date.parse(entry.startsAt))) return undefined;
     bookings.push({ sessionId: entry.sessionId, title: entry.title, startsAt: entry.startsAt });
   }
   return bookings;

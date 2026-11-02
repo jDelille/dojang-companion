@@ -7,6 +7,7 @@ import { membershipLabel } from "@/domain/member-presentation";
 import { useDoForMe } from "@/views/doForMe/doForMeProvider";
 import MemberAvatar from "./memberAvatar";
 import MemberOverview from "./memberOverview";
+import { MemberAttendanceHistory, MemberBookings, MemberContact, MemberMembership, MemberTraining } from "./memberSections";
 
 /*
    Member 360 (CRM screen C02), the centre column. Layout from Jodi's mockup
@@ -20,6 +21,8 @@ import MemberOverview from "./memberOverview";
 
 const TAB_NAMES = [
   "Overview",
+  "Training",
+  "Bookings",
   "Timeline",
   "Attendance",
   "Progress",
@@ -28,6 +31,7 @@ const TAB_NAMES = [
   "Messages",
   "Documents",
   "Family",
+  "Notes",
   "Safety",
 ] as const;
 
@@ -170,10 +174,18 @@ export default function Member360({ member, attendance }: Props) {
         className="p-5 sm:p-6"
       >
         {activeTab === "Overview" ? (
-          <MemberOverview member={member} attendance={attendance} />
+          <><MemberContact member={member} /><MemberOverview member={member} attendance={attendance} /></>
+        ) : activeTab === "Training" ? (
+          <MemberTraining member={member} />
+        ) : activeTab === "Bookings" ? (
+          <MemberBookings member={member} />
+        ) : activeTab === "Attendance" || activeTab === "Timeline" ? (
+          <MemberAttendanceHistory attendance={attendance} timeline={activeTab === "Timeline"} />
+        ) : activeTab === "Membership" ? (
+          <MemberMembership member={member} />
         ) : (
           <p className="rounded-xl border border-dashed border-(--crm-line) px-5 py-8 text-center text-sm text-(--crm-text-secondary)">
-            {activeTab} isn&apos;t connected yet.
+            {activeTab} isn&apos;t provided by this member read. {activeTab === "Safety" ? "Sensitive information requires explicit role and privacy rules before it can be displayed." : "No data is inferred from other records."}
           </p>
         )}
       </div>

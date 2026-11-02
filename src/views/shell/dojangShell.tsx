@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { isDojangPage } from "@/config/dojang";
 import PublicLayout from "@/layout/publicLayout";
 import { ConnectedDoForMeRail } from "@/views/doForMe/doForMeProvider";
 import type { StaffConnection } from "@/domain/staff";
 import { ContextPaneSlot } from "./contextPane";
 import NavRail from "./navRail";
-import { StaffConnectionProvider } from "./staffConnection";
+import { StaffConnectionProvider, useStaffConnection } from "./staffConnection";
+import StaffSignIn from "./staffSignIn";
 import TopBar from "./topBar";
 import WorkspaceTabs from "./workspaceTabs";
 
@@ -42,6 +43,8 @@ export default function StaffShell({
 }
 
 function DojangShell({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const signedOut = useStaffConnection()?.state === "signedOut";
   // The context pane's column, which <ContextPane> fills
   const [paneSlot, setPaneSlot] = useState<HTMLElement | null>(null);
 
@@ -57,14 +60,16 @@ function DojangShell({ children }: { children: ReactNode }) {
 
         <div className="col-start-2 flex min-w-0 flex-col lg:col-start-3 lg:row-start-1 lg:min-h-0">
           <TopBar />
-          <WorkspaceTabs />
+          {!signedOut && <WorkspaceTabs />}
           <main className="flex-1 p-4 sm:p-6 lg:overflow-y-auto">
-            <ContextPaneSlot.Provider value={paneSlot}>{children}</ContextPaneSlot.Provider>
+            <ContextPaneSlot.Provider value={paneSlot}>
+              {signedOut ? <StaffSignIn onSignedIn={() => router.refresh()} /> : children}
+            </ContextPaneSlot.Provider>
           </main>
         </div>
 
         <div className="col-start-2 min-w-0 empty:hidden lg:col-start-4 lg:row-start-1 lg:min-h-0">
-          <ConnectedDoForMeRail />
+          {!signedOut && <ConnectedDoForMeRail />}
         </div>
       </div>
     </div>

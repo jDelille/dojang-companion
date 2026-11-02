@@ -14,8 +14,10 @@ Module._resolveFilename = function (request, ...rest) {
   return resolve.call(this, request, ...rest);
 };
 const load = Module._load;
+const revalidated = [];
 Module._load = function (request, ...rest) {
   if (request === "next/headers") return { cookies: async () => ({ get: () => undefined }) };
+  if (request === "next/cache") return { revalidatePath: (route) => revalidated.push(route) };
   return load.call(this, request, ...rest);
 };
 
@@ -32,6 +34,7 @@ const { hubRoute } = require(path.join(process.env.DOJANG_GATEWAY_BUILD, "server
 
 // The fake Odoo: records every Hub call it gets
 const hubCalls = [];
+let hubReply;
 global.fetch = async (url, init) => {
   const params = JSON.parse(init.body).params;
   if (String(url).endsWith("/web/session/authenticate")) {
@@ -47,6 +50,9 @@ global.fetch = async (url, init) => {
       messageSent: false, bookingCreated: false, membershipCreated: false, replayed: false,
     };
   }
+  if (params.operation === "complete_task") result = { taskId: params.payload.taskId, leadId: "9008", state: "done", replayed: false };
+  if (params.operation === "add_lead_note") result = { leadId: params.payload.leadId, noteId: "91", state: "saved", messageSent: false, replayed: false };
+  if (hubReply) result = hubReply;
   return new Response(JSON.stringify({ jsonrpc: "2.0", result }), { headers: { "content-type": "application/json" } });
 };
 
@@ -71,6 +77,8 @@ test.before(async () => {
 });
 test.beforeEach(() => {
   hubCalls.length = 0;
+  revalidated.length = 0;
+  hubReply = undefined;
 });
 
 async function errorOf(response) {
@@ -136,9 +144,7 @@ test("malformed fields are refused before Odoo", async () => {
 
 test("other writes stay refused with HUB_READ_ONLY", async () => {
   const writes = {
-    complete_task: { taskId: "1", expectedVersion: 1, feedback: "Done" },
     create_task: { relatedType: "lead", relatedId: "1", summary: "Call", due: "2026-10-29" },
-    add_lead_note: { leadId: "1", expectedVersion: 1, note: "Hi" },
     assign_lead: { leadId: "1", expectedVersion: 1, ownerId: "2" },
     propose_stage: { leadId: "1", expectedVersion: 1, stageId: "2", reason: "x", due: "2026-10-29" },
     update_lead: { leadId: "1", expectedVersion: 1, changes: { name: "X" } },
@@ -154,6 +160,50 @@ test("other writes stay refused with HUB_READ_ONLY", async () => {
   }
   assert.equal(hubCalls.length, 0);
 });
+
+const INTERNAL_WRITES = {
+  complete_task: { taskId: "501", expectedVersion: 1729000000000000, feedback: "Spoke with guardian." },
+  add_lead_note: { leadId: "9008", expectedVersion: 1729000000000000, note: "Prefers afternoon sessions." },
+};
+test("internal write errors and unreadable receipts do not invalidate records", async () => {
+  for (const operation of Object.keys(INTERNAL_WRITES)) {
+    const payload = INTERNAL_WRITES[operation];
+    for (const code of ["VERSION_CONFLICT", "FORBIDDEN", "SIGN_IN_REQUIRED"]) {
+      hubReply = { error: { code, status: code === "VERSION_CONFLICT" ? 409 : code === "FORBIDDEN" ? 403 : 401 } };
+      assert.equal(await errorOf(await post({ operation, payload, requestKey: KEY }, cookie)), code);
+    }
+    hubReply = { state: "done" };
+    assert.equal((await post({ operation, payload, requestKey: KEY }, cookie)).status, 200);
+  }
+  assert.equal(revalidated.length, 0);
+});
+test("confirmed member task completion invalidates its member and task queue", async () => {
+  hubReply = { taskId: "501", memberId: "42", state: "done", replayed: true };
+  assert.equal((await post({ operation: "complete_task", payload: INTERNAL_WRITES.complete_task, requestKey: KEY }, cookie)).status, 200);
+  assert.deepEqual(revalidated, ["/crm", "/crm/follow-ups", "/front-desk", "/people/42"]);
+});
+for (const [operation, payload] of Object.entries(INTERNAL_WRITES)) {
+  test(`${operation} forwards exact version, payload, configured site and same retry key`, async () => {
+    for (let attempt = 0; attempt < 2; attempt++) assert.equal((await post({ operation, payload, requestKey: KEY }, cookie)).status, 200);
+    assert.deepEqual(hubCalls, [0, 1].map(() => ({ siteId: "1", operation, payload, requestKey: KEY })));
+    assert.deepEqual(revalidated, [0, 1].flatMap(() => ["/crm", "/crm/follow-ups", "/front-desk", "/crm/leads/9008"]));
+  });
+  test(`${operation} rejects invalid payloads, keys, sessions and actor overrides`, async () => {
+    const textKey = operation === "complete_task" ? "feedback" : "note";
+    const max = operation === "complete_task" ? 1000 : 2000;
+    for (const bad of [
+      { ...payload, expectedVersion: "1" }, { ...payload, expectedVersion: -1 },
+      { ...payload, expectedVersion: 1.5 }, { ...payload, expectedVersion: Number.MAX_SAFE_INTEGER + 1 },
+      { ...payload, [textKey]: " " }, { ...payload, [textKey]: "x".repeat(max + 1) },
+      { ...payload, siteId: "99" }, { ...payload, actorId: "99" },
+    ]) assert.equal((await post({ operation, payload: bad, requestKey: KEY }, cookie)).status, 400);
+    assert.equal((await post({ operation, payload, requestKey: null }, cookie)).status, 400);
+    assert.equal((await post({ operation, payload, requestKey: KEY })).status, 401);
+    assert.equal((await post({ operation, payload, requestKey: KEY }, "dojang_hub_session=forged")).status, 401);
+    assert.equal(hubCalls.length, 0);
+    assert.equal(revalidated.length, 0);
+  });
+}
 
 test("existing reads still go through with a null request key", async () => {
   const response = await post({ operation: "crm_context", payload: { query: "" }, requestKey: null }, cookie);
@@ -179,5 +229,36 @@ test("a perspective sent with a request is refused before Odoo", async () => {
 test("an action without a sign-in is refused", async () => {
   const response = await post({ operation: "prepare_lead_action", payload: PAYLOAD, requestKey: KEY });
   assert.equal(response.status, 401);
+  assert.equal(hubCalls.length, 0);
+});
+
+test("companion_ask forwards exactly the verified read with null request key", async () => {
+  const payload = { question: "Summarize this member.", memberId: "5001", sessionId: null };
+  const response = await post({ operation: "companion_ask", payload, requestKey: null }, cookie);
+  assert.equal(response.status, 200);
+  assert.deepEqual(hubCalls, [{ siteId: "1", operation: "companion_ask", payload, requestKey: null }]);
+});
+
+test("companion_ask rejects malformed payloads and keyed reads before Odoo", async () => {
+  const valid = { question: "Question", memberId: null, sessionId: null };
+  for (const payload of [
+    { ...valid, leadId: "9" }, { question: "Question" },
+    { ...valid, question: " " }, { ...valid, question: " padded " },
+    { ...valid, question: "x".repeat(501) }, { ...valid, question: 5 },
+    { ...valid, memberId: "not-an-id" }, { ...valid, memberId: 5001 },
+    { ...valid, memberId: "5001", sessionId: "6101" },
+    { ...valid, sessionId: "0" }, { ...valid, memberId: "1", siteId: "2" },
+  ]) {
+    const response = await post({ operation: "companion_ask", payload, requestKey: null }, cookie);
+    assert.equal(response.status, 400, JSON.stringify(payload));
+  }
+  assert.equal((await post({ operation: "companion_ask", payload: valid, requestKey: KEY }, cookie)).status, 400);
+  assert.equal(hubCalls.length, 0);
+});
+
+test("companion_ask still requires a valid sealed staff session", async () => {
+  const body = { operation: "companion_ask", payload: { question: "Hi", memberId: null, sessionId: null }, requestKey: null };
+  assert.equal((await post(body)).status, 401);
+  assert.equal((await post(body, "dojang_hub_session=forged")).status, 401);
   assert.equal(hubCalls.length, 0);
 });

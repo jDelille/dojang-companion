@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import TaskCompletion from "./taskCompletion";
 import {
   compareFollowUps,
   FOLLOW_UP_GROUPS,
@@ -27,7 +29,8 @@ import FollowUpPanel, { DueText, PriorityBadge, type FollowUpSelection } from ".
    - "Needs a next action": leads in this read with no open task whose evidence
      says they need one (no task recorded, or no owner)
    Selecting an item opens the context panel beside the queue (below it on
-   narrow screens, under the item) without leaving the queue. Read-only.
+   narrow screens, under the item) without leaving the queue. Manual completion
+   uses the same governed editor as the lead workspace; fixtures remain read-only.
 */
 
 const ALL = "";
@@ -167,6 +170,8 @@ export default function FollowUpQueue({
   const [relatedFilter, setRelatedFilter] = useState<Related>(ALL);
   const [stateFilter, setStateFilter] = useState<FollowUpState | null>(null);
   const [selected, setSelected] = useState<Selected>(null);
+  const [completing, setCompleting] = useState<FollowUp | null>(null);
+  const router = useRouter();
 
   const read = context.followUps;
   const tasks = read.outcome === "loaded" ? read.tasks : [];
@@ -224,7 +229,7 @@ export default function FollowUpQueue({
   // Under the selected item on narrow screens; beside the queue from xl up
   const inlinePanel = (
     <div className="mt-2 rounded-xl border border-(--crm-line) bg-(--crm-panel) xl:hidden">
-      <FollowUpPanel selection={selection} onClose={() => setSelected(null)} />
+      <FollowUpPanel selection={selection} onClose={() => setSelected(null)} allowWrites={fromOdoo && !showsSampleData && !completing} onCompleteTask={setCompleting} />
     </div>
   );
 
@@ -237,11 +242,12 @@ export default function FollowUpQueue({
       )}
       {fromOdoo && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-(--crm-line) px-5 py-3 text-[11px] text-(--crm-text-secondary) sm:px-6">
-          <p>Follow-ups from Odoo · Read-only here</p>
+          <p>Follow-ups from Odoo · Review and complete internal tasks</p>
           <HubSignOutButton />
         </div>
       )}
 
+      {completing && <div className="p-5"><TaskCompletion key={completing.id} task={tasks.find((task) => task.id === completing.id && task.relatedType === completing.relatedType && task.relatedId === completing.relatedId) ?? completing} subject={{ kind: completing.relatedType, id: completing.relatedId }} enabled={fromOdoo && !showsSampleData} onDone={() => router.refresh()} onReload={() => router.refresh()} onClose={() => setCompleting(null)} /></div>}
       <div className="grid xl:grid-cols-[minmax(0,1fr)_20rem]">
         <section aria-label="Follow-up queue" className="min-w-0 p-5 sm:p-6">
           <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
@@ -414,7 +420,7 @@ export default function FollowUpQueue({
           className="hidden border-l border-(--crm-line) bg-(--crm-panel) xl:block"
         >
           <div className="sticky top-0">
-            <FollowUpPanel selection={selection} onClose={() => setSelected(null)} />
+            <FollowUpPanel selection={selection} onClose={() => setSelected(null)} allowWrites={fromOdoo && !showsSampleData && !completing} onCompleteTask={setCompleting} />
           </div>
         </aside>
       </div>

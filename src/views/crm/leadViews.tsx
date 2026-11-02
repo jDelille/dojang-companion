@@ -1,6 +1,7 @@
 "use client";
 
 import type { CrmStage, Lead } from "@/domain/lead";
+import { NEXT_ACTION_LABELS } from "@/domain/followUp";
 
 /*
    The Sales pipeline's two views of the same leads, plus the separate Lost list.
@@ -63,6 +64,7 @@ function LeadCard({ lead, selectedId, onSelect }: { lead: Lead } & SelectProps) 
           <span className="block truncate text-[11px] text-(--crm-muted)">{lead.contact}</span>
         </span>
       </span>
+      {lead.evidence && <span className="mt-3 block border-t border-(--crm-line) pt-2 text-[11px] text-(--crm-text-secondary)"><strong className={lead.evidence.overdueTasks > 0 ? "text-(--crm-brand)" : "text-(--crm-text)"}>{lead.evidence.priority}</strong> · {NEXT_ACTION_LABELS[lead.evidence.nextAction]}{lead.evidence.overdueTasks > 0 && ` · ${lead.evidence.overdueTasks} overdue`}</span>}
       <span className="mt-2.5 flex items-center justify-between gap-2 text-[11px]">
         <span className="truncate text-(--crm-text-secondary)">{tagsOf(lead)}</span>
         <span className="shrink-0 text-(--crm-muted)">{lead.owner}</span>
@@ -127,6 +129,7 @@ export function LeadList({ leads, selectedId, onSelect }: { leads: Lead[] } & Se
             <th className={headerCell}>Tags</th>
             <th className={headerCell}>Owner</th>
             <th className={headerCell}>Source</th>
+            <th className={headerCell}>Next step / priority</th>
           </tr>
         </thead>
         <tbody>
@@ -154,6 +157,7 @@ export function LeadList({ leads, selectedId, onSelect }: { leads: Lead[] } & Se
                 <td className="px-3 py-2.5 text-(--crm-text-secondary)">{tagsOf(lead)}</td>
                 <td className="px-3 py-2.5 text-(--crm-text-secondary)">{lead.owner}</td>
                 <td className="px-3 py-2.5 text-(--crm-text-secondary)">{lead.source}</td>
+                <td className="px-3 py-2.5 text-(--crm-text-secondary)">{lead.evidence ? <><span className="block font-semibold text-(--crm-text)">{NEXT_ACTION_LABELS[lead.evidence.nextAction]} · {lead.evidence.priority}</span><span className="block text-[11px]">{lead.evidence.priorityReason}</span></> : "Evidence not provided"}</td>
               </tr>
             );
           })}
