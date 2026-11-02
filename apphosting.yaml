@@ -1,0 +1,25 @@
+# Firebase App Hosting configuration for DreamOS.
+# Odoo staging contains synthetic demo data.
+
+runConfig:
+  minInstances: 0
+  maxInstances: 2
+
+env:
+  - variable: DOJANG_HUB_ENABLED
+    value: "true"
+
+  - variable: DOJANG_ODOO_URL
+    value: https://odoo-8-232-33-240.sslip.io
+
+  - variable: DOJANG_ODOO_DATABASE
+    value: dojang_demo_staging
+
+  - variable: DOJANG_HUB_SITE_ID
+    value: "1"
+
+  - variable: DOJANG_PUBLIC_ORIGIN
+    value: https://PUT-NEW-BACKEND-URL-HERE
+
+  - variable: DOJANG_COOKIE_SECRET
+    secret: dojang-cookie-secret
