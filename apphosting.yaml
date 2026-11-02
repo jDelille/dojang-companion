@@ -19,7 +19,7 @@ env:
     value: "1"
 
   - variable: DOJANG_PUBLIC_ORIGIN
-    value: https://PUT-NEW-BACKEND-URL-HERE
+    value: https://YOUR-ACTUAL-BACKEND--dojang-companion.us-central1.hosted.app
 
   - variable: DOJANG_COOKIE_SECRET
     secret: dojang-cookie-secret
