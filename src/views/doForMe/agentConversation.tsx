@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
+import Link from "next/link";
 import type { Suggestion } from "@/domain/companion";
 import { QUESTION_LIMIT, type AgentTurn } from "@/domain/companionAgent";
 import { useAgentConversation } from "./useAgentConversation";
@@ -73,9 +74,10 @@ function Turn({ turn, onReview }: { turn: AgentTurn; onReview: (suggestion: Sugg
 type Props = {
   focusKey: string;
   onReview: (suggestion: Suggestion) => void;
+  showSetupLink?: boolean;
 };
 
-export default function AgentConversation({ focusKey, onReview }: Props) {
+export default function AgentConversation({ focusKey, onReview, showSetupLink = true }: Props) {
   const conversation = useAgentConversation(focusKey);
   const [draft, setDraft] = useState("");
   const bottomRef = useRef<HTMLLIElement>(null);
@@ -95,6 +97,7 @@ export default function AgentConversation({ focusKey, onReview }: Props) {
 
   return (
     <div className="border-t border-(--crm-line)">
+      {showSetupLink && <div className="px-4 pt-3"><Link href="/inbox/ai-setup" className="text-[11px] text-(--crm-agent) underline underline-offset-4">Companion setup</Link></div>}
       {conversation.turns.length > 0 && (
         <div className="flex max-h-[45vh] flex-col">
           <div className="flex items-center justify-between px-4 pt-3">

@@ -23,4 +23,4 @@ export DOJANG_SCENARIO_ROUTE_MODULE="$BUILD/app/api/dev/kiosk-scenario/route.js"
 export DOJANG_SESSIONS_ROUTE_MODULE="$BUILD/app/api/v2/sessions/route.js"
 export DOJANG_CHECK_INS_ROUTE_MODULE="$BUILD/app/api/v2/attendance/check-ins/route.js"
 export DOJANG_KIOSK_BUILD="$BUILD" # tests/kiosk/register-alias.cjs maps @/ imports here
-node --test tests/kiosk/attendance-outbox.test.cjs tests/kiosk/mock-api.test.cjs tests/kiosk/identify-flow.test.cjs tests/kiosk/idle-reset.test.cjs tests/kiosk/check-in-submit.test.cjs tests/kiosk/roster-grid.test.cjs tests/kiosk/dev-scenario.test.cjs
+node --test tests/kiosk/attendance-outbox.test.cjs tests/kiosk/mock-api.test.cjs tests/kiosk/identify-flow.test.cjs tests/kiosk/idle-reset.test.cjs tests/kiosk/check-in-submit.test.cjs tests/kiosk/roster-grid.test.cjs tests/kiosk/dev-scenario.test.cjs tests/kiosk/kiosk-gateway.test.cjs

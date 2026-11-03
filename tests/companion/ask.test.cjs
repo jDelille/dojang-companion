@@ -127,6 +127,13 @@ test("invalid questions and browser scope fields are rejected before the adapter
   }
   assert.equal(calls.length, 0);
 });
+test("server-side AI settings read rejects injected scope before forwarding", async () => {
+  const answer = await readHubAsStaff('ai_settings', { siteId: '99' });
+  assert.equal(answer.ok, false);
+  assert.equal(answer.code, 'INVALID_COMMAND');
+  assert.equal(calls.length, 0);
+});
+
 test("server-side reader also validates companion payload before forwarding", async () => {
   const result = await readHubAsStaff("companion_ask", { question: "Hi", memberId: "1", sessionId: "2" });
   assert.equal(result.ok, false);

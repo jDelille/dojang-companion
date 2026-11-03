@@ -59,7 +59,8 @@ const TIMEOUT_MS = 45000;
 //   session_roster   one class's booked members and their attendance, for Front
 //                    Desk arrivals (payload exactly { sessionId }; instructors
 //                    only their own classes)
-const FORWARDED_READS = new Set(["context", "member_details", "crm_context", "lead_details", "session_roster", "companion_ask"]);
+//   ai_settings      owner/manager AI status, model and activation check (payload {})
+const FORWARDED_READS = new Set(["context", "member_details", "crm_context", "lead_details", "session_roster", "companion_ask", "ai_settings"]);
 
 const isRecordId = (value: unknown): value is string => typeof value === "string" && /^[1-9][0-9]{0,9}$/.test(value);
 
@@ -273,7 +274,7 @@ async function signOut(config: Config, session: string) {
 }
 
 export type ReadAnswer = { ok: true; result: Record<string, unknown> } | { ok: false; code: string; status: number };
-type StaffReadOperation = "context" | "member_details" | "crm_context" | "lead_details" | "companion_ask";
+type StaffReadOperation = "context" | "member_details" | "crm_context" | "lead_details" | "companion_ask" | "ai_settings";
 export type HubStaffRead = (operation: StaffReadOperation, payload: Record<string, unknown>) => Promise<ReadAnswer>;
 
 // One Hub call as the signed-in staff member, with the configured site: a read
@@ -333,6 +334,9 @@ export async function requireHubStaff(): Promise<
   const session = sealed ? unseal(config, sealed) : null;
   if (!session) return { ok: false, code: "SIGN_IN_REQUIRED", status: 401 };
   return { ok: true, read: (operation, payload) => {
+    if (operation === "ai_settings" && (!isObject(payload) || Object.keys(payload).length !== 0)) {
+      return Promise.resolve({ ok: false, code: "INVALID_COMMAND", status: 400 });
+    }
     if (operation === "companion_ask" && !isCompanionPayload(payload)) {
       return Promise.resolve({ ok: false, code: "INVALID_COMMAND", status: 400 });
     }
@@ -386,6 +390,7 @@ export async function hubRoute(request: Request): Promise<Response> {
   } else {
     if (!FORWARDED_READS.has(operation)) return problem("HUB_READ_ONLY", 403);
     if (data.requestKey !== null) return problem("INVALID_COMMAND", 400);
+    if (operation === "ai_settings" && Object.keys(data.payload).length !== 0) return problem("INVALID_COMMAND", 400);
     if (operation === "companion_ask" && !isCompanionPayload(data.payload)) return problem("INVALID_COMMAND", 400);
   }
 

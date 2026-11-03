@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { SCHOOL_NAME } from "@/domain/kiosk/kioskConfig";
 import KioskClient from "./kioskClient";
+import { kioskMode } from '@/server/kiosk-gateway';
+
+export const dynamic = 'force-dynamic';
 
 // Public screen: not the staff dashboard's title template, and not for search engines
 export const metadata: Metadata = {
@@ -15,5 +18,5 @@ export const viewport: Viewport = {
 };
 
 export default function Kiosk() {
-  return <KioskClient />;
+  return <KioskClient source={kioskMode()} />;
 }

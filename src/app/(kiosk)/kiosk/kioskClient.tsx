@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { KioskDataMode } from '@/domain/kiosk/dataMode';
 
 const KioskJourney = dynamic(
   () => import("@/views/kiosk/kioskJourney"),
@@ -10,6 +11,6 @@ const KioskJourney = dynamic(
   }
 );
 
-export default function KioskClient() {
-  return <KioskJourney />;
+export default function KioskClient({ source }: { source: KioskDataMode }) {
+  return <KioskJourney source={source} />;
 }

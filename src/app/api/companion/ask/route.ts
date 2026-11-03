@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   const staff = await requireHubStaff();
   if (!staff.ok) return problem(staff.code, staff.status, "authentication");
   const provider = agentProvider(staff.read);
-  const answer = await provider.answer(question);
+  const answer = await provider.complete(question);
   if (!answer.ok) return problem(answer.code, answer.status, answer.stage);
   const events: AgentStreamEvent[] = [
     { event: "meta", provider: provider.id, focus: answer.result.focus, mode: answer.result.mode },

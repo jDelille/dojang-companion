@@ -1,0 +1,50 @@
+{
+  "source": "C:\\Users\\justi\\Desktop\\Companion_Biz_Violoop\\roster",
+  "version": "1.0.0",
+  "purpose": "Inert licensed source references for the Dojang AI foundation; not application imports",
+  "adaptations": [
+    "src/domain/ai/agentProfile.ts",
+    "src/domain/ai/prompt.ts",
+    "src/server/ai/adapter.ts",
+    "src/server/ai/agent.ts",
+    "src/views/doForMe/agentSetup.tsx"
+  ],
+  "files": [
+    {
+      "path": "lib/ai/adapter.ts",
+      "sha256": "5ab754bace36a1c91c6bbc3e37e76ef6d2b183d417af4d3f76027061ea1bb5a8"
+    },
+    {
+      "path": "lib/ai/index.ts",
+      "sha256": "b72d1af97028de9ebeb97e3391ac2588657958395b4da9d6ade5f5ac836354e5"
+    },
+    {
+      "path": "lib/ai/prompt.ts",
+      "sha256": "777546dc35f65b63a2cfdafa23c2f1c02ccc1a100c6049cae0e57f205b55282c"
+    },
+    {
+      "path": "lib/ai/providers/openai.ts",
+      "sha256": "833a331d27d84f8074d225eee3435b8558a283f5d03e9f551f059d555fb47d21"
+    },
+    {
+      "path": "lib/ai/providers/claude.ts",
+      "sha256": "7debf90e7f2ea07411db119e085b6171af167b62a4addca49572de268df645b3"
+    },
+    {
+      "path": "components/agents/types.ts",
+      "sha256": "00f4194f1eb2b8375daf651610fe66710dc71cc86412be723c0180c6b2cb31be"
+    },
+    {
+      "path": "components/agents/agent-config.tsx",
+      "sha256": "4bdc88d554afbb3bce3864b3f87c807320becddf2b7a5bda507c2a8909d42d43"
+    },
+    {
+      "path": "components/agents/knowledge-base.tsx",
+      "sha256": "352bf4e1ec7b4ae457ca5ecb164365c0654f61bccbeeafec7f6733f1434aa9c8"
+    },
+    {
+      "path": "components/agents/test-chat.tsx",
+      "sha256": "c9017459cdfde1e2da86bb42b1bd1f2bd4feef233d461d93f267a1988ae629f7"
+    }
+  ]
+}

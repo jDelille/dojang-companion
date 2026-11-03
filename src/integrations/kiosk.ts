@@ -11,7 +11,8 @@ import type { CheckInAnswer } from "@/domain/kiosk/checkInOutcome";
 import { CHECK_IN_TIMEOUT_SECONDS } from "@/domain/kiosk/kioskConfig";
 
 // The only place kiosk screens get data from. Calls the /api/v2 routes, which
-// are development-only mocks for now (src/server/kiosk-mock.ts).
+// select explicit Odoo test session reads or development fixtures on the server.
+// Real identification and attendance remain disabled until separately connected.
 // Ported from Companion 1cab554b src/integrations/kiosk.ts.
 
 // Today's sessions. The server decides what "today" means.

@@ -2,8 +2,12 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
   useState,
   type Dispatch,
   type ReactNode,
@@ -79,12 +83,18 @@ export function DoForMeProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(true);
   const [focus, setFocus] = useState<Focus | null>(null);
   const [stateByKey, setStateByKey] = useState<Record<string, RailState>>({});
+  const focusRef = useRef(focus);
+  useLayoutEffect(() => { focusRef.current = focus; }, [focus]);
 
   const current = focus ? (stateByKey[focus.key] ?? START) : START;
 
-  function update(key: string, next: RailState) {
-    setStateByKey((previous) => ({ ...previous, [key]: next }));
-  }
+  const update = useCallback((key: string, next: RailState) => {
+    setStateByKey((previous) => {
+      const current = previous[key] ?? START;
+      if (current.tab === next.tab && current.picked === next.picked) return previous;
+      return { ...previous, [key]: next };
+    });
+  }, []);
 
   function showTab(tab: RailTab) {
     if (focus) update(focus.key, { ...current, tab });
@@ -99,33 +109,38 @@ export function DoForMeProvider({ children }: { children: ReactNode }) {
   }
 
   // A page's own "Do For Me" button, for the record the page is showing
-  function aim(key: string) {
-    if (!focus || focus.key !== key) return;
-    const next = doForMeActivation(focus.context);
+  const aim = useCallback((key: string) => {
+    const focused = focusRef.current;
+    if (!focused || focused.key !== key) return;
+    const next = doForMeActivation(focused.context);
     update(key, { tab: next.tab, picked: next.picked });
     setOpen(true);
     revealCompanion(next.picked?.review === "page");
-  }
+  }, [update]);
 
   // The suggestion picked for this record, if any
-  function pickedFor(key: string) {
+  const pickedFor = useCallback((key: string) => {
     return stateByKey[key]?.picked ?? null;
-  }
+  }, [stateByKey]);
 
   // The page finished (or cancelled) a review: nothing picked, rail on `tab`
-  function settle(key: string, tab: RailTab) {
+  const settle = useCallback((key: string, tab: RailTab) => {
     update(key, { tab, picked: null });
-  }
+  }, [update]);
 
   // Forget every focus and its tab/picked task (the staff member changed)
-  function reset() {
+  const reset = useCallback(() => {
     setFocus(null);
-    setStateByKey({});
-  }
+    setStateByKey(previous => Object.keys(previous).length ? {} : previous);
+  }, []);
+
+  // Publishing focus must not notify action consumers: those pages build and
+  // publish their own context. Otherwise publication recursively renders them.
+  const actions = useMemo(() => ({ aim, pickedFor, settle, reset }), [aim, pickedFor, settle, reset]);
 
   return (
     <SetFocusContext.Provider value={setFocus}>
-      <ActionsContext.Provider value={{ aim, pickedFor, settle, reset }}>
+      <ActionsContext.Provider value={actions}>
         <RailViewContext.Provider value={{ focus, current, open, setOpen, showTab, doForMe }}>
           {children}
         </RailViewContext.Provider>
@@ -177,10 +192,9 @@ export function DoForMeFocus({
 // For a page's Do For Me button and page reviews. Does nothing outside the Dojang layout.
 export function useDoForMe(): RailActions {
   const actions = useContext(ActionsContext);
-  return {
-    aim: (key) => actions?.aim(key),
-    pickedFor: (key) => actions?.pickedFor(key) ?? null,
-    settle: (key, tab) => actions?.settle(key, tab),
-    reset: () => actions?.reset(),
-  };
+  return actions ?? NO_ACTIONS;
 }
+
+const NO_ACTIONS: RailActions = {
+  aim: () => {}, pickedFor: () => null, settle: () => {}, reset: () => {},
+};

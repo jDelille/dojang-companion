@@ -86,6 +86,27 @@ async function errorOf(response) {
   return (await response.json()).error.code;
 }
 
+test('ai_settings forwards only an empty read and never invalidates records', async () => {
+  const response = await post({ operation: 'ai_settings', payload: {}, requestKey: null }, cookie);
+  assert.equal(response.status, 200);
+  assert.deepEqual(hubCalls, [{ siteId: '1', operation: 'ai_settings', payload: {}, requestKey: null }]);
+  assert.deepEqual(revalidated, []);
+});
+
+test('ai_settings rejects browser scope, write keys, and missing authentication', async () => {
+  for (const payload of [{ siteId: '99' }, { role: 'owner' }, { enabled: true }]) {
+    assert.equal((await post({ operation: 'ai_settings', payload, requestKey: null }, cookie)).status, 400);
+  }
+  assert.equal((await post({ operation: 'ai_settings', payload: {}, requestKey: KEY }, cookie)).status, 400);
+  assert.equal((await post({ operation: 'ai_settings', payload: {}, requestKey: null })).status, 401);
+  assert.equal(hubCalls.length, 0);
+});
+
+test('AI configuration read does not enable AI activation writes', async () => {
+  assert.equal((await post({ operation: 'enable_ai', payload: { expectedSiteVersion: 1, expectedConfigVersion: 1 }, requestKey: KEY }, cookie)).status, 403);
+  assert.equal(hubCalls.length, 0);
+});
+
 test("prepare_lead_action with a valid payload and request key is forwarded as is", async () => {
   const response = await post({ operation: "prepare_lead_action", payload: PAYLOAD, requestKey: KEY }, cookie);
   assert.equal(response.status, 200);

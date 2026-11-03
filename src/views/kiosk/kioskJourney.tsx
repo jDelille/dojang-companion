@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useReducer } from "react";
+import Link from 'next/link';
+import type { KioskDataMode } from '@/domain/kiosk/dataMode';
 import { checkInFlowReducer, initialCheckInFlow } from "@/domain/kiosk/checkInFlow";
 import { createCheckInCommand } from "@/domain/kiosk/checkInCommand";
 import { outcomeFor } from "@/domain/kiosk/checkInOutcome";
@@ -30,7 +32,7 @@ import WelcomeScreen from "./welcomeScreen";
 // app/(kiosk)/kiosk/page.tsx: Welcome (K01), Choose class (K02), Identify (K03),
 // Confirm (K05; eligibility, K04, comes back from the check-in), Result (K06)
 // and the privacy resets (K07).
-const KioskJourney = () => {
+const KioskJourney = ({ source = 'fixture' }: { source?: KioskDataMode }) => {
   const [flow, dispatch] = useReducer(checkInFlowReducer, initialCheckInFlow);
 
   // Fetch today's sessions whenever the session step is loading (first visit or Try again)
@@ -61,7 +63,7 @@ const KioskJourney = () => {
     flow.step === "identify" && flow.roster.status === "loading" ? flow.session.sessionId : null;
 
   useEffect(() => {
-    if (!rosterSessionId) return;
+    if (!rosterSessionId || source !== 'fixture') return;
 
     // Same late-response guard as sessions. The reducer also checks the sessionId.
     let cancelled = false;
@@ -78,7 +80,7 @@ const KioskJourney = () => {
       cancelled = true;
       controller.abort();
     };
-  }, [rosterSessionId]);
+  }, [rosterSessionId, source]);
 
   // Send the check-in while on the sending step. The command object stays the
   // same for the whole step, so this runs once per attempt.
@@ -176,6 +178,9 @@ const KioskJourney = () => {
     }
 
     if (flow.step === "identify") {
+      if (source !== 'fixture') return <StatusMessage message="Student verification is not connected on this kiosk yet. Please see staff to check in."
+        actions={[{ label: 'Choose another class', onClick: () => dispatch({ type: 'changeSession' }) },
+          { label: 'Done', onClick: () => dispatch({ type: 'reset' }) }]} />;
       const search =
         flow.roster.status === "ready"
           ? searchRoster(flow.roster.list, flow.query)
@@ -238,6 +243,11 @@ const KioskJourney = () => {
   return (
     <>
       <KioskHeader />
+      <p className="py-2 text-center text-xs text-(--kiosk-muted)">
+        {source === 'fixture' ? 'Development preview · Sample classes and attendance' : source === 'odoo-test'
+          ? 'Odoo test connection · Session reads only' : 'Kiosk connection unavailable'}
+        {source === 'odoo-test' && <> · <Link href="/integration/pair" className="underline underline-offset-4">Device setup</Link></>}
+      </p>
       {renderScreen()}
       <IdleWarning secondsLeft={idle.secondsLeft} onStillHere={idle.stillHere} />
     </>
