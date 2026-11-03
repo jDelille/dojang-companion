@@ -47,8 +47,7 @@ export const dojangMenu: SidebarSection[] = [
     items: [
       // Arrivals + communications + CRM attention + quick actions (WhatsMax writeup)
       { label: "Front Desk", icon: "door-open", routeKey: "frontDesk" },
-      // Opens the full-screen public kiosk, outside this shell
-      { label: "Kiosk", icon: "scan-line", routeKey: "kiosk" },
+      // The kiosk link is hidden from the sidebar for now; /kiosk still opens it
     ],
   },
 ];

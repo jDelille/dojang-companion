@@ -7,7 +7,7 @@ Module._resolveFilename = function (request, ...rest) {
   if (request.startsWith("@/")) request = path.join(process.env.DOJANG_CRM_BUILD, request.slice(2));
   return resolve.call(this, request, ...rest);
 };
-const { completeTask, addLeadNote } = require(path.join(process.env.DOJANG_CRM_BUILD, "integrations/crmWrites.js"));
+const { completeTask, addLeadNote, createLead } = require(path.join(process.env.DOJANG_CRM_BUILD, "integrations/crmWrites.js"));
 const key = "crm-0123456789-0123456789";
 const task = { taskId: "501", expectedVersion: 123, feedback: "Outcome recorded." };
 const note = { leadId: "42", expectedVersion: 456, note: "Internal context." };
@@ -68,5 +68,22 @@ test("invalid inputs never reach the gateway", async () => {
   assert.equal((await addLeadNote({ ...note, note: " " }, key)).code, "INVALID_COMMAND");
   assert.equal((await completeTask({ ...task, expectedVersion: -1 }, { kind: "lead", id: "42" }, key)).code, "INVALID_COMMAND");
   assert.equal((await addLeadNote(note, "short")).code, "INVALID_COMMAND");
+  assert.equal(requests.length, 0);
+});
+test("a new lead needs a confirmed lead id and version; uncertain answers keep the same key", async () => {
+  const lead = { name: "Maya Chen", contact: "", email: "", phone: "" };
+  reply = json({ leadId: "9100", version: 1729000000000000, replayed: false });
+  assert.equal((await createLead(lead, key)).result.leadId, "9100");
+  for (const bad of [{ leadId: "0", version: 1, replayed: false }, { leadId: "9100", replayed: false }, { leadId: "9100", version: 1 }]) {
+    reply = json(bad);
+    assert.equal((await createLead(lead, key)).outcome, "notConfirmed");
+  }
+  reply = json({ error: { code: "FORBIDDEN" } }, 403);
+  assert.deepEqual(await createLead(lead, key), { outcome: "failed", code: "FORBIDDEN" });
+  assert.ok(requests.every((request) => request.operation === "create_lead" && request.requestKey === key));
+  requests = [];
+  assert.equal((await createLead({ ...lead, name: " " }, key)).code, "INVALID_COMMAND");
+  assert.equal((await createLead({ ...lead, email: "nope" }, key)).code, "INVALID_COMMAND");
+  assert.equal((await createLead({ ...lead, stageId: "4" }, key)).code, "INVALID_COMMAND");
   assert.equal(requests.length, 0);
 });

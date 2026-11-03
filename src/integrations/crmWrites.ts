@@ -1,13 +1,20 @@
 import type { HubAnswer } from "./hub";
 import { isRequestKey } from "@/domain/hubAction";
 import {
-  isAddLeadNotePayload, isCompleteTaskPayload, isCompletedTaskResult, isSavedLeadNoteResult,
-  type AddLeadNotePayload, type AddLeadNoteResult, type CompleteTaskPayload, type CompleteTaskResult, type TaskSubject,
+  isAddLeadNotePayload, isCompleteTaskPayload, isCompletedTaskResult, isCreateLeadPayload, isCreatedLeadResult, isSavedLeadNoteResult,
+  type AddLeadNotePayload, type AddLeadNoteResult, type CompleteTaskPayload, type CompleteTaskResult, type CreateLeadPayload, type CreateLeadResult, type TaskSubject,
 } from "@/domain/crmWrites";
+import {
+  isChangeClassPayload, isChangedClassResult, isCreateTaskPayload, isCreatedTaskResult,
+  type ChangeClassPayload, type ChangeClassResult, type CreateTaskPayload, type CreateTaskResult,
+} from "@/domain/classMove";
 
 const UNCERTAIN = ["CONCURRENT_RETRY", "BACKEND_UNAVAILABLE", "BACKEND_UNAVAILABLE_RETRY_SAME_ACTION"];
 
-async function write<T>(operation: "complete_task" | "add_lead_note", payload: CompleteTaskPayload | AddLeadNotePayload, requestKey: string, accepts: (value: unknown) => value is T): Promise<HubAnswer<T>> {
+type WriteOperation = "complete_task" | "add_lead_note" | "create_lead" | "change_class" | "create_task";
+type WritePayload = CompleteTaskPayload | AddLeadNotePayload | CreateLeadPayload | ChangeClassPayload | CreateTaskPayload;
+
+async function write<T>(operation: WriteOperation, payload: WritePayload, requestKey: string, accepts: (value: unknown) => value is T): Promise<HubAnswer<T>> {
   if (!isRequestKey(requestKey)) return { outcome: "failed", code: "INVALID_COMMAND" };
   try {
     const response = await fetch("/api/hub", {
@@ -31,4 +38,17 @@ export function completeTask(payload: CompleteTaskPayload, subject: TaskSubject,
 export function addLeadNote(payload: AddLeadNotePayload, requestKey: string): Promise<HubAnswer<AddLeadNoteResult>> {
   if (!isAddLeadNotePayload(payload)) return Promise.resolve({ outcome: "failed", code: "INVALID_COMMAND" });
   return write("add_lead_note", payload, requestKey, (value): value is AddLeadNoteResult => isSavedLeadNoteResult(value, payload.leadId));
+}
+export function createLead(payload: CreateLeadPayload, requestKey: string): Promise<HubAnswer<CreateLeadResult>> {
+  if (!isCreateLeadPayload(payload)) return Promise.resolve({ outcome: "failed", code: "INVALID_COMMAND" });
+  return write("create_lead", payload, requestKey, isCreatedLeadResult);
+}
+// Do For Me's class move (src/domain/classMove.ts)
+export function changeClass(payload: ChangeClassPayload, requestKey: string): Promise<HubAnswer<ChangeClassResult>> {
+  if (!isChangeClassPayload(payload)) return Promise.resolve({ outcome: "failed", code: "INVALID_COMMAND" });
+  return write("change_class", payload, requestKey, (value): value is ChangeClassResult => isChangedClassResult(value, payload));
+}
+export function createTask(payload: CreateTaskPayload, requestKey: string): Promise<HubAnswer<CreateTaskResult>> {
+  if (!isCreateTaskPayload(payload)) return Promise.resolve({ outcome: "failed", code: "INVALID_COMMAND" });
+  return write("create_task", payload, requestKey, (value): value is CreateTaskResult => isCreatedTaskResult(value, payload));
 }

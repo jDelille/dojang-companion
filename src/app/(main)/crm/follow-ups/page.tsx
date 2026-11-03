@@ -32,7 +32,7 @@ export default async function FollowUpsPage() {
       {answer.outcome === "loaded" ? (
         <FollowUpQueue context={answer.context} showsSampleData={USES_SAMPLE_LEADS} fromOdoo={hubEnabled()} />
       ) : (
-        <div className="crm-scope overflow-hidden rounded-2xl border border-(--crm-line)">
+        <div className="crm-scope">
           <HubUnavailable code={answer.code} text={answer.text} />
         </div>
       )}

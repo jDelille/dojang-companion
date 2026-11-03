@@ -2,16 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Inbox as InboxIcon, MessageSquare } from "lucide-react";
-import { focusKey } from "@/domain/companion";
+import { focusKey, type CompanionContext, type Suggestion } from "@/domain/companion";
 import type { HubMessage } from "@/domain/inbox";
 import { getInboxContext, SIGN_IN_CODES, type InboxContextAnswer } from "@/integrations/hub";
 import { DoForMeFocus, useDoForMe } from "@/views/doForMe/doForMeProvider";
-import { deliveryOf, inboxRailContext, messageRailContext, needsStaff } from "./inboxCompanion";
+import { deliveryOf, inboxRailContext, memberName, messageRailContext, needsStaff } from "./inboxCompanion";
+import ClassMovePlan from "./classMovePlan";
 import InboxList from "./inboxList";
-import { EmptyState, ErrorBlock, LoadingBlock, Tabs } from "./inboxStates";
+import { Card } from "@/templates/roster/components/ui/card";
+import { EmptyState } from "@/templates/roster/components/ui/data";
+import { ErrorBlock, LoadingBlock, PageHeader, Tabs } from "@/templates/roster/components/ui/layout";
+import "@/templates/roster/roster.css";
 import MemberContextPanel from "./memberContextPanel";
 import MessageView from "./messageView";
-import { HubSignOutButton } from "@/views/shell/hubUnavailable";
 import StaffSignIn from "@/views/shell/staffSignIn";
 
 /*
@@ -32,6 +35,10 @@ import StaffSignIn from "@/views/shell/staffSignIn";
 */
 
 type Filter = "needs" | "replied" | "all";
+
+// Do For Me's class move (classMovePlan.tsx) is hidden for now. Set to true to
+// offer it again; the plan, its Hub operations and their checks are unchanged.
+const SHOW_CLASS_MOVE = false;
 
 const EMPTY_TEXT: Record<Filter, { title: string; description: string }> = {
   needs: { title: "Nothing needs you", description: "Every message has an approved reply." },
@@ -73,7 +80,6 @@ export default function InboxClient({
     void load();
   }
 
-  const readOnly = source === "hub";
   const needsSignIn = answer?.outcome === "unavailable" && SIGN_IN_CODES.includes(answer.code ?? "");
   const loaded = answer?.outcome === "loaded" ? answer : null;
   const context = loaded?.context ?? null;
@@ -94,41 +100,58 @@ export default function InboxClient({
 
   const railKey = selected ? focusKey({ kind: "message", messageId: selected.id }) : focusKey({ kind: "inbox" });
 
+  // Do For Me's class move for the selected message: a confirmed student and an
+  // upcoming class, not replied to yet. Reviewed and applied in the rail's Work
+  // tab (classMovePlan.tsx), with the steps, Review and Apply.
+  const fromSession = context && selected ? context.sessions.find((session) => session.id === selected.sessionId) : undefined;
+  const canMove =
+    SHOW_CLASS_MOVE && context !== null && selected !== null && selected.state === "resolved" && selected.memberId !== null &&
+    deliveryOf(context, selected.id) === null && fromSession !== undefined && fromSession.future;
+  const moveSuggestion: Suggestion | null =
+    canMove && context && selected
+      ? {
+          id: `class-move:${selected.id}`,
+          title: `Move ${memberName(context, selected.memberId) ?? "the student"} to another class`,
+          explanation: "Moves the booking, replies to the guardian and adds a follow-up task. Nothing changes until you review and apply.",
+          actionLabel: "Apply",
+          capability: "inbox.move_class",
+          risk: "medium",
+          preview: [],
+          panel: (
+            <ClassMovePlan
+              key={selected.id}
+              context={context}
+              message={selected}
+              onClose={() => doForMe.settle(railKey, "plan")}
+              onChanged={load}
+            />
+          ),
+        }
+      : null;
+  let railContext: CompanionContext | null = null;
+  if (context && selected) {
+    const messageRail = messageRailContext(context, selected, simulated);
+    railContext = moveSuggestion ? { ...messageRail, suggestions: [...messageRail.suggestions, moveSuggestion] } : messageRail;
+  } else if (context) {
+    railContext = inboxRailContext(context, simulated);
+  }
+
   return (
-    <div className="crm-scope overflow-hidden rounded-2xl border border-(--crm-line)">
+    <div className="crm-scope roster-scope">
       {source === "fixture" && (
-        <p className="border-b border-(--crm-line) px-5 py-3 text-[11px] text-(--crm-text-secondary) sm:px-6">
+        <p className="mb-4 text-[11px] text-(--crm-text-secondary)">
           Sample messages · Development preview, not connected to Odoo or WhatsMax. Nothing is sent.
         </p>
       )}
-      {source === "hub" && context && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-(--crm-line) px-5 py-3 text-[11px] text-(--crm-text-secondary) sm:px-6">
-          <p>
-            Odoo · {context.principal.name} ({context.principal.role}) · site {context.principal.siteId} ·
-            Read-only here: resolving, drafting and approving stay in Companion for now.
-          </p>
-          <HubSignOutButton onSignedOut={retry} />
-        </div>
-      )}
 
       {/* Do For Me follows the selected message, or the inbox as a whole */}
-      {context && (
-        <DoForMeFocus
-          focusKey={railKey}
-          context={
-            selected ? messageRailContext(context, selected, simulated, readOnly) : inboxRailContext(context, simulated)
-          }
-        />
-      )}
+      {railContext && <DoForMeFocus focusKey={railKey} context={railContext} />}
 
-      <div className="p-5 sm:p-6">
-        <header className="mb-4">
-          <h1 className="text-xl font-bold leading-tight text-(--crm-text)">Inbox</h1>
-          <p className="mt-1 text-sm text-(--crm-text-secondary)">
-            Guardian messages received through WhatsMax, one per row.
-            {readOnly ? " Read-only here for now." : " Replies are reviewed and approved here."}
-          </p>
-        </header>
+      <div>
+        <PageHeader
+          title="Inbox"
+          description="Guardian messages received through WhatsMax, one per row. Replies are reviewed and approved here."
+        />
 
         {context && (
           <Tabs
@@ -147,23 +170,24 @@ export default function InboxClient({
         )}
 
         {needsSignIn ? (
-          <div className="mt-4 rounded-xl border border-(--crm-line) bg-(--crm-panel)">
+          <Card className="mt-4">
             <StaffSignIn onSignedIn={retry} />
-          </div>
+          </Card>
         ) : (
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[330px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)_18rem]">
           {/* Messages | message | linked member. The member pane sits under the
               message until there's room for a third column. */}
-          <section
+          <Card
+            role="region"
             aria-label="Messages"
-            className="flex max-h-[calc(100vh-15rem)] min-h-64 flex-col overflow-hidden rounded-xl border border-(--crm-line) bg-(--crm-panel)"
+            className="flex max-h-[calc(100vh-15rem)] min-h-64 flex-col overflow-hidden"
           >
             {!answer ? (
               <LoadingBlock label="Loading messages…" />
             ) : answer.outcome === "unavailable" ? (
               <ErrorBlock message={answer.text} onRetry={retry} />
             ) : shown.length === 0 ? (
-              <EmptyState icon={<InboxIcon size={20} />} {...EMPTY_TEXT[filter]} />
+              <EmptyState icon={<InboxIcon strokeWidth={1.75} />} {...EMPTY_TEXT[filter]} />
             ) : (
               <InboxList
                 context={answer.context}
@@ -172,11 +196,12 @@ export default function InboxClient({
                 onSelect={setSelectedId}
               />
             )}
-          </section>
+          </Card>
 
-          <section
+          <Card
+            role="region"
             aria-label="Message"
-            className="flex max-h-[calc(100vh-15rem)] min-h-64 flex-col overflow-hidden rounded-xl border border-(--crm-line) bg-(--crm-raised)"
+            className="flex max-h-[calc(100vh-15rem)] min-h-64 flex-col overflow-hidden"
           >
             {context && selected ? (
               <MessageView
@@ -184,20 +209,21 @@ export default function InboxClient({
                 context={context}
                 message={selected}
                 simulated={simulated}
-                readOnly={readOnly}
                 picked={doForMe.pickedFor(railKey)}
                 onChanged={load}
                 onSettled={() => doForMe.settle(railKey, "plan")}
               />
             ) : (
               <EmptyState
-                icon={<MessageSquare size={20} />}
+                icon={<MessageSquare strokeWidth={1.75} />}
                 title="Pick a message"
                 description="Choose a message on the left to see it and what to do next."
               />
             )}
-          </section>
+          </Card>
 
+          {/* The linked member: the WhatsMax writeup's Inbox ("WhatsMax provides the
+              communication. Odoo provides the member truth.") */}
           {context && selected && (
             <div className="min-w-0 lg:col-start-2 2xl:col-start-3 2xl:row-start-1">
               <MemberContextPanel

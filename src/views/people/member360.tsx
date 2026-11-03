@@ -78,7 +78,7 @@ export default function Member360({ member, attendance }: Props) {
   return (
     <article className="min-w-0" data-member-id={member.id}>
       {/* Identity: avatar, name, program · family, status pill */}
-      <header className="px-5 pt-6 sm:px-6">
+      <header>
         <div className="flex flex-wrap items-start gap-4">
           <MemberAvatar member={member} />
           <div className="min-w-0 flex-1">
@@ -141,7 +141,7 @@ export default function Member360({ member, attendance }: Props) {
         role="tablist"
         aria-label="Member sections"
         onKeyDown={moveBetweenTabs}
-        className="flex gap-1 overflow-x-auto border-y border-(--crm-line) px-3 sm:px-4"
+        className="flex gap-1 overflow-x-auto border-y border-(--crm-line)"
       >
         {TAB_NAMES.map((tab) => {
           const isActive = tab === activeTab;
@@ -171,7 +171,7 @@ export default function Member360({ member, attendance }: Props) {
         id="member-tab-panel"
         role="tabpanel"
         aria-labelledby={tabId(activeTab)}
-        className="p-5 sm:p-6"
+        className="pt-5 sm:pt-6"
       >
         {activeTab === "Overview" ? (
           <><MemberContact member={member} /><MemberOverview member={member} attendance={attendance} /></>

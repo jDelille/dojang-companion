@@ -9,7 +9,6 @@ import { FOLLOW_UP_CAPABILITY, followUpSuggestion } from "@/domain/leadFollowUp"
 import { NEXT_ACTION_LABELS } from "@/domain/followUp";
 import type { LeadDetails, LeadTask } from "@/domain/leadDetails";
 import { useDoForMe } from "@/views/doForMe/doForMeProvider";
-import { HubSignOutButton } from "@/views/shell/hubUnavailable";
 import FollowUpReview, { FollowUpPrepared } from "./followUpReview";
 import { tagsOf } from "./leadViews";
 import { DateLabel, TimeLabel } from "./localTime";
@@ -132,20 +131,14 @@ export default function LeadDetail({
   const laterTasks = openTasks.slice(1);
 
   return (
-    <div className="crm-scope overflow-hidden rounded-2xl border border-(--crm-line)">
+    <div className="crm-scope">
       {showsSampleData && (
-        <p className="border-b border-(--crm-line) px-5 py-3 text-[11px] text-(--crm-text-secondary) sm:px-6">
+        <p className="mb-4 text-[11px] text-(--crm-text-secondary)">
           Sample lead · Development preview, not connected to Odoo
         </p>
       )}
-      {hubMode && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-(--crm-line) px-5 py-3 text-[11px] text-(--crm-text-secondary) sm:px-6">
-          <p>Lead from Odoo · Internal notes, task completion and reviewed follow-ups</p>
-          <HubSignOutButton />
-        </div>
-      )}
 
-      <article className="p-5 sm:p-6" data-lead-id={lead.id}>
+      <article data-lead-id={lead.id}>
         <Link
           href="/crm"
           className="mb-4 inline-flex items-center gap-1.5 text-[12px] text-(--crm-muted) hover:text-(--crm-text)"

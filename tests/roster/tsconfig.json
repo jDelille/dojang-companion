@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "strict": true, "target": "ES2022", "module": "commonjs",
+    "moduleResolution": "node", "lib": ["ES2022", "DOM"],
+    "types": ["node"], "skipLibCheck": true, "jsx": "react-jsx",
+    "baseUrl": "../..", "paths": { "@/*": ["src/*"] },
+    "rootDir": "../../src"
+  },
+  "files": ["../../src/templates/roster/components/pipeline/kanban.tsx", "../../src/config/dojang.ts", "../../src/app/(main)/roster/page.tsx", "../../src/app/(main)/crm/page.tsx"]
+}

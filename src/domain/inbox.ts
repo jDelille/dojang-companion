@@ -126,3 +126,25 @@ export const DELIVERY_LABELS: Record<DeliveryState, string> = {
   uncertain: "Uncertain: may or may not have been sent",
   cancelled: "Cancelled before sending",
 };
+
+// Exact payloads the gateway forwards for the three Inbox writes (Hub service.py
+// _resolve / _draft / _approve_reply); anything else is refused before Odoo.
+const isPayloadObject = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === "object" && !Array.isArray(value);
+const isMessageRecordId = (value: unknown) => typeof value === "string" && /^[1-9][0-9]{0,9}$/.test(value);
+const isRevision = (value: unknown) => typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+
+export function isResolvePayload(value: unknown): value is ResolvePayload {
+  return isPayloadObject(value) && Object.keys(value).sort().join() === "expectedRevision,memberId,messageId,sessionId"
+    && isMessageRecordId(value.messageId) && isMessageRecordId(value.memberId) && isMessageRecordId(value.sessionId)
+    && isRevision(value.expectedRevision);
+}
+export function isDraftPayload(value: unknown): value is DraftPayload {
+  return isPayloadObject(value) && Object.keys(value).sort().join() === "expectedRevision,messageId"
+    && isMessageRecordId(value.messageId) && isRevision(value.expectedRevision);
+}
+export function isApproveReplyPayload(value: unknown): value is ApproveReplyPayload {
+  return isPayloadObject(value) && Object.keys(value).sort().join() === "expectedRevision,messageId,reply"
+    && isMessageRecordId(value.messageId) && isRevision(value.expectedRevision)
+    && typeof value.reply === "string" && value.reply.trim().length >= 1 && value.reply.length <= 1500;
+}

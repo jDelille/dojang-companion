@@ -3,6 +3,8 @@
 // parts: no requests or approvals yet). The focus kinds follow Companion's
 // viewFromPath (front desk / member / session), with the Sales and lead focus added.
 
+import type { ReactNode } from "react";
+
 export type Risk = "low" | "medium" | "high";
 
 export type Suggestion = {
@@ -21,6 +23,10 @@ export type Suggestion = {
   // "rule": a fixed rule over Odoo's records (domain/leadFollowUp.ts), not AI.
   // The rail and the review say so and don't use AI styling for it.
   basis?: "rule";
+  // A page's own review for the rail's Work tab, in place of the read-only
+  // preview (the Inbox's class move, views/inbox/classMovePlan.tsx). Only for
+  // contexts built in the browser; server-read contexts never carry one.
+  panel?: ReactNode;
 };
 
 // Comes back from the approvals route once one exists. Never built in the browser.

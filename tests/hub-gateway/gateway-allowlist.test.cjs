@@ -52,6 +52,7 @@ global.fetch = async (url, init) => {
   }
   if (params.operation === "complete_task") result = { taskId: params.payload.taskId, leadId: "9008", state: "done", replayed: false };
   if (params.operation === "add_lead_note") result = { leadId: params.payload.leadId, noteId: "91", state: "saved", messageSent: false, replayed: false };
+  if (params.operation === "create_lead") result = { leadId: "9100", version: 1729000000000000, replayed: false };
   if (hubReply) result = hubReply;
   return new Response(JSON.stringify({ jsonrpc: "2.0", result }), { headers: { "content-type": "application/json" } });
 };
@@ -144,14 +145,11 @@ test("malformed fields are refused before Odoo", async () => {
 
 test("other writes stay refused with HUB_READ_ONLY", async () => {
   const writes = {
-    create_task: { relatedType: "lead", relatedId: "1", summary: "Call", due: "2026-10-29" },
     assign_lead: { leadId: "1", expectedVersion: 1, ownerId: "2" },
     propose_stage: { leadId: "1", expectedVersion: 1, stageId: "2", reason: "x", due: "2026-10-29" },
     update_lead: { leadId: "1", expectedVersion: 1, changes: { name: "X" } },
-    create_lead: { name: "X", contact: "", email: "", phone: "" },
-    draft: { messageId: "1", expectedRevision: 0 },
-    approve_reply: { messageId: "1", expectedRevision: 1, reply: "Hi" },
     reserve_trial: { leadId: "1" },
+    create_broadcast: { title: "x" },
   };
   for (const [operation, payload] of Object.entries(writes)) {
     const response = await post({ operation, payload, requestKey: KEY }, cookie);
@@ -204,6 +202,79 @@ for (const [operation, payload] of Object.entries(INTERNAL_WRITES)) {
     assert.equal(revalidated.length, 0);
   });
 }
+
+const INBOX_WRITES = {
+  resolve: { messageId: "301", memberId: "5001", sessionId: "6101", expectedRevision: 0 },
+  draft: { messageId: "301", expectedRevision: 1 },
+  approve_reply: { messageId: "301", expectedRevision: 2, reply: "We'll confirm a makeup class with you." },
+};
+for (const [operation, payload] of Object.entries(INBOX_WRITES)) {
+  test(`inbox ${operation} forwards its exact payload with the same retry key`, async () => {
+    hubReply = { messageId: "301", revision: 2, deliveryId: "77", state: "queued", replayed: false };
+    for (let attempt = 0; attempt < 2; attempt++) assert.equal((await post({ operation, payload, requestKey: KEY }, cookie)).status, 200);
+    assert.deepEqual(hubCalls, [0, 1].map(() => ({ siteId: "1", operation, payload, requestKey: KEY })));
+  });
+  test(`inbox ${operation} rejects bad payloads, overrides, missing keys and sessions before Odoo`, async () => {
+    for (const bad of [
+      { ...payload, messageId: "0" }, { ...payload, messageId: 301 }, { ...payload, expectedRevision: -1 },
+      { ...payload, expectedRevision: "1" }, { ...payload, siteId: "99" }, { ...payload, channel: "sms" },
+      ...(operation === "approve_reply" ? [{ ...payload, reply: " " }, { ...payload, reply: "x".repeat(1501) }] : []),
+      ...(operation === "resolve" ? [{ ...payload, memberId: "abc" }] : []),
+    ]) assert.equal((await post({ operation, payload: bad, requestKey: KEY }, cookie)).status, 400, JSON.stringify(bad));
+    assert.equal((await post({ operation, payload, requestKey: null }, cookie)).status, 400);
+    assert.equal((await post({ operation, payload, requestKey: KEY })).status, 401);
+    assert.equal(hubCalls.length, 0);
+  });
+}
+
+const CLASS_MOVE = { memberId: "3", sessionId: "118", fromSessionId: "117", expectedVersion: 1730000000000 };
+const MOVE_TASK = { relatedType: "member", relatedId: "3", summary: "Confirm attendance after a class move", due: "2026-11-03" };
+test("change_class and create_task forward their exact payloads and invalidate the member", async () => {
+  hubReply = { memberId: "3", sessionId: "118", enrollmentId: "900", state: "registered", replayed: false };
+  assert.equal((await post({ operation: "change_class", payload: CLASS_MOVE, requestKey: KEY }, cookie)).status, 200);
+  hubReply = { taskId: "77", memberId: "3", replayed: false };
+  assert.equal((await post({ operation: "create_task", payload: MOVE_TASK, requestKey: KEY }, cookie)).status, 200);
+  assert.deepEqual(hubCalls, [
+    { siteId: "1", operation: "change_class", payload: CLASS_MOVE, requestKey: KEY },
+    { siteId: "1", operation: "create_task", payload: MOVE_TASK, requestKey: KEY },
+  ]);
+  assert.deepEqual(revalidated, [0, 1].flatMap(() => ["/crm", "/crm/follow-ups", "/front-desk", "/people/3"]));
+});
+test("change_class and create_task reject bad payloads and overrides before Odoo", async () => {
+  for (const bad of [
+    { ...CLASS_MOVE, sessionId: "117" }, { ...CLASS_MOVE, expectedVersion: "1" }, { ...CLASS_MOVE, memberId: 3 },
+    { ...CLASS_MOVE, siteId: "9" }, { memberId: "3", sessionId: "118", expectedVersion: 1 },
+  ]) assert.equal((await post({ operation: "change_class", payload: bad, requestKey: KEY }, cookie)).status, 400, JSON.stringify(bad));
+  for (const bad of [
+    { ...MOVE_TASK, relatedType: "partner" }, { ...MOVE_TASK, summary: " " }, { ...MOVE_TASK, summary: "x".repeat(201) },
+    { ...MOVE_TASK, due: "Nov 3" }, { ...MOVE_TASK, userId: "7" },
+  ]) assert.equal((await post({ operation: "create_task", payload: bad, requestKey: KEY }, cookie)).status, 400, JSON.stringify(bad));
+  assert.equal((await post({ operation: "change_class", payload: CLASS_MOVE, requestKey: null }, cookie)).status, 400);
+  assert.equal((await post({ operation: "create_task", payload: MOVE_TASK, requestKey: KEY })).status, 401);
+  assert.equal(hubCalls.length, 0);
+});
+
+const NEW_LEAD = { name: "Maya Chen - kids karate", contact: "Ana Chen", email: "ana@example.invalid", phone: "+1 555 0100" };
+test("create_lead forwards exactly the four fields with the same retry key and invalidates the new lead", async () => {
+  for (let attempt = 0; attempt < 2; attempt++) assert.equal((await post({ operation: "create_lead", payload: NEW_LEAD, requestKey: KEY }, cookie)).status, 200);
+  assert.deepEqual(hubCalls, [0, 1].map(() => ({ siteId: "1", operation: "create_lead", payload: NEW_LEAD, requestKey: KEY })));
+  assert.deepEqual(revalidated, [0, 1].flatMap(() => ["/crm", "/crm/follow-ups", "/front-desk", "/crm/leads/9100"]));
+});
+test("create_lead rejects bad fields, stage or owner overrides, missing keys and sessions before Odoo", async () => {
+  const { phone, ...missingPhone } = NEW_LEAD;
+  for (const bad of [
+    { ...NEW_LEAD, name: " " }, { ...NEW_LEAD, name: "x".repeat(201) }, { ...NEW_LEAD, email: "not-an-email" },
+    { ...NEW_LEAD, phone: 5550100 }, missingPhone, { ...NEW_LEAD, stageId: "4" }, { ...NEW_LEAD, userId: "7" },
+    { ...NEW_LEAD, siteId: "99" },
+  ]) assert.equal((await post({ operation: "create_lead", payload: bad, requestKey: KEY }, cookie)).status, 400);
+  assert.equal(phone.length > 0, true);
+  assert.equal((await post({ operation: "create_lead", payload: NEW_LEAD, requestKey: null }, cookie)).status, 400);
+  assert.equal((await post({ operation: "create_lead", payload: NEW_LEAD, requestKey: KEY })).status, 401);
+  assert.equal(hubCalls.length, 0);
+  hubReply = { leadId: "not-an-id", version: 1, replayed: false };
+  assert.equal((await post({ operation: "create_lead", payload: NEW_LEAD, requestKey: KEY }, cookie)).status, 200);
+  assert.equal(revalidated.length, 0); // an unreadable receipt invalidates nothing
+});
 
 test("existing reads still go through with a null request key", async () => {
   const response = await post({ operation: "crm_context", payload: { query: "" }, requestKey: null }, cookie);

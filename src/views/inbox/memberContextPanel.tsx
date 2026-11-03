@@ -123,7 +123,7 @@ export default function MemberContextPanel({
   return (
     <aside
       aria-label="Member context"
-      className="flex min-h-40 flex-col overflow-hidden rounded-xl border border-(--crm-line) bg-(--crm-panel) 2xl:max-h-[calc(100vh-15rem)]"
+      className="flex min-h-40 flex-col overflow-hidden rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-elevated)] 2xl:max-h-[calc(100vh-15rem)]"
     >
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <span className={sectionLabel}>Linked member</span>

@@ -1,0 +1,123 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Roster — "Ledger" design tokens (build spec §3)
+
+   Amber is used sparingly: CTAs, active nav states, key status indicators.
+   Never as a large background fill.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Tells the browser which way to paint the things CSS cannot reach:
+     scrollbars, <select> popups, date pickers, autofill, spellcheck
+     underlines. Without it those stay light-on-light in dark mode. */
+  color-scheme: light;
+
+  --color-ink: #0f1115; /* base text / near-black, not pure black */
+  --color-paper: #fafaf7; /* warm off-white background */
+  --color-accent: #e8a33d; /* Signal Amber — primary CTA / active states */
+  --color-accent-dark: #c6842a; /* amber hover/pressed */
+  --color-slate: #5b6472; /* secondary text, borders, muted labels */
+  --color-slate-100: #e7e9ec; /* light borders / dividers */
+  --color-success: #3f8f5f;
+  --color-alert: #c24e4e;
+  --color-warning: #d9a441;
+  --color-surface: #ffffff; /* card backgrounds on paper */
+  --color-surface-dark: #15171c; /* dark-mode surface */
+
+  /* Derived — kept as tokens so dark mode can remap them in one place. */
+  --color-bg: var(--color-paper);
+  --color-fg: var(--color-ink);
+  --color-fg-muted: var(--color-slate);
+  --color-border: var(--color-slate-100);
+  --color-elevated: var(--color-surface);
+  --color-accent-fg: #1c1403; /* readable text on amber */
+
+  /* Type scale (rem) — 0.75 / 0.875 / 1 / 1.125 / 1.25 / 1.5 / 1.875 / 2.25 / 3 */
+  --text-2xs: 0.75rem;
+  --text-xs: 0.875rem;
+  --text-sm: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 1.875rem;
+  --text-3xl: 2.25rem;
+  --text-4xl: 3rem;
+
+  /* 8px base spacing grid */
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2rem;
+  --space-5: 3rem;
+  --space-6: 4rem;
+
+  --radius-card: 8px;
+  --radius-control: 6px;
+  --radius-pill: 999px;
+
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --color-bg: #0f1115;
+  --color-fg: #f2f2ef;
+  --color-fg-muted: #98a1b0;
+  --color-border: #262a33;
+  --color-elevated: var(--color-surface-dark);
+  --color-slate-100: #262a33;
+  --color-slate: #98a1b0;
+  --color-paper: #0f1115;
+  --color-surface: #15171c;
+  --color-ink: #f2f2ef;
+  --color-success: #56a878;
+  --color-alert: #d96a6a;
+  --color-warning: #e0b45c;
+}
+
+/* ── Chart palette ───────────────────────────────────────────────────────────
+   Categorical series colors, assigned in fixed order and never cycled.
+   Both sets are validated with the dataviz palette validator:
+
+     light  (surface #FFFFFF): lightness band PASS · chroma PASS ·
+              CVD separation PASS (worst adjacent ΔE 12.1 deutan) ·
+              normal-vision PASS (worst ΔE 18.2) ·
+              contrast WARN on --chart-1 (2.16:1) → charts carry direct labels
+              and a table view, which is the required relief.
+     dark   (surface #15171C): all six checks PASS.
+
+   The dark steps are chosen against the dark surface, not flipped from light —
+   --chart-1 in particular is a genuinely darker amber to sit in the L band.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --chart-1: #e8a33d; /* amber — brand series */
+  --chart-2: #3579b5; /* blue */
+  --chart-3: #3f9e6a; /* green */
+  --chart-4: #9166d6; /* violet */
+  --chart-5: #cc5555; /* red */
+  --chart-6: #1f9ea8; /* teal */
+  --chart-grid: var(--color-slate-100);
+  --chart-axis: var(--color-slate);
+  /* Sequential ramp — one hue, light→dark. Never a rainbow. */
+  --chart-seq-1: #fbeed8;
+  --chart-seq-2: #f3d5a3;
+  --chart-seq-3: #e8a33d;
+  --chart-seq-4: #c6842a;
+  --chart-seq-5: #8f5d18;
+}
+
+.dark {
+  --chart-1: #c1852f;
+  --chart-2: #4a90cc;
+  --chart-3: #3fa572;
+  --chart-4: #9a76d6;
+  --chart-5: #d16a6a;
+  --chart-6: #1ea7ad;
+  --chart-seq-1: #3a2f1c;
+  --chart-seq-2: #6b5220;
+  --chart-seq-3: #a4762a;
+  --chart-seq-4: #c1852f;
+  --chart-seq-5: #e0a54c;
+}

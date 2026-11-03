@@ -28,7 +28,7 @@ export default function LeadTray({
   return (
     <aside
       aria-label="Selected lead"
-      className="min-w-0 border-t border-(--crm-line) bg-(--crm-panel) p-5 2xl:border-t-0 2xl:border-l"
+      className="min-w-0 self-start rounded-xl border border-(--crm-line) bg-(--crm-panel) p-5"
     >
       {!lead ? (
         <p className="text-[12px] text-(--crm-muted)">Select a lead to see its details.</p>

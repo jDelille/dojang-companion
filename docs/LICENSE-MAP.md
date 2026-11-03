@@ -17,6 +17,24 @@ touch accessible.
 
 ## Extracted components
 
+The `roster-integration` experiment additionally preserves a selected **101-file
+verbatim Roster 1.0.0 source snapshot** under `vendor/licensed/roster/source/`,
+explicitly requested for source migration. Original location:
+`C:\Users\justi\Desktop\Companion_Biz_Violoop\roster`. Every original path,
+full SHA-256 and byte length is recorded in `SOURCE-MANIFEST.json` there.
+See [ROSTER-INTEGRATION.md](./ROSTER-INTEGRATION.md) for the import boundary and
+per-file adaptation record. The snapshot is never compiled or executed.
+
+New source-derived runtime files:
+
+| DreamOS | Roster original | Modified |
+| --- | --- | --- |
+| `src/templates/roster/components/pipeline/kanban.tsx` | `components/pipeline/kanban.tsx` | Original board/card rendering with typed real CRM props; now the `/crm` board with shared selection, tray/Companion context, tags/evidence and existing Sales controls. Read-only stage selector; removed vendor REST and optimistic/direct writes |
+| `src/templates/roster/components/ui/{button.tsx,button-styles.ts,card.tsx,data.tsx,form.tsx,layout.tsx,overlay.tsx}` | Same seven paths under `components/ui/` | Relocated imports, Tailwind 4/DreamOS theme mapping, unused-import cleanup, ARIA spelling and modal scroll cleanup fixes |
+
+`src/templates/roster/adapters/pipeline.ts`, its class-string helper, scoped CSS
+and `/roster` host are DreamOS integration code. No new template backend runs.
+
 | DreamOS file | Licensed source (package, path, SHA-256) | Taken | Modified |
 | --- | --- | --- | --- |
 | `src/views/inbox/inboxClient.tsx` | Roster 1.0.0, `components/inbox/inbox-client.tsx` (`bcf85495…c9945e`) | Two-pane list/detail layout (`lg:grid-cols-[330px_1fr]`, panes capped at `calc(100vh-15rem)`), filter tabs with counts, first-row auto-select, `?conversation=` deep link (here `?message=`), empty/loading/error placement | Yes: Hub `context` read via `/api/hub`, filters are Hub-state based (Needs you / Replied / All), no Prisma, auth, polling, send box or Close/Reopen, Dojang tokens |

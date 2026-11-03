@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Info } from "lucide-react";
+import { Check, ExternalLink, Send, Sparkles, User } from "lucide-react";
 import Modal from "@/components/common/Modal";
 import { explainHubError, newRequestKey } from "@/domain/hubAction";
 import {
@@ -23,26 +23,35 @@ import {
   deliveryMeaning,
   deliveryOf,
   memberName,
-  outboundLabel,
   senderName,
   sessionOf,
 } from "./inboxCompanion";
-import { Badge } from "./inboxStates";
+import { Badge } from "@/templates/roster/components/ui/data";
+import { Button } from "@/templates/roster/components/ui/button";
+import { Select, Textarea } from "@/templates/roster/components/ui/form";
+import { cn } from "@/templates/roster/lib/utils";
 
 /*
-   One inbox message (CRM screen C05), the centre of the inbox.
+   One inbox message (CRM screen C05), the centre of the inbox, as Roster's
+   chat pane (licensed Roster 1.0.0 components/inbox/inbox-client.tsx,
+   docs/LICENSE-MAP.md): header, the conversation, and a composer at the bottom.
 
-   Header and inbound bubble adapted from licensed Roster 1.0.0
-   components/inbox/inbox-client.tsx (docs/LICENSE-MAP.md). Everything below the
-   bubble is Companion's Hub workflow (1cab554b app/(companion)/hub/page.tsx
-   MessageCard), through Jodi's Hub operations:
-     received  -> "Confirm student and class"  resolve
-     resolved  -> "Prepare follow-up"          draft (template while AI is off)
-     drafted   -> editable "Review reply" + recipient/channel disclosure
-               -> "Approve and queue reply"    approve_reply (needs outbound)
-     approved  -> the delivery's state, as the Hub reports it
-   Nothing on this screen sends a message. Approving only queues the reply in the
-   Hub's outbox; while outbound is not configured it can't even do that.
+   The conversation is only messages: the guardian's message, and once a reply
+   is approved, that reply on the right with its delivery state. The Hub has no
+   thread, so there is one inbound message per work item.
+
+   Companion's Hub workflow (1cab554b app/(companion)/hub/page.tsx MessageCard)
+   lives in the composer area, one step at a time:
+     received  -> pick student and class, "Confirm"   resolve
+     resolved  -> "Draft reply"                       draft (template while AI is off)
+     drafted   -> the draft as a "Companion suggestion" in the conversation,
+                  with Send and Edit (the WhatsMax writeup's Inbox: "Companion
+                  suggestion ... [Send] [Edit]"). Edit puts it in the composer;
+                  staff can also write their own. Send -> confirm dialog
+                                                      approve_reply (needs outbound)
+   Approving only queues the reply in the Hub's outbox; Odoo's delivery worker
+   checks the approval again and sends it through WhatsMax. The instructor
+   summary and the Hub's reasoning are in the Do For Me rail, not the chat.
 
    Request keys, as Companion: one per action. With no confirmed answer, every
    other action waits and "Retry this same action" resends the same key, so the
@@ -57,16 +66,12 @@ type Command =
 type Feedback = { kind: "success" | "error" | "conflict" | "notConfirmed"; text: string };
 
 const NOT_CONFIRMED_TEXT =
-  "Odoo has not confirmed the result. Don't start a new action: retry this same action to check its original receipt.";
+  "Odoo hasn't confirmed the result. Retry this same action to check it; don't start a new one.";
 
-const field =
-  "w-full rounded-lg border border-(--crm-line) bg-(--crm-canvas) px-3 py-2 text-[13px] text-(--crm-text) focus:border-(--crm-muted) focus:outline-none disabled:opacity-60";
 const secondaryButton =
   "inline-flex h-8 items-center rounded-lg border border-(--crm-line) bg-(--crm-interactive) px-3 text-[12px] font-bold text-(--crm-text) transition-colors hover:border-(--crm-muted) disabled:opacity-50";
 const primaryButton =
   "inline-flex h-8 items-center rounded-lg bg-(--crm-brand) px-3 text-[12px] font-bold text-white disabled:opacity-50";
-const sectionLabel =
-  "mb-2 block font-(family-name:--crm-font-label) text-[10px] font-bold uppercase tracking-[0.16em] text-(--crm-muted)";
 
 // "Today, 5:45 PM" in the viewer's time zone (only rendered in the browser)
 function classTime(iso: string | null) {
@@ -77,149 +82,26 @@ function classTime(iso: string | null) {
   return `${time.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}, ${clock}`;
 }
 
-function successText(command: Command, state: string | undefined, simulated: boolean, replayed: boolean) {
-  const again = replayed ? " (This was the original result of the same request; nothing was done twice.)" : "";
-  if (command.operation === "resolve") return `Student and class confirmed. Nothing was sent.${again}`;
-  if (command.operation === "draft") {
-    return `Reply drafted for your review. Nothing was sent.${again}`;
-  }
-  const where = simulated ? "the simulated development outbox. No provider was contacted" : "the Hub's outbox";
-  return `Reply approved and ${state ?? "queued"} in ${where}. It isn't delivered until the provider confirms it.${again}`;
+// The Hub's draft mode, shortened for the suggestion bubble. Its two known
+// values (service.py _draft / _followup_draft); anything else is shown as sent.
+function draftLabel(mode: string) {
+  if (mode === "AI-assisted draft - human review required") return "AI draft · review before sending";
+  if (mode === "Template draft - AI disabled") return "Template draft · review before sending";
+  return mode;
 }
 
-// The reviewed reply: its text resets when the message's revision changes
-function ReplyReview({
-  message,
-  context,
-  simulated,
-  locked,
-  highlighted,
-  onApprove,
-  onRedraft,
-}: {
-  message: HubMessage;
-  context: HubContext;
-  simulated: boolean;
-  locked: boolean;
-  highlighted: boolean;
-  onApprove: (reply: string) => void;
-  onRedraft: () => void;
-}) {
-  const [reply, setReply] = useState(message.reply);
-  const [confirming, setConfirming] = useState(false);
-  const ref = useRef<HTMLTextAreaElement>(null);
-  const outboundReady = context.capabilities.outbound !== "not_configured";
-  const channel = CHANNEL_LABELS[message.channel] ?? message.channel;
-
-  // Do For Me pointed here: bring the reply into view
-  useEffect(() => {
-    if (highlighted) ref.current?.focus({ preventScroll: false });
-  }, [highlighted]);
-
-  return (
-    <section
-      aria-label="Review reply"
-      className={`rounded-xl border bg-(--crm-panel) p-5 ${highlighted ? "border-(--crm-agent)/60" : "border-(--crm-line)"}`}
-    >
-      {message.summary && (
-        <>
-          <span className={sectionLabel}>Instructor summary</span>
-          <p className="text-[12px] leading-relaxed text-(--crm-text-secondary)">{message.summary}</p>
-        </>
-      )}
-      <p className="mt-2 mb-4 text-[11px] text-(--crm-muted)">{message.mode}</p>
-
-      <label className="block text-[12px] text-(--crm-text-secondary)">
-        Review reply
-        <textarea
-          ref={ref}
-          value={reply}
-          onChange={(event) => setReply(event.target.value)}
-          maxLength={1500}
-          rows={4}
-          disabled={locked}
-          className={`${field} mt-1 resize-y`}
-        />
-      </label>
-
-      {/* Recipient and channel disclosure (Companion's wording) */}
-      <p className="mt-3 flex gap-2 rounded-lg border border-(--crm-line) bg-(--crm-canvas) px-3 py-2 text-[12px] leading-relaxed text-(--crm-text-secondary)">
-        <Info size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
-        <span>
-          Recipient: <strong className="text-(--crm-text)">{senderName(message)}</strong> · {channel} contact{" "}
-          {message.contactRef}. Approving queues this reply on the verified channel; nothing is sent from this
-          screen. No booking or attendance change is included.
-        </span>
-      </p>
-
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <button type="button" onClick={onRedraft} disabled={locked} className={secondaryButton}>
-          Regenerate draft
-        </button>
-        <button
-          type="button"
-          onClick={() => setConfirming(true)}
-          disabled={locked || !outboundReady || !reply.trim()}
-          className={primaryButton}
-        >
-          Approve and queue reply
-        </button>
-      </div>
-      {!outboundReady && (
-        <p className="mt-2 text-[12px] text-(--crm-warning)">
-          {explainHubError("PROVIDER_NOT_CONFIGURED")} Outbound messaging is not configured for this school
-          (Hub capability: not_configured), so a reply can't be queued.
-        </p>
-      )}
-      {outboundReady && simulated && (
-        <p className="mt-2 text-[12px] text-(--crm-agent)">
-          Development simulation: approving queues the reply in a simulated outbox. No provider is contacted.
-        </p>
-      )}
-
-      {/* Dialog: the last step before the outbox */}
-      <Modal
-        open={confirming}
-        onClose={() => setConfirming(false)}
-        title="Approve and queue this reply?"
-        boxClassName="glass crm-scope"
-        titleClassName="text-base"
-        footer={
-          <>
-            <button type="button" onClick={() => setConfirming(false)} className={secondaryButton}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setConfirming(false);
-                onApprove(reply.trim());
-              }}
-              className={primaryButton}
-            >
-              Approve and queue reply
-            </button>
-          </>
-        }
-      >
-        <p className="text-[13px] leading-relaxed text-(--crm-text-secondary)">
-          It goes into the Hub&apos;s outbox for {senderName(message)} ({channel}). The Hub checks the approval
-          again before anything is sent.
-          {simulated && " This is the development simulation: no provider will be contacted."}
-        </p>
-        <blockquote className="mt-3 rounded-lg border border-(--crm-line) bg-(--crm-canvas) px-3 py-2 text-[13px] whitespace-pre-wrap text-(--crm-text)">
-          {reply.trim()}
-        </blockquote>
-      </Modal>
-    </section>
-  );
+function successText(command: Command, state: string | undefined, simulated: boolean, replayed: boolean) {
+  const again = replayed ? " (the original result; nothing was done twice)" : "";
+  if (command.operation === "resolve") return `Student and class confirmed${again}.`;
+  if (command.operation === "draft") return `Reply drafted. Review it below${again}.`;
+  const where = simulated ? "the simulated outbox (no provider contacted)" : "the outbox";
+  return `Reply approved and ${state ?? "queued"} in ${where}${again}.`;
 }
 
 export default function MessageView({
   context,
   message,
   simulated,
-  readOnly,
   picked,
   onChanged,
   onSettled,
@@ -227,7 +109,6 @@ export default function MessageView({
   context: HubContext;
   message: HubMessage;
   simulated: boolean;
-  readOnly: boolean; // the real Hub: show the message, offer no actions
   picked: Suggestion | null; // a Do For Me suggestion for this message, if picked in the rail
   onChanged: () => Promise<void>; // read the inbox again
   onSettled: () => void; // the picked suggestion has been dealt with
@@ -237,6 +118,12 @@ export default function MessageView({
   const [unconfirmed, setUnconfirmed] = useState<Command | null>(null);
   const [memberId, setMemberId] = useState(message.memberId ?? "");
   const [sessionId, setSessionId] = useState(message.sessionId ?? "");
+  // The reply staff are writing, tied to the revision it was written for, so a
+  // new draft (a new revision) starts from an empty composer
+  const [written, setWritten] = useState({ revision: message.revision, text: "" });
+  const replyText = written.revision === message.revision ? written.text : "";
+  const [confirmText, setConfirmText] = useState<string | null>(null); // the reply waiting for "Approve and send"
+  const composerRef = useRef<HTMLTextAreaElement>(null);
 
   const delivery = deliveryOf(context, message.id);
   const student = memberName(context, message.memberId);
@@ -245,6 +132,29 @@ export default function MessageView({
   const locked = busy || unconfirmed !== null;
   const prepareHighlighted = picked?.capability === PREPARE_REPLY_CAPABILITY;
   const reviewHighlighted = picked?.capability === REVIEW_REPLY_CAPABILITY;
+  const outboundReady = context.capabilities.outbound !== "not_configured";
+  const canSend = outboundReady && !locked;
+  const sendNote = outboundReady
+    ? "Sending approves the reply. Odoo checks the approval again, then WhatsMax sends it."
+    : "Outbound messaging isn't set up for this school yet, so replies can't be sent. The suggestion is saved.";
+
+  function setReplyText(text: string) {
+    setWritten({ revision: message.revision, text });
+  }
+  function editSuggestion() {
+    setReplyText(message.reply);
+    composerRef.current?.focus();
+  }
+
+  // Do For Me pointed at the reply: bring the composer into view
+  useEffect(() => {
+    if (reviewHighlighted) composerRef.current?.focus({ preventScroll: false });
+  }, [reviewHighlighted]);
+  const className = session
+    ? `${session.title} · ${classTime(session.startsAt)}`
+    : message.sessionId
+      ? `Class #${message.sessionId}`
+      : null;
 
   async function execute(command: Command) {
     setBusy(true);
@@ -298,188 +208,274 @@ export default function MessageView({
 
   return (
     <article className="flex min-h-0 flex-1 flex-col" data-message-id={message.id}>
-      {/* Header (Roster): who, link to the record, channel line */}
-      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-(--crm-line) px-5 py-4">
+      {/* Header (Roster): who, link to the record, one line of context */}
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--color-border)] px-5 py-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="truncate text-[15px] font-bold text-(--crm-text)">{senderName(message)}</h2>
+            <h2 className="truncate text-sm font-medium">{senderName(message)}</h2>
             {message.memberId && (
               <Link
                 href={`/people/${message.memberId}`}
                 title="Open the student's record"
-                className="rounded p-1 text-(--crm-muted) hover:text-(--crm-text)"
+                className="rounded-md p-1 muted transition-colors hover:text-[color:var(--color-fg)]"
               >
-                <ExternalLink size={14} aria-hidden="true" />
+                <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
                 <span className="sr-only">Open {student}&apos;s record</span>
               </Link>
             )}
           </div>
-          <p className="mt-0.5 truncate text-[12px] text-(--crm-text-secondary)">
-            {channel} · contact {message.contactRef}
+          <p className="truncate text-xs muted">
+            {channel} · {message.contactRef}
+            {student && ` · ${student}`}
+            {className && ` · ${className}`}
           </p>
         </div>
-        <Badge tone={message.state === "resolved" ? "info" : "warning"}>{MESSAGE_STATE_LABELS[message.state]}</Badge>
+        <Badge tone={delivery ? "neutral" : message.state === "resolved" ? "info" : "warning"}>
+          {delivery ? DELIVERY_LABELS[delivery.state] : MESSAGE_STATE_LABELS[message.state]}
+        </Badge>
       </header>
 
-      <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
-        {/* Attributes */}
-        <dl className="grid gap-x-6 gap-y-1 text-[12px] sm:grid-cols-2">
-          <div className="flex justify-between gap-4 border-b border-(--crm-line) py-2">
-            <dt className="text-(--crm-text-secondary)">Student</dt>
-            <dd className={student ? "font-bold text-(--crm-text)" : "text-(--crm-muted)"}>{student ?? "Not confirmed"}</dd>
-          </div>
-          <div className="flex justify-between gap-4 border-b border-(--crm-line) py-2">
-            <dt className="text-(--crm-text-secondary)">Class</dt>
-            <dd className={message.sessionId ? "text-right font-bold text-(--crm-text)" : "text-(--crm-muted)"}>
-              {session
-                ? `${session.title} · ${classTime(session.startsAt)}`
-                : message.sessionId
-                  ? `Class #${message.sessionId} (no longer listed)`
-                  : "Not confirmed"}
-            </dd>
-          </div>
-        </dl>
-
-        {/* The inbound message (Roster's bubble). One message: the Hub has no thread. */}
+      {/* The conversation: messages only */}
+      <div className="scrollbar-thin flex-1 space-y-3 overflow-y-auto px-5 py-4">
         <div className="flex gap-2.5">
-          <div className="max-w-[85%]">
-            <div className="inline-block rounded-2xl border border-(--crm-line) bg-(--crm-canvas) px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap text-(--crm-text)">
+          <span
+            aria-hidden="true"
+            className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[color:var(--color-border)]"
+          >
+            <User className="h-3 w-3" strokeWidth={1.75} />
+          </span>
+          <div className="max-w-[75%]">
+            <div className="inline-block whitespace-pre-wrap rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-bg)] px-3 py-2 text-start text-sm leading-relaxed">
               {message.text}
             </div>
-            <p className="mt-1 text-[11px] text-(--crm-muted)">
-              {senderName(message)} · {channel} · via WhatsMax
+            <p className="mt-1 text-[11px] muted">
+              {senderName(message)} · {channel}
             </p>
           </div>
         </div>
 
-        {/* What staff can do next */}
-        {delivery ? (
-          <section
-            aria-label="Delivery"
-            className="rounded-xl border border-(--crm-line) bg-(--crm-panel) p-5"
-          >
-            <span className={sectionLabel}>Reply delivery</span>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={delivery.state === "failed" || delivery.state === "uncertain" ? "danger" : delivery.state === "delivered" ? "success" : "neutral"}>
-                {DELIVERY_LABELS[delivery.state]}
-              </Badge>
-              {simulated && <Badge tone="agent">Simulated · no provider contacted</Badge>}
-            </div>
-            <p className="mt-2 text-[12px] leading-relaxed text-(--crm-text-secondary)">{deliveryMeaning(delivery)}</p>
-            <p className="mt-2 text-[11px] text-(--crm-muted)">
-              Approved by {delivery.approvedBy}
-              {delivery.providerRef ? ` · provider receipt ${delivery.providerRef}` : " · no provider receipt"}
-            </p>
-          </section>
-        ) : message.state === "unmatched" ? (
-          <p className="rounded-xl border border-(--crm-warning)/40 bg-(--crm-panel) p-4 text-[12px] leading-relaxed text-(--crm-text-secondary)">
-            This sender isn&apos;t a verified guardian. A manager must verify the guardian&apos;s channel in Odoo
-            before this message can be resolved, drafted or replied to.
-          </p>
-        ) : readOnly ? (
-          <section aria-label="Read-only" className="rounded-xl border border-(--crm-line) bg-(--crm-panel) p-5">
-            <span className={sectionLabel}>Read-only</span>
-            <p className="text-[12px] leading-relaxed text-(--crm-text-secondary)">
-              DreamOS reads this message from Odoo but can&apos;t resolve, draft or approve it yet. Use Companion for
-              those for now.
-            </p>
-            {message.reply && (
-              <div className="mt-4">
-                <span className={sectionLabel}>Drafted reply ({message.mode})</span>
-                <p className="rounded-lg border border-(--crm-line) bg-(--crm-canvas) px-3 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap text-(--crm-text)">
-                  {message.reply}
-                </p>
+        {/* Companion suggestion (the WhatsMax writeup): the Hub's draft reply,
+            with Send and Edit. Not sent until staff approve it. */}
+        {!delivery && message.reply && (
+          <div className="flex flex-row-reverse gap-2.5" aria-label="Companion suggestion" role="group">
+            <span
+              aria-hidden="true"
+              className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[color:var(--color-border)] muted"
+            >
+              <Sparkles className="h-3 w-3" strokeWidth={1.75} />
+            </span>
+            <div className="max-w-[75%] text-end">
+              <div className="inline-block rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-bg)] px-3 py-2 text-start text-sm leading-relaxed">
+                <p className="mb-1 text-[11px] font-medium muted">Companion suggestion</p>
+                <p className="whitespace-pre-wrap">{message.reply}</p>
               </div>
-            )}
-          </section>
-        ) : message.state === "received" ? (
-          <section aria-label="Confirm student and class" className="rounded-xl border border-(--crm-line) bg-(--crm-panel) p-5">
-            <span className={sectionLabel}>Which student and class is this about?</span>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="text-[12px] text-(--crm-text-secondary)">
-                Student
-                <select value={memberId} onChange={(event) => setMemberId(event.target.value)} disabled={locked} className={`${field} mt-1`}>
-                  <option value="">Select student</option>
-                  {context.members.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-[12px] text-(--crm-text-secondary)">
-                Class
-                <select value={sessionId} onChange={(event) => setSessionId(event.target.value)} disabled={locked} className={`${field} mt-1`}>
-                  <option value="">Select class</option>
-                  {context.sessions.map((each) => (
-                    <option key={each.id} value={each.id}>
-                      {each.title} · {classTime(each.startsAt)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="mt-1.5 flex flex-wrap items-center justify-end gap-1.5">
+                <Button variant="primary" size="sm" disabled={!canSend} onClick={() => setConfirmText(message.reply)}>
+                  <Send className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  Send
+                </Button>
+                <Button size="sm" disabled={locked} onClick={editSuggestion}>
+                  Edit
+                </Button>
+              </div>
+              <p className="mt-1 text-[11px] muted">{draftLabel(message.mode)}</p>
             </div>
-            <button type="button" onClick={resolve} disabled={locked || !memberId || !sessionId} className={`${primaryButton} mt-4`}>
-              Confirm student and class
-            </button>
-          </section>
-        ) : !message.reply ? (
-          <section
-            aria-label="Prepare follow-up"
-            className={`rounded-xl border bg-(--crm-panel) p-5 ${prepareHighlighted ? "border-(--crm-agent)/60" : "border-(--crm-line)"}`}
-          >
-            <span className={sectionLabel}>Follow-up</span>
-            <p className="mb-4 text-[12px] leading-relaxed text-(--crm-text-secondary)">
-              Prepare a reply for review. Drafting doesn&apos;t send anything.
-              {context.capabilities.ai === "disabled" && " AI drafting is off, so the Hub uses its template."}
-            </p>
-            <button type="button" onClick={draft} disabled={locked} className={primaryButton}>
-              Prepare follow-up
-            </button>
-          </section>
-        ) : (
-          <ReplyReview
-            key={message.revision}
-            message={message}
-            context={context}
-            simulated={simulated}
-            locked={locked}
-            highlighted={reviewHighlighted}
-            onApprove={approve}
-            onRedraft={draft}
-          />
+          </div>
         )}
 
-        {/* The answer to the last action */}
-        <div role="status" aria-live="polite">
-          {busy && <p className="text-[12px] text-(--crm-text-secondary)">Saving…</p>}
-          {feedback && (
-            <div
-              className={`rounded-lg border px-3 py-2 text-[12px] leading-relaxed ${
-                feedback.kind === "success"
-                  ? "border-(--crm-success)/40 text-(--crm-text)"
-                  : feedback.kind === "notConfirmed"
-                    ? "border-(--crm-warning)/50 text-(--crm-text)"
-                    : "border-(--crm-danger)/50 text-(--crm-text)"
-              }`}
+        {/* The approved reply (Roster's outbound bubble). The Hub's read doesn't
+            return the sent text, so the bubble states the approval, not words. */}
+        {delivery && (
+          <div className="flex flex-row-reverse gap-2.5">
+            <span
+              aria-hidden="true"
+              className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[color:var(--color-border)]"
             >
-              <p>{feedback.text}</p>
+              <Check className="h-3 w-3" strokeWidth={1.75} />
+            </span>
+            <div className="max-w-[75%] text-end">
+              <div
+                className={cn(
+                  "inline-block rounded-lg border px-3 py-2 text-start text-sm leading-relaxed",
+                  delivery.state === "failed" || delivery.state === "uncertain"
+                    ? "border-[color:var(--color-alert)]/40"
+                    : "border-[color:var(--color-accent)]/30 bg-[color:var(--color-accent)]/10",
+                )}
+              >
+                Reply approved by {delivery.approvedBy}
+              </div>
+              <p className="mt-1 text-[11px] muted">
+                {DELIVERY_LABELS[delivery.state]}
+                {simulated && " · simulated"} · {deliveryMeaning(delivery)}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Composer area: the one next step, then the reply box */}
+      <div className="border-t border-[color:var(--color-border)] p-3">
+        <div role="status" aria-live="polite">
+          {busy && <p className="mb-2 text-[11px] muted">Saving…</p>}
+          {feedback && (
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px]">
+              <p
+                className={
+                  feedback.kind === "success"
+                    ? "muted"
+                    : feedback.kind === "notConfirmed"
+                      ? "text-[color:var(--color-warning)]"
+                      : "text-[color:var(--color-alert)]"
+                }
+              >
+                {feedback.text}
+              </p>
               {feedback.kind === "notConfirmed" && unconfirmed && (
-                <button type="button" onClick={() => execute(unconfirmed)} disabled={busy} className={`${secondaryButton} mt-2`}>
+                <Button size="sm" disabled={busy} onClick={() => execute(unconfirmed)}>
                   Retry this same action
-                </button>
+                </Button>
               )}
               {feedback.kind === "conflict" && (
-                <button type="button" onClick={() => void onChanged()} disabled={busy} className={`${secondaryButton} mt-2`}>
+                <Button size="sm" disabled={busy} onClick={() => void onChanged()}>
                   Reload
-                </button>
+                </Button>
               )}
             </div>
           )}
         </div>
 
-        <p className="text-[11px] text-(--crm-muted)">Outbound: {outboundLabel(context, simulated)}</p>
+        {delivery ? (
+          <p className="text-[11px] muted">This message has been replied to.</p>
+        ) : message.state === "unmatched" ? (
+          <p className="text-[11px] muted">
+            This sender isn&apos;t a verified guardian, so it can&apos;t be replied to yet. A manager verifies guardian
+            channels in Odoo.
+          </p>
+        ) : message.state === "received" ? (
+          // Step 1: which student and class the message is about
+          <div className="flex flex-wrap items-end gap-2" aria-label="Confirm student and class" role="group">
+            <Select
+              aria-label="Student"
+              value={memberId}
+              onChange={(event) => setMemberId(event.target.value)}
+              disabled={locked}
+              className="h-8 min-w-40 text-xs"
+            >
+              <option value="">Which student?</option>
+              {context.members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name}
+                </option>
+              ))}
+            </Select>
+            <Select
+              aria-label="Class"
+              value={sessionId}
+              onChange={(event) => setSessionId(event.target.value)}
+              disabled={locked}
+              className="h-8 min-w-48 text-xs"
+            >
+              <option value="">Which class?</option>
+              {context.sessions.map((each) => (
+                <option key={each.id} value={each.id}>
+                  {each.title} · {classTime(each.startsAt)}
+                </option>
+              ))}
+            </Select>
+            <Button variant="primary" size="sm" onClick={resolve} disabled={locked || !memberId || !sessionId}>
+              Confirm
+            </Button>
+            <p className="w-full text-[11px] muted">Confirm who and which class this is about before replying.</p>
+          </div>
+        ) : !message.reply ? (
+          // Step 2: the Hub drafts the reply
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={draft}
+              disabled={locked}
+              className={prepareHighlighted ? "ring-2 ring-[color:var(--color-accent)]" : undefined}
+            >
+              <Sparkles className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Draft reply
+            </Button>
+            <p className="text-[11px] muted">
+              {context.capabilities.ai === "disabled" ? "AI is off, so the Hub uses its template." : "Drafted by AI for you to review."}
+              {" Nothing is sent."}
+            </p>
+          </div>
+        ) : (
+          // Step 3: send the suggestion above, or write / edit a reply here
+          <>
+            <div className="flex items-end gap-2">
+              <Textarea
+                ref={composerRef}
+                value={replyText}
+                onChange={(event) => setReplyText(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && canSend && replyText.trim()) {
+                    setConfirmText(replyText.trim());
+                  }
+                }}
+                maxLength={1500}
+                disabled={locked}
+                aria-label={`Reply via ${channel}`}
+                aria-describedby={`composer-note-${message.id}`}
+                placeholder={`Write a reply via ${channel}, or Edit the suggestion…`}
+                className="min-h-[60px]"
+              />
+              <Button
+                variant="primary"
+                disabled={!canSend || !replyText.trim()}
+                aria-label="Approve and send reply"
+                onClick={() => setConfirmText(replyText.trim())}
+              >
+                <Send className="h-4 w-4" strokeWidth={1.75} />
+              </Button>
+            </div>
+            <p id={`composer-note-${message.id}`} className="mt-2 text-[11px] muted">
+              {sendNote}
+            </p>
+          </>
+        )}
       </div>
+
+      {/* Dialog: the last step before the outbox */}
+      <Modal
+        open={confirmText !== null}
+        onClose={() => setConfirmText(null)}
+        title="Approve and send this reply?"
+        boxClassName="glass crm-scope"
+        titleClassName="text-base"
+        footer={
+          <>
+            <button type="button" onClick={() => setConfirmText(null)} className={secondaryButton}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const text = confirmText;
+                setConfirmText(null);
+                if (text) approve(text);
+              }}
+              className={primaryButton}
+            >
+              Approve and send
+            </button>
+          </>
+        }
+      >
+        <p className="text-[13px] leading-relaxed text-(--crm-text-secondary)">
+          To {senderName(message)} by {channel} (contact {message.contactRef}). Odoo checks the approval again before
+          WhatsMax sends it. No booking or attendance change is included.
+          {simulated && " Development simulation: no provider will be contacted."}
+        </p>
+        <blockquote className="mt-3 rounded-lg border border-(--crm-line) bg-(--crm-canvas) px-3 py-2 text-[13px] whitespace-pre-wrap text-(--crm-text)">
+          {confirmText}
+        </blockquote>
+      </Modal>
     </article>
   );
 }

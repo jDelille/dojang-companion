@@ -14,7 +14,6 @@ import {
 } from "@/domain/followUp";
 import type { CrmContext, Lead } from "@/domain/lead";
 import { Badge } from "@/views/inbox/inboxStates";
-import { HubSignOutButton } from "@/views/shell/hubUnavailable";
 import CrmSectionNav from "./crmSectionNav";
 import FollowUpPanel, { DueText, PriorityBadge, type FollowUpSelection } from "./followUpPanel";
 
@@ -234,22 +233,16 @@ export default function FollowUpQueue({
   );
 
   return (
-    <div className="crm-scope overflow-hidden rounded-2xl border border-(--crm-line)">
+    <div className="crm-scope">
       {showsSampleData && (
-        <p className="border-b border-(--crm-line) px-5 py-3 text-[11px] text-(--crm-text-secondary) sm:px-6">
+        <p className="mb-4 text-[11px] text-(--crm-text-secondary)">
           Sample follow-ups · Development preview, not connected to Odoo
         </p>
       )}
-      {fromOdoo && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-(--crm-line) px-5 py-3 text-[11px] text-(--crm-text-secondary) sm:px-6">
-          <p>Follow-ups from Odoo · Review and complete internal tasks</p>
-          <HubSignOutButton />
-        </div>
-      )}
 
-      {completing && <div className="p-5"><TaskCompletion key={completing.id} task={tasks.find((task) => task.id === completing.id && task.relatedType === completing.relatedType && task.relatedId === completing.relatedId) ?? completing} subject={{ kind: completing.relatedType, id: completing.relatedId }} enabled={fromOdoo && !showsSampleData} onDone={() => router.refresh()} onReload={() => router.refresh()} onClose={() => setCompleting(null)} /></div>}
-      <div className="grid xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <section aria-label="Follow-up queue" className="min-w-0 p-5 sm:p-6">
+      {completing && <div className="mb-5"><TaskCompletion key={completing.id} task={tasks.find((task) => task.id === completing.id && task.relatedType === completing.relatedType && task.relatedId === completing.relatedId) ?? completing} subject={{ kind: completing.relatedType, id: completing.relatedId }} enabled={fromOdoo && !showsSampleData} onDone={() => router.refresh()} onReload={() => router.refresh()} onClose={() => setCompleting(null)} /></div>}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <section aria-label="Follow-up queue" className="min-w-0">
           <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
               <h1 className="text-xl font-bold leading-tight text-(--crm-text)">Follow-ups</h1>
@@ -417,7 +410,7 @@ export default function FollowUpQueue({
 
         <aside
           aria-label="Selected follow-up"
-          className="hidden border-l border-(--crm-line) bg-(--crm-panel) xl:block"
+          className="hidden self-start rounded-xl border border-(--crm-line) bg-(--crm-panel) xl:block"
         >
           <div className="sticky top-0">
             <FollowUpPanel selection={selection} onClose={() => setSelected(null)} allowWrites={fromOdoo && !showsSampleData && !completing} onCompleteTask={setCompleting} />

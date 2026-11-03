@@ -10,7 +10,7 @@ export const SHOW_TEMPLATE_UI = process.env.NEXT_PUBLIC_SHOW_TEMPLATE_UI === "tr
 // Front Desk and Instructor, and everything under them. They get the Dojang shell
 // (src/views/shell) and the Do For Me rail; every other page under (main) keeps
 // the template's shell.
-export const DOJANG_PATHS = ["/today", "/people", "/crm", "/inbox", "/front-desk", "/instructor"];
+export const DOJANG_PATHS = ["/today", "/people", "/crm", "/inbox", "/front-desk", "/instructor", "/roster"];
 
 export const isDojangPage = (pathname: string) =>
   DOJANG_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));

@@ -1,0 +1,25 @@
+/* Roster's Ledger token names, mapped locally to DreamOS. Never import the
+   vendor :root/.dark tokens or global element resets into the staff application. */
+.roster-scope {
+  --color-bg: var(--crm-canvas);
+  --color-fg: var(--crm-text);
+  --color-fg-muted: var(--crm-text-secondary);
+  --color-border: var(--crm-line);
+  --color-elevated: var(--crm-panel);
+  --color-paper: var(--crm-raised);
+  --color-surface: var(--crm-panel);
+  --color-surface-dark: var(--crm-panel);
+  --color-accent: var(--crm-brand);
+  --color-accent-dark: #b31221;
+  --color-accent-fg: #fff;
+  --color-alert: var(--crm-danger);
+  --color-success: var(--crm-status);
+  --color-warning: var(--crm-warning);
+  --color-slate: var(--crm-muted);
+  --color-scrim: #08080a;
+  color: var(--color-fg);
+  color-scheme: dark;
+}
+.roster-scope .muted { color: var(--color-fg-muted); }
+.roster-scope .scrollbar-thin { scrollbar-width: thin; }
+.roster-scope .shadow-modal { box-shadow: 0 24px 64px -12px rgb(0 0 0 / 0.5); }

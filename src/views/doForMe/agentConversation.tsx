@@ -118,7 +118,13 @@ export default function AgentConversation({ focusKey, onReview }: Props) {
         </div>
       )}
 
-      <p className="px-4 pt-3 text-[10px] text-(--crm-muted)">{!support.ok ? "AI questions for this record are not supported yet. Recorded evidence and existing action reviews remain available." : support.payload.memberId ? "Ask about this member’s scoped Odoo facts. No actions are executed." : "Answers use site-level Odoo facts, not the selected lead, message or class."} Each question is answered independently.</p>
+      {support.ok && (
+        <p className="px-4 pt-3 text-[10px] text-(--crm-muted)">
+          {support.payload.memberId
+            ? "Ask about this member’s scoped Odoo facts. No actions are executed."
+            : "Answers use site-level Odoo facts, not the selected lead, message or class."}
+        </p>
+      )}
 
       <form
         className="p-4 pt-2"

@@ -97,7 +97,6 @@ export function messageRailContext(
   context: HubContext,
   message: HubMessage,
   simulated: boolean,
-  readOnly = false, // the real Hub, read-only in DreamOS: no actions to suggest
 ): CompanionContext {
   const delivery = deliveryOf(context, message.id);
   const student = memberName(context, message.memberId);
@@ -151,13 +150,6 @@ export function messageRailContext(
       ...base,
       guidance:
         "Guardian verification is required. This sender isn't linked to a verified guardian, so the message can't be resolved, drafted or replied to here. A manager verifies guardian channels in Odoo.",
-    };
-  }
-  if (readOnly) {
-    return {
-      ...base,
-      guidance:
-        "Read-only connection: DreamOS shows this message from Odoo but can't resolve, draft or approve yet. Use Companion for those for now.",
     };
   }
   if (message.state === "received") {

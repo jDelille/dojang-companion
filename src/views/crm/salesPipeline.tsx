@@ -10,15 +10,24 @@ import { organizeLeads, type LeadAttention, type LeadSort } from "@/domain/leadO
 import type { CrmContext, Lead, LeadTag } from "@/domain/lead";
 import { HubSignOutButton } from "@/views/shell/hubUnavailable";
 import CrmSectionNav from "./crmSectionNav";
-import { LeadBoard, LeadList, LostLeads } from "./leadViews";
+import { LeadList, LostLeads } from "./leadViews";
 import LeadTray from "./leadTray";
+import { PipelineBoard } from "@/templates/roster/components/pipeline/kanban";
+import { PageHeader } from "@/templates/roster/components/ui/layout";
+import { Switch } from "@/templates/roster/components/ui/form";
+import { Button } from "@/templates/roster/components/ui/button";
+import { Plus } from "lucide-react";
+import NewLeadForm from "./newLeadForm";
+import { toRosterPipeline } from "@/templates/roster/adapters/pipeline";
+import "@/templates/roster/roster.css";
 
 /*
    CRM / Sales (CRM screen C03), read-only. Product rules from Jodi's
    implementation handoff (9 Oct 2026, page 2): lead inbox + pipeline +
    contextual tray, filter by owner and program, Lost kept apart from the stages.
    List/Board and filters follow Companion's CrmWorkspace; the board layout
-   follows Roster's kanban. No dragging or other writes yet.
+   now uses the migrated Roster PipelineBoard. Existing search, filters, list,
+   lead tray and Companion context remain the orchestration layer. No stage writes.
 
    From Odoo (fromOdoo): the filter is "Tags", because Odoo's lead tags mix
    programs, sources and ages; and there's no Lost list, because crm_context
@@ -28,6 +37,11 @@ import LeadTray from "./leadTray";
 type View = "board" | "list";
 
 const ALL = "";
+
+// Hidden for now so the page matches Roster's pipeline: section nav, sign-out
+// bar, search, attention buttons, filters and the Board/List switch.
+// Set to true to bring them back; their state and logic are unchanged.
+const SHOW_TOOLBAR = false;
 
 const filterSelect =
   "h-9 rounded-lg border border-(--crm-line) bg-(--crm-canvas) px-3 text-[12px] text-(--crm-text) focus:border-(--crm-muted) focus:outline-none";
@@ -68,10 +82,18 @@ export default function SalesPipeline({
   const [sourceFilter, setSourceFilter] = useState(ALL);
   const [attention, setAttention] = useState<LeadAttention>("all");
   const [sort, setSort] = useState<LeadSort>("received");
+  const [creating, setCreating] = useState(false);
+  const [createdLeadId, setCreatedLeadId] = useState<string | null>(null);
+  // The lead details panel beside the board, off by default (a switch in the header, for demos)
+  const [showDetails, setShowDetails] = useState(false);
+  // New leads are created only in real Odoo, never in the sample data
+  const canCreate = fromOdoo && !showsSampleData;
   const shown = organizeLeads(context.leads, { owner: ownerFilter, tag: tagFilter, stage: stageFilter, source: sourceFilter, attention, sort });
   const openLeads = shown.filter((lead) => !lead.lostReason);
   const lostLeads = shown.filter((lead) => lead.lostReason);
+  const boardData = toRosterPipeline({ ...context, leads: openLeads });
   const selected = shown.find((lead) => lead.id === selectedId) ?? null;
+  const createdInView = createdLeadId !== null && shown.some((lead) => lead.id === createdLeadId);
   const railContext = useMemo<CompanionContext>(() => {
     if (!selected) return companion ?? {
       label: "Sales context · Odoo", intelTitle: "Loaded pipeline",
@@ -93,22 +115,23 @@ export default function SalesPipeline({
   function clearFilters() { setOwnerFilter(ALL); setTagFilter(ALL); setStageFilter(ALL); setSourceFilter(ALL); setAttention("all"); }
 
   return (
-    <div className="crm-scope overflow-hidden rounded-2xl border border-(--crm-line)">
+    <div className="crm-scope roster-scope">
       <DoForMeFocus focusKey={selected ? `sales:${selected.id}` : "sales"} context={railContext} />
       {showsSampleData && (
-        <p className="border-b border-(--crm-line) px-5 py-3 text-[11px] text-(--crm-text-secondary) sm:px-6">
+        <p className="mb-4 text-[11px] text-(--crm-text-secondary)">
           Sample leads · Development preview, not connected to Odoo
         </p>
       )}
-      {fromOdoo && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-(--crm-line) px-5 py-3 text-[11px] text-(--crm-text-secondary) sm:px-6">
+      {SHOW_TOOLBAR && fromOdoo && (
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4 text-[11px] text-(--crm-text-secondary)">
           <p>Leads from Odoo · Open a lead to review an internal follow-up</p>
           <HubSignOutButton />
         </div>
       )}
 
-      <div className="grid 2xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <section aria-label="Lead pipeline" className="min-w-0 p-5 sm:p-6">
+      <div className={`grid gap-6 ${showDetails ? "2xl:grid-cols-[minmax(0,1fr)_18rem]" : ""}`}>
+        <section aria-label="Lead pipeline" className="min-w-0">
+          {SHOW_TOOLBAR ? (
           <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
               <h1 className="text-xl font-bold leading-tight text-(--crm-text)">Sales</h1>
@@ -120,6 +143,49 @@ export default function SalesPipeline({
             </div>
             <CrmSectionNav />
           </header>
+          ) : (
+            <PageHeader
+              title="Pipeline"
+              description={`${context.moreLeads ? "At least " : ""}${openLeads.length} ${openLeads.length === 1 ? "lead" : "leads"} across ${boardData.stages.length} ${boardData.stages.length === 1 ? "stage" : "stages"}${fromOdoo ? " · from Odoo" : ` · ${lostLeads.length} lost`}`}
+              actions={
+                <>
+                  <Switch checked={showDetails} onChange={setShowDetails} label="Lead details" />
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={!canCreate}
+                    title={canCreate ? undefined : "New leads can only be created when connected to Odoo"}
+                    onClick={() => setCreating(true)}
+                  >
+                    <Plus className="h-4 w-4" strokeWidth={1.75} />
+                    New lead
+                  </Button>
+                </>
+              }
+            />
+          )}
+          {createdLeadId && (
+            <p role="status" className="mb-3 flex flex-wrap items-center gap-3 text-xs">
+              <span>
+                Lead #{createdLeadId} created in Odoo, in the intake stage.
+                {!createdInView && " It isn't in this view yet: refresh, or it may be outside the loaded result."}
+              </span>
+              <Link href={`/crm/leads/${createdLeadId}`} className="underline underline-offset-4">Open lead</Link>
+              <button type="button" className="muted underline underline-offset-4" onClick={() => setCreatedLeadId(null)}>Dismiss</button>
+            </p>
+          )}
+          <NewLeadForm
+            open={creating}
+            onClose={() => setCreating(false)}
+            onCreated={(result) => {
+              setCreating(false);
+              setCreatedLeadId(result.leadId);
+              setSelectedId(result.leadId);
+              router.refresh();
+            }}
+          />
+
+          {SHOW_TOOLBAR && (<>
 
           <form action="/crm" className="mb-4 flex flex-wrap gap-2" onSubmit={() => setSelectedId(null)}>
             <label className="min-w-48 flex-1">
@@ -200,13 +266,13 @@ export default function SalesPipeline({
           </div>
 
           <p role="status" className="mb-3 text-[11px] text-(--crm-muted)">{shown.length} matching {shown.length === 1 ? "lead" : "leads"} in the loaded result. Attention filters require recorded Hub evidence.</p>
+          </>)}
           {openLeads.length === 0 && <p className="mb-4 rounded-lg border border-dashed border-(--crm-line) p-5 text-sm text-(--crm-text-secondary)">No open leads match. Adjust the search or reset the filters.</p>}
           {view === "board" ? (
-            <LeadBoard
-              stages={context.stages}
-              leads={openLeads}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
+            <PipelineBoard
+              data={boardData}
+              showHeader={false}
+              selection={{ id: selected?.id ?? null, onSelect: setSelectedId }}
             />
           ) : (
             <LeadList leads={openLeads} selectedId={selectedId} onSelect={setSelectedId} />
@@ -222,12 +288,12 @@ export default function SalesPipeline({
 
           {context.moreLeads && (
             <p className="mt-4 text-[11px] text-(--crm-muted)">
-              Showing the latest 100 leads from Odoo only.
+              This read is capped. Counts and filters describe only the loaded leads; more may be available.
             </p>
           )}
         </section>
 
-        <LeadTray lead={selected} onClose={() => setSelectedId(null)} />
+        {showDetails && <LeadTray lead={selected} onClose={() => setSelectedId(null)} />}
       </div>
     </div>
   );

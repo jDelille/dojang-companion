@@ -9,7 +9,8 @@ import {
   type HubMessage,
 } from "@/domain/inbox";
 import { deliveryOf, memberName, needsStaff, senderName } from "./inboxCompanion";
-import { Badge, type BadgeTone } from "./inboxStates";
+import { Badge, type BadgeTone } from "@/templates/roster/components/ui/data";
+import { cn } from "@/templates/roster/lib/utils";
 
 /*
    The inbox's left pane. Row layout adapted from licensed Roster 1.0.0
@@ -30,6 +31,18 @@ const STATE_TONES: Record<HubMessage["state"], BadgeTone> = {
   resolved: "info",
 };
 
+// Roster's muted line under the preview: channel · state · student
+function metaLine(context: HubContext, message: HubMessage) {
+  const delivery = deliveryOf(context, message.id);
+  const state = delivery
+    ? DELIVERY_LABELS[delivery.state]
+    : message.state === "resolved" && message.reply
+      ? "Draft to review"
+      : MESSAGE_STATE_LABELS[message.state];
+  const student = memberName(context, message.memberId);
+  return [CHANNEL_LABELS[message.channel] ?? message.channel, state, student].filter(Boolean).join(" · ");
+}
+
 // Roster's truncate(): one line of preview
 const preview = (text: string) => (text.length > 52 ? `${text.slice(0, 51).trimEnd()}…` : text);
 
@@ -45,45 +58,35 @@ export default function InboxList({
   onSelect: (messageId: string) => void;
 }) {
   return (
-    <ul className="divide-y divide-(--crm-line) overflow-y-auto">
+    <ul className="scrollbar-thin divide-y divide-[color:var(--color-border)] overflow-y-auto">
       {messages.map((message) => {
         const Icon = CHANNEL_ICONS[message.channel] ?? MessageCircle;
         const selected = message.id === selectedId;
         const delivery = deliveryOf(context, message.id);
-        const student = memberName(context, message.memberId);
+        const failed = delivery !== null && (delivery.state === "failed" || delivery.state === "uncertain");
         return (
           <li key={message.id}>
             <button
               type="button"
               onClick={() => onSelect(message.id)}
               aria-current={selected ? "true" : undefined}
-              className={`w-full px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--crm-brand) ${
-                selected ? "bg-(--crm-interactive)" : "hover:bg-(--crm-raised)"
-              }`}
+              className={cn(
+                "w-full px-4 py-3 text-start transition-colors duration-150",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color:var(--color-accent)]",
+                selected ? "bg-[color:var(--color-accent)]/10" : "hover:bg-white/[0.03]",
+              )}
             >
               <div className="flex items-center gap-2">
-                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-(--crm-text)">
-                  {senderName(message)}
-                </span>
+                <Icon className="h-3.5 w-3.5 shrink-0 muted" strokeWidth={1.75} aria-hidden="true" />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">{senderName(message)}</span>
                 {needsStaff(context, message) && <Badge tone="warning">Needs you</Badge>}
-              </div>
-              <p className="mt-1 truncate text-[12px] text-(--crm-text-secondary)">{preview(message.text)}</p>
-              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <Badge>
-                  <Icon size={10} aria-hidden="true" />
-                  {CHANNEL_LABELS[message.channel] ?? message.channel}
-                </Badge>
-                {delivery ? (
-                  <Badge tone={delivery.state === "failed" || delivery.state === "uncertain" ? "danger" : "neutral"}>
-                    {DELIVERY_LABELS[delivery.state]}
-                  </Badge>
-                ) : (
-                  <Badge tone={STATE_TONES[message.state]}>
-                    {message.state === "resolved" && message.reply ? "Draft to review" : MESSAGE_STATE_LABELS[message.state]}
-                  </Badge>
+                {delivery && failed && <Badge tone="alert">{DELIVERY_LABELS[delivery.state]}</Badge>}
+                {!delivery && message.state === "unmatched" && (
+                  <Badge tone={STATE_TONES[message.state]}>{MESSAGE_STATE_LABELS[message.state]}</Badge>
                 )}
-                {student && <span className="text-[11px] text-(--crm-muted)">{student}</span>}
               </div>
+              <p className="mt-1 truncate text-xs muted">{preview(message.text)}</p>
+              <p className="mt-1 truncate text-[11px] muted">{metaLine(context, message)}</p>
             </button>
           </li>
         );

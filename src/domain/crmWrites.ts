@@ -24,3 +24,17 @@ export function isSavedLeadNoteResult(value: unknown, leadId: string): value is 
   return object(value) && value.leadId === leadId && id(value.noteId) && value.state === "saved"
     && value.messageSent === false && typeof value.replayed === "boolean";
 }
+
+// create_lead (crm.py _create_lead): exactly these four fields; the Hub puts the
+// lead in the first intake stage, unassigned. Owners and managers only.
+export type CreateLeadPayload = { name: string; contact: string; email: string; phone: string };
+export type CreateLeadResult = { leadId: string; version: number; replayed: boolean };
+const field = (value: unknown) => typeof value === "string" && value.length <= 200;
+export function isCreateLeadPayload(value: unknown): value is CreateLeadPayload {
+  return object(value) && Object.keys(value).sort().join() === "contact,email,name,phone"
+    && field(value.name) && text(value.name, 200) && field(value.contact) && field(value.phone)
+    && field(value.email) && (value.email === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value.email).trim()));
+}
+export function isCreatedLeadResult(value: unknown): value is CreateLeadResult {
+  return object(value) && id(value.leadId) && version(value.version) && typeof value.replayed === "boolean";
+}

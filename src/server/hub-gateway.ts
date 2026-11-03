@@ -3,7 +3,9 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { isRequestKey } from "@/domain/hubAction";
 import { isCompanionPayload } from "@/domain/companionHub";
-import { isAddLeadNotePayload, isCompleteTaskPayload, isCompletedTaskResult, isSavedLeadNoteResult } from "@/domain/crmWrites";
+import { isApproveReplyPayload, isDraftPayload, isResolvePayload } from "@/domain/inbox";
+import { isChangeClassPayload, isChangedClassResult, isCreateTaskPayload, isCreatedTaskResult } from "@/domain/classMove";
+import { isAddLeadNotePayload, isCompleteTaskPayload, isCompletedTaskResult, isCreateLeadPayload, isCreatedLeadResult, isSavedLeadNoteResult } from "@/domain/crmWrites";
 
 /*
    The real Hub connection: DreamOS server -> Odoo's POST /companion/hub/action
@@ -25,10 +27,10 @@ import { isAddLeadNotePayload, isCompleteTaskPayload, isCompletedTaskResult, isS
    reads the same cookie. There is no other sign-in path.
 
    An allowlist, narrower than the Hub: only the reads below and the governed
-   actions in FORWARDED_ACTIONS are forwarded. Every other operation (resolve,
-   draft, approve_reply, create_task, …) is refused here with HUB_READ_ONLY
-   before it reaches Odoo, so no reply can be queued and nothing can be
-   dispatched from DreamOS. For an allowed action the Hub still decides
+   actions in FORWARDED_ACTIONS are forwarded. Every other operation
+   (broadcasts, refunds, …) is refused here with HUB_READ_ONLY before it
+   reaches Odoo. An Inbox reply can be queued (approve_reply); Odoo's delivery
+   worker sends it, never this gateway. For an allowed action the Hub still decides
    everything: who the actor is, their role and site, the record's scope and
    version, the request key's replay, the receipt and the Odoo change itself.
 
@@ -65,12 +67,27 @@ const isRecordId = (value: unknown): value is string => typeof value === "string
 // it may carry. Everything else stays refused. Each needs a request key.
 //   complete_task         manually completable internal task, task version + feedback
 //   add_lead_note         internal-only lead note, lead version; no notifications
+//   create_lead           a new lead from Sales: exactly name/contact/email/phone;
+//                         the Hub starts it in the intake stage (owner/manager)
+//   resolve               Inbox: confirm the student and class a message is about
+//   draft                 Inbox: draft a reply for review (AI or the Hub template)
+//   approve_reply         Inbox: queue the reviewed reply in the Hub outbox. Odoo
+//                         re-checks the approval and sends it through WhatsMax.
+//   change_class          Do For Me class move: the booking moves from one class to
+//                         another in one Hub transaction (target class version)
+//   create_task           an internal follow-up task on a lead or member (owner/manager)
 //   prepare_lead_action   Do For Me's lead follow-up: one internal task on the
 //                         lead (crm.py _prepare_lead_action). Only kind
 //                         "follow_up"; no message, stage, booking or membership.
 const FORWARDED_ACTIONS = new Map<string, (payload: Record<string, unknown>) => boolean>([
   ["complete_task", isCompleteTaskPayload],
   ["add_lead_note", isAddLeadNotePayload],
+  ["create_lead", isCreateLeadPayload],
+  ["resolve", isResolvePayload],
+  ["draft", isDraftPayload],
+  ["approve_reply", isApproveReplyPayload],
+  ["change_class", isChangeClassPayload],
+  ["create_task", isCreateTaskPayload],
   [
     "prepare_lead_action",
     (payload) =>
@@ -382,6 +399,12 @@ export async function hubRoute(request: Request): Promise<Response> {
     let leadId: string | undefined;
     let memberId: string | undefined;
     if (operation === "add_lead_note" && isAddLeadNotePayload(data.payload) && isSavedLeadNoteResult(result, data.payload.leadId)) leadId = data.payload.leadId;
+    if (operation === "create_lead" && isCreatedLeadResult(result)) leadId = result.leadId;
+    if (operation === "change_class" && isChangeClassPayload(data.payload) && isChangedClassResult(result, data.payload)) memberId = data.payload.memberId;
+    if (operation === "create_task" && isCreateTaskPayload(data.payload) && isCreatedTaskResult(result, data.payload)) {
+      if (data.payload.relatedType === "lead") leadId = data.payload.relatedId;
+      else memberId = data.payload.relatedId;
+    }
     if (operation === "complete_task" && isCompleteTaskPayload(data.payload)) {
       if (isRecordId(returnedLeadId) && isCompletedTaskResult(result, data.payload.taskId, { kind: "lead", id: returnedLeadId })) leadId = returnedLeadId;
       if (isRecordId(returnedMemberId) && isCompletedTaskResult(result, data.payload.taskId, { kind: "member", id: returnedMemberId })) memberId = returnedMemberId;

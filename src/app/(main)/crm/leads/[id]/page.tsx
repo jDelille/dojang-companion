@@ -29,7 +29,7 @@ export default async function LeadPage({
   if (answer.outcome === "missing") notFound();
   if (answer.outcome === "unavailable") {
     return (
-      <div className="crm-scope overflow-hidden rounded-2xl border border-(--crm-line)">
+      <div className="crm-scope">
         <HubUnavailable code={answer.code} text={answer.text} />
       </div>
     );

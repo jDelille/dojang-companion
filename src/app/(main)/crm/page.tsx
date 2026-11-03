@@ -38,7 +38,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
           fromOdoo={hubEnabled()}
         />
       ) : (
-        <div className="crm-scope overflow-hidden rounded-2xl border border-(--crm-line)">
+        <div className="crm-scope">
           {answer.outcome === "unavailable" && <HubUnavailable code={answer.code} text={answer.text} />}
           {query && <Link href="/crm" className="m-5 inline-block text-sm text-(--crm-text) underline">Clear search and return to pipeline</Link>}
         </div>

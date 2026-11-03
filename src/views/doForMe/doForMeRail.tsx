@@ -14,9 +14,10 @@ import AgentConversation from "./agentConversation";
    One rail for the whole Dojang staff layout: doForMeProvider.tsx holds what it's
    focused on and its tab/picked task per focus.
 
-   Plan, Work, Evidence and History show what the context says. Nothing is
-   applied from the rail itself; the one action (a lead's follow-up, a fixed
-   Odoo rule) is reviewed and applied on the lead page. "Ask the agent" is
+   Plan, Work, Evidence and History show what the context says. A lead's
+   follow-up (a fixed Odoo rule) is reviewed and applied on the lead page; a
+   suggestion with its own panel (the Inbox's class move) is reviewed and
+   applied in Work. "Ask the agent" is
    agentConversation.tsx: quick asks answer from the context (not AI), typed
    questions go to /api/companion/ask, which has no agent connected yet.
 */
@@ -198,6 +199,11 @@ function WorkTab({
     );
   }
 
+  // The page gave its own review for the rail (its steps, Review and Apply)
+  if (suggestion.panel) {
+    return <>{suggestion.panel}</>;
+  }
+
   // Reviewed on the page (Jodi's spec): the rail only points there
   if (suggestion.review === "page") {
     return (
@@ -308,6 +314,13 @@ type Props = {
 };
 
 export default function DoForMeRail({ context, tab, picked, onTab, onDoForMe, onClose, focusKey }: Props) {
+  // The picked suggestion as the page currently gives it (its panel then has the
+  // latest records), or as it was picked once the page no longer offers it
+  const livePicked = picked
+    ? (context?.suggestions.find((each) => each.id === picked.id) ??
+      (context?.featured?.suggestion.id === picked.id ? context.featured.suggestion : null) ??
+      picked)
+    : null;
   // Evidence is about the picked task, or this focus's top suggestion
   const evidenceFor =
     picked ?? context?.featured?.suggestion ?? context?.suggestions[0] ?? null;
@@ -383,7 +396,7 @@ export default function DoForMeRail({ context, tab, picked, onTab, onDoForMe, on
             {tab === "plan" && <PlanTab context={context} onDoForMe={onDoForMe} />}
             {tab === "work" && (
               <WorkTab
-                suggestion={picked}
+                suggestion={livePicked}
                 onNotNow={() => onTab("plan")}
                 onWhy={() => onTab("evidence")}
               />
