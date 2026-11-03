@@ -1,0 +1,98 @@
+MEMBER 360 REFERENCE AUDIT — 2026-11-03
+
+Scope: source/code comparison. This is not browser acceptance or a claim that
+all live financial, signing, household and progression paths have been tested.
+The earlier “connect everything” summary was broader than the implemented scope.
+
+References reviewed
+- New_Kiosk_Martial_Dream_Eb_Gym_Whats_Max (6).pdf, pp. 15–17:
+  person-linked communications, unified profile/journey, explainable progression.
+  The Beta 0.3 implementation portion remains outside scope at the user's request.
+- Kiosk_Core_Ui_Designs_Unity_Map_Cards (1).pdf, pp. 7–10, 18–19:
+  Member 360, quick/AI edits, household authority, booking, progression/curriculum.
+- Dojang_CRM_Kiosk_Roster_Implementation_Template.pdf, pp. 1–2, 4–7:
+  C02, shared attendance authority, governed actions, source reuse and acceptance.
+- Additional reference checks: Dojang_Justin_Kiosk_UI_Reference_v2.pdf;
+  member-related passages in Odoo_Kiosk_React_Companion_Update_Saas.pdf.
+- Companion: MemberManagement.tsx, MemberBooking.tsx, ConnectedMemberDetails.tsx,
+  member-360 components; existing Hub service/member_workspace/member_admin/
+  attendance_admin/billing/refunds/onboarding/promotions/signing contracts.
+- Roster contacts-client.tsx and contact-actions.tsx: interaction references,
+  not authority for Dojang fields, contact identity, billing or authentication.
+- Current app: people views, member read adapters, member commands and gateway.
+
+CONNECTED IN THE CURRENT APP
+1. Identity/contact/photo; reviewed name, email and phone updates; photo replacement/removal.
+2. Scoped regular class booking/change; staff attendance/corrections and checkout.
+3. Rank history, direct staff rank/stripe award, attendance-threshold eligibility read.
+4. Subscription/invoice/credit-note reads and reviewed invoice checkout-link creation.
+5. Household/student/guardian reads; guardian channel verification; communication
+   consent; guardian kiosk PIN setup/revocation.
+6. Waiver status and witnessed signing; exact-member attachment metadata.
+7. Exact-member inbound message links and provider delivery states; actions remain in Inbox.
+8. Hub action timeline plus recent attendance; bounded history is identified.
+9. Role-restricted safety/emergency-contact reads, explicitly revealed by staff.
+10. Internal member-task creation/completion; tasks are not presented as general notes.
+11. Course-roster assignment/removal with backend impact preview and capacity check.
+12. Profile intake, archive impact review, archive and restore.
+
+COMPLETION PASS ? EXISTING COMPANION WORKFLOWS NOW CONNECTED
+1. Student onboarding checklist: member_onboarding, source-owned completion
+   counts and links to existing profile, household, waiver, membership, bookings,
+   consent and kiosk-access controls.
+2. Settlement ledger and full reviewed refund lifecycle: billing_ledger,
+   refund_preview, request_refund, approve_refund (owner only),
+   record_refund_payment and cancel_refund. Shared invoices remain whole-invoice
+   accounting. Credit-note posting is distinct from money-return evidence.
+3. Member-specific testing workflow: testing roster creation/add/removal,
+   individual results, promotion preview/confirmation, award history and reversal.
+   Passing does not itself promote a student. Member 360 commands target one
+   registration; school-wide bulk testing is outside this profile view.
+4. Overview rebuilt around actual recent attendance, course rosters, rank
+   history, subscriptions and navigation into the connected sections. Generic
+   placeholder statistics and disabled training pencils were removed.
+
+PARTIAL PRODUCT REQUIREMENTS / CONTRACT GAPS
+4. Overview now summarizes the supplied facts and the setup checklist. It does
+   not manufacture retention/engagement scores or a full promotion-readiness
+   percentage from attendance alone.
+5. Quick/AI edit mockups call for preferred name, program, primary instructor
+   and tags; training also references team/home location. update_member permits
+   name/email/phone. Companion's legacy Program selector maps to course-roster
+   assignment; this app exposes that supported action explicitly as course-roster
+   management instead of assuming the first course is a canonical program.
+   Other assignment fields are not returned/writable in the inspected Hub API.
+6. Attendance percentage, lifetime class count and join date are not supplied by
+   the current member_details contract. Do not derive exact lifetime statistics
+   from a limited attendance window or invent a percentage denominator.
+7. Complete progression readiness in Atlas p. 19 / broad writeup p. 17 includes
+   time in rank, curriculum/evaluations, instructor assessment and account state.
+   Attendance-threshold eligibility alone is not full promotion readiness.
+8. Family workspace design distinguishes communicator, payer, booking, pickup and
+   relationship-edit authority. Current household/channel/consent/PIN reads do not
+   establish all of those grants. Family messaging/booking is not a bulk command.
+9. General member-note read/write, clinical-field editing, and authorized file
+   upload/download are not exposed by the inspected Hub contracts. Native Odoo
+   capabilities must be exposed through approved scoped adapters before wiring.
+10. Complete communication/activity history, automated retention decisions, and
+    member-specific AI action proposals remain broader product work. Current
+    message/timeline windows and contextual questions do not fulfill all of it.
+11. Lead → Trial → Enrolled is not a completed membership lifecycle: the existing
+    trial conversion workflow remains separate from Member 360 plan reads.
+
+VALIDATION STATUS
+- Latest implementation: typecheck, scoped lint, production build passed.
+- Completion pass: 157 CRM/gateway tests passed; scoped lint passed.
+- User manually verified trial reservation, trial attendance and CRM task flows.
+- New Member 360 actions have not all received manual browser/live acceptance.
+- Responsive, keyboard/touch, role-visibility and visual comparison against each
+  design still need a dedicated acceptance pass. No browser automation was run.
+
+REMAINING ACCEPTANCE / BACKEND WORK
+1. Manually verify the connected page with owner, manager and instructor accounts.
+   The integration tests use fake Odoo responses; they do not execute live refunds,
+   accounting entries, signatures, rank changes or test registrations.
+2. Confirm mobile/keyboard/touch behavior and visual alignment with the PDF frames.
+3. Extend approved scoped backend contracts for the explicitly listed unsupported
+   profile, notes, clinical, attachment and complete curriculum/readiness fields.
+4. Keep the separate CRM trial-conversion and public-kiosk integrations distinct.

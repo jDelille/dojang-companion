@@ -67,6 +67,9 @@ const post = (body, cookie) =>
   );
 
 const KEY = "dfm-0b6f6a2e-5c1d-4d8a-9f7e-123456789abc";
+const INTAKE = { studentType: 'adult', student: { name: 'Prospect', email: 'p@example.invalid', phone: '', dateOfBirth: '2000-01-01', gender: '' }, guardian: null, reviewRef: 'Identity checked' };
+const ATTENDANCE = { trialId: '7', expectedVersion: 30, outcome: 'attended', reason: 'Staff verified attendance' };
+const STAGE_PROPOSAL = { leadId: '3', expectedVersion: 10, stageId: '9', reason: 'Trial #7 attended; review stage', due: '2026-11-04' };
 const PAYLOAD = { leadId: "9008", expectedVersion: 1729000000000000, kind: "follow_up", reason: "No open next action.", due: "2026-10-29" };
 
 let cookie = "";
@@ -85,6 +88,273 @@ test.beforeEach(() => {
 async function errorOf(response) {
   return (await response.json()).error.code;
 }
+
+test('completion workflows recognize only exact named financial and student-specific testing commands', async () => {
+  for (const operation of ['request_refund', 'approve_refund', 'record_refund_payment', 'cancel_refund', 'save_testing_roster', 'record_test_results', 'promote_test_results', 'reverse_promotion']) {
+    assert.equal((await post({ operation, payload: {}, requestKey: KEY }, cookie)).status, 400, operation);
+    assert.equal((await post({ operation, payload: {}, requestKey: KEY })).status, 401, operation);
+  }
+  assert.equal(hubCalls.length, 0);
+});
+test('completion reads forward exact contracts and reject scope overrides and request keys', async () => {
+  for (const [operation, payload] of [['member_onboarding', { memberId: '5' }], ['billing_ledger', { memberId: '5' }], ['refund_preview', { memberId: '5', invoiceId: '9' }], ['testing_roster', { testId: '7' }], ['promotion_preview', { testId: '7', registrationIds: ['10'] }], ['promotion_history', { query: 'Student' }]]) {
+    assert.equal((await post({ operation, payload, requestKey: null }, cookie)).status, 200, operation);
+    assert.deepEqual(hubCalls.at(-1), { siteId: '1', operation, payload, requestKey: null });
+    const count = hubCalls.length;
+    assert.equal((await post({ operation, payload: { ...payload, role: 'owner' }, requestKey: null }, cookie)).status, 400);
+    assert.equal((await post({ operation, payload, requestKey: KEY }, cookie)).status, 400);
+    assert.equal(hubCalls.length, count);
+  }
+});
+test('refund review commands preserve native effects and authoritative refund identity, including shared invoices', async () => {
+  const payload = { refundId: '8', expectedVersion: 1, reason: 'Owner approved whole-invoice refund' };
+  hubReply = { memberId: '6', refundId: '8', state: 'refund_approved', moneyReturned: false, creditNotePosted: true, creditNote: 'CN/1', next: 'awaiting_refund_payment', version: 2, replayed: false };
+  const body = { operation: 'approve_refund', payload, requestKey: KEY };
+  assert.equal((await post(body, cookie)).status, 200);
+  assert.deepEqual(hubCalls[0], { siteId: '1', operation: 'approve_refund', payload, requestKey: KEY });
+  assert.ok(revalidated.includes('/people/6'));
+  revalidated.length = 0;
+  hubReply = { ...hubReply, refundId: '99' };
+  await post(body, cookie); assert.equal(revalidated.length, 0);
+  hubReply = { error: { code: 'FORBIDDEN', status: 403 } };
+  assert.equal((await post(body, cookie)).status, 403); assert.equal(revalidated.length, 0);
+  assert.equal((await post({ ...body, role: 'owner' }, cookie)).status, 400);
+  assert.equal((await post({ ...body, subjectId: '5' }, cookie)).status, 400, 'Client selection metadata is not a backend authority field');
+});
+test('testing commands allow a single reviewed registration and verify test/result identities before invalidation', async () => {
+  const payload = { testId: '7', expectedVersion: 1, results: [{ registrationId: '10', result: 'pass' }], reason: 'Staff assessment' };
+  hubReply = { testId: '7', state: 'test_results_saved', reason: payload.reason, changes: [{ registrationId: '10', before: 'pending', after: 'pass' }], version: 2, replayed: false };
+  assert.equal((await post({ operation: 'record_test_results', payload, requestKey: KEY }, cookie)).status, 200);
+  assert.deepEqual(hubCalls[0].payload, payload);
+  hubCalls.length = 0;
+  for (const bad of [{ ...payload, results: [...payload.results, { registrationId: '11', result: 'pass' }] }, { ...payload, expectedVersion: -1 }, { ...payload, memberId: '5' }]) {
+    assert.equal((await post({ operation: 'record_test_results', payload: bad, requestKey: KEY }, cookie)).status, 400);
+  }
+  assert.equal(hubCalls.length, 0);
+  const promote = { testId: '7', expectedVersion: 2, registrationIds: ['10'], reason: 'Promotion reviewed', reviewToken: 'a'.repeat(64) };
+  hubReply = { testId: '7', state: 'promotions_awarded', reason: promote.reason, promotions: [{ rankHistoryId: '20', memberId: '5', rank: 'Yellow' }], messageSent: false, invoiceCreated: false, version: 3, replayed: false };
+  revalidated.length = 0;
+  await post({ operation: 'promote_test_results', payload: promote, requestKey: KEY }, cookie);
+  assert.ok(revalidated.includes('/people/5'));
+  revalidated.length = 0; hubReply = { ...hubReply, testId: '8' };
+  await post({ operation: 'promote_test_results', payload: promote, requestKey: KEY }, cookie);
+  assert.equal(revalidated.length, 0);
+});
+
+test('Member 360 named commands are recognized but refuse invalid payloads, missing auth and scope overrides', async () => {
+  for (const operation of ['update_member', 'book', 'checkout', 'rank', 'update_member_photo', 'payment_link', 'archive_member', 'restore_member', 'mark_attendance', 'set_guardian_kiosk_pin', 'revoke_guardian_kiosk_pin', 'record_consent', 'link_guardian', 'sign_waiver', 'assign_course_members']) {
+    assert.equal((await post({ operation, payload: {}, requestKey: KEY }, cookie)).status, 400, operation);
+    assert.equal((await post({ operation, payload: {}, requestKey: KEY })).status, 401, operation);
+  }
+  const payload = { memberId: '5', sessionId: '118', expectedVersion: 1 };
+  assert.equal((await post({ operation: 'book', payload: { ...payload, actorId: '99' }, requestKey: KEY }, cookie)).status, 400);
+  assert.equal((await post({ operation: 'book', payload, requestKey: null }, cookie)).status, 400);
+  assert.equal(hubCalls.length, 0);
+});
+test('Member 360 core writes forward exact commands, preserve identity, and invalidate after authoritative commit only', async () => {
+  const cases = [
+    ['update_member', { memberId: '5', expectedVersion: 1, expectedPartnerVersion: 2, changes: { phone: '' } }, { memberId: '5', state: 'updated', version: 3, replayed: false }],
+    ['book', { memberId: '5', sessionId: '118', expectedVersion: 1 }, { memberId: '5', sessionId: '118', enrollmentId: '74', state: 'registered', replayed: false }],
+    ['mark_attendance', { memberId: '5', sessionId: '118', expectedVersion: 1, status: 'present', reason: 'Observed' }, { memberId: '5', sessionId: '118', state: 'attendance_recorded', logId: '9', before: 'pending', after: 'present', reason: 'Observed', reversal: false, version: 2, replayed: false }],
+  ];
+  for (const [operation, payload, receipt] of cases) {
+    hubCalls.length = 0; revalidated.length = 0; hubReply = receipt;
+    assert.equal((await post({ operation, payload, requestKey: KEY }, cookie)).status, 200);
+    assert.deepEqual(hubCalls[0], { siteId: '1', operation, payload, requestKey: KEY });
+    assert.ok(revalidated.includes('/people/5'));
+    revalidated.length = 0; hubReply = { ...receipt, memberId: '6' };
+    await post({ operation, payload, requestKey: KEY }, cookie);
+    assert.equal(revalidated.length, 0);
+  }
+});
+test('Member workspace strips the BFF section before Odoo and only returns the requested section', async () => {
+  hubReply = { member: { id: '5', name: 'Student' }, canEdit: true, family: { household: 'Family', members: [], householdGuardians: [], guardians: [] }, safety: { allergies: 'private medical value', medicalNotes: 'private', emergencyNote: null, contacts: [] } };
+  const response = await post({ operation: 'member_workspace', payload: { memberId: '5', section: 'family' }, requestKey: null }, cookie);
+  assert.equal(response.status, 200);
+  assert.deepEqual(hubCalls[0], { siteId: '1', operation: 'member_workspace', payload: { memberId: '5' }, requestKey: null });
+  const projected = await response.json();
+  assert.equal(projected.memberId, '5'); assert.equal(JSON.stringify(projected).includes('private'), false); assert.equal('safety' in projected, false);
+  hubReply = { ...hubReply, canEdit: false };
+  const denied = await (await post({ operation: 'member_workspace', payload: { memberId: '5', section: 'safety' }, requestKey: null }, cookie)).json();
+  assert.equal(denied.data, null); assert.equal(denied.unavailable, 'restricted');
+  hubReply.member.id = '6';
+  assert.equal((await post({ operation: 'member_workspace', payload: { memberId: '5', section: 'family' }, requestKey: null }, cookie)).status, 502);
+});
+test('Member-specific reads reject keys, unknown sections and browser-supplied authority before Odoo', async () => {
+  for (const [operation, payload] of [['member_workspace', { memberId: '5', section: 'safety', role: 'owner' }], ['member_workspace', { memberId: '5', section: 'all' }], ['archive_review', { memberId: '5', siteId: '99' }], ['attendance_sheet', { sessionId: '118', memberId: '5' }], ['course_roster', { templateId: '1', query: '' }], ['consent_overview', { memberId: '5', partnerId: '7' }]]) {
+    assert.equal((await post({ operation, payload, requestKey: null }, cookie)).status, 400);
+  }
+  assert.equal((await post({ operation: 'waiver_context', payload: { memberId: '5' }, requestKey: KEY }, cookie)).status, 400);
+  assert.equal(hubCalls.length, 0);
+});
+test('invoice checkout refuses mismatched origins before returning a signed payment URL', async () => {
+  const payload = { memberId: '5', invoiceId: '9', expectedVersion: 1, expectedAmount: 50 };
+  hubReply = { memberId: '5', invoiceId: '9', state: 'checkout_ready', amount: 50, currency: 'USD', checkoutUrl: 'https://unapproved.example.invalid/my/invoices/9?access_token=demo', replayed: false };
+  const response = await post({ operation: 'payment_link', payload, requestKey: KEY }, cookie);
+  assert.equal(response.status, 422); assert.equal(await errorOf(response), 'PAYMENT_URL_NOT_CONFIGURED'); assert.equal(revalidated.length, 0);
+});
+
+test('propose_stage forwards the exact review-task contract and invalidates only a matching unchanged-stage receipt', async () => {
+  hubReply = { leadId: '3', taskId: '91', state: 'proposed', stageChanged: false, replayed: false };
+  assert.equal((await post({ operation: 'propose_stage', payload: STAGE_PROPOSAL, requestKey: KEY }, cookie)).status, 200);
+  assert.deepEqual(hubCalls[0], { siteId: '1', operation: 'propose_stage', payload: STAGE_PROPOSAL, requestKey: KEY });
+  assert.ok(revalidated.includes('/crm/leads/3'));
+  revalidated.length = 0;
+  for (const wrong of [{ ...hubReply, leadId: '4' }, { ...hubReply, stageChanged: true }]) {
+    hubReply = wrong;
+    await post({ operation: 'propose_stage', payload: STAGE_PROPOSAL, requestKey: KEY }, cookie);
+    assert.equal(revalidated.length, 0);
+  }
+});
+test('propose_stage rejects direct-change flags, overrides, invalid dates, missing key and unauthenticated calls', async () => {
+  for (const bad of [{ ...STAGE_PROPOSAL, stageChanged: true }, { ...STAGE_PROPOSAL, actorId: '5' }, { ...STAGE_PROPOSAL, due: '2026-02-30' }, { ...STAGE_PROPOSAL, reason: 'x'.repeat(121) }, { ...STAGE_PROPOSAL, expectedVersion: -1 }]) {
+    assert.equal((await post({ operation: 'propose_stage', payload: bad, requestKey: KEY }, cookie)).status, 400);
+  }
+  assert.equal((await post({ operation: 'propose_stage', payload: STAGE_PROPOSAL, requestKey: null }, cookie)).status, 400);
+  assert.equal((await post({ operation: 'propose_stage', payload: STAGE_PROPOSAL, requestKey: KEY })).status, 401);
+  assert.equal(hubCalls.length, 0);
+});
+
+test('trial attendance forwards only the named attended action and invalidates committed receipt identities', async () => {
+  hubReply = { trialId: '7', leadId: '3', memberId: '42', sessionId: '101', attendanceId: '90', state: 'trial_attended', reason: ATTENDANCE.reason, stageChanged: false, messageSent: false, noShowFollowUpScheduled: false, replayed: false };
+  assert.equal((await post({ operation: 'record_trial_outcome', payload: ATTENDANCE, requestKey: KEY }, cookie)).status, 200);
+  assert.deepEqual(hubCalls[0], { siteId: '1', operation: 'record_trial_outcome', payload: ATTENDANCE, requestKey: KEY });
+  for (const route of ['/crm/leads/3', '/people/42', '/instructor', '/today']) assert.ok(revalidated.includes(route));
+  revalidated.length = 0;
+  hubReply = { ...hubReply, trialId: '8' };
+  await post({ operation: 'record_trial_outcome', payload: ATTENDANCE, requestKey: KEY }, cookie);
+  assert.equal(revalidated.length, 0);
+});
+test('trial attendance rejects alternate outcomes, scope overrides, invalid versions and missing auth/key', async () => {
+  for (const bad of [{ ...ATTENDANCE, outcome: 'no_show' }, { ...ATTENDANCE, siteId: '99' }, { ...ATTENDANCE, memberId: '42' }, { ...ATTENDANCE, expectedVersion: -1 }, { ...ATTENDANCE, reason: '' }]) {
+    assert.equal((await post({ operation: 'record_trial_outcome', payload: bad, requestKey: KEY }, cookie)).status, 400);
+  }
+  assert.equal((await post({ operation: 'record_trial_outcome', payload: ATTENDANCE, requestKey: null }, cookie)).status, 400);
+  assert.equal((await post({ operation: 'record_trial_outcome', payload: ATTENDANCE, requestKey: KEY })).status, 401);
+  assert.equal(hubCalls.length, 0);
+});
+
+test('intake reads forward only exact scope-free unkeyed payloads', async () => {
+  for (const [operation, payload] of [['intake_context', { query: '' }], ['intake_preview', { intake: INTAKE }]]) {
+    assert.equal((await post({ operation, payload, requestKey: null }, cookie)).status, 200);
+    assert.deepEqual(hubCalls.at(-1), { siteId: '1', operation, payload, requestKey: null });
+    const count = hubCalls.length;
+    assert.equal((await post({ operation, payload: { ...payload, siteId: '99' }, requestKey: null }, cookie)).status, 400);
+    assert.equal((await post({ operation, payload, requestKey: KEY }, cookie)).status, 400);
+    assert.equal((await post({ operation, payload, requestKey: null })).status, 401);
+    assert.equal(hubCalls.length, count);
+  }
+});
+test('create_student forwards reviewed profile only, preserves key and revalidates confirmed identity', async () => {
+  const payload = { intake: INTAKE, reviewToken: 'a'.repeat(64) };
+  hubReply = { state: 'student_created', memberId: '42', memberNumber: 'S42', guardianId: null, householdId: null, reviewRef: INTAKE.reviewRef, subscriptionCreated: false, enrollmentCreated: false, portalAccessGranted: false, messageSent: false, replayed: false };
+  await post({ operation: 'create_student', payload, requestKey: KEY }, cookie);
+  assert.deepEqual(hubCalls[0], { siteId: '1', operation: 'create_student', payload, requestKey: KEY });
+  assert.ok(revalidated.includes('/people')); assert.ok(revalidated.includes('/people/42'));
+  assert.equal(revalidated.some(r => r.startsWith('/crm/leads/')), false);
+  revalidated.length = 0;
+  hubReply = { ...hubReply, reviewRef: 'Different request' };
+  await post({ operation: 'create_student', payload, requestKey: KEY }, cookie);
+  assert.equal(revalidated.length, 0);
+});
+test('student creation rejects scope, membership, lead overrides and missing review/key before Odoo', async () => {
+  const payload = { intake: INTAKE, reviewToken: 'a'.repeat(64) };
+  for (const bad of [{ ...payload, leadId: '3' }, { ...payload, siteId: '99' }, { ...payload, reviewToken: '' }, { ...payload, intake: { ...INTAKE, membership_state: 'active' } }]) {
+    assert.equal((await post({ operation: 'create_student', payload: bad, requestKey: KEY }, cookie)).status, 400);
+  }
+  assert.equal((await post({ operation: 'create_student', payload, requestKey: null }, cookie)).status, 400);
+  assert.equal((await post({ operation: 'create_student', payload, requestKey: KEY })).status, 401);
+  assert.equal(hubCalls.length, 0);
+});
+
+const LEAD_EDIT = { leadId: '42', expectedVersion: 456, changes: { name: 'Updated lead' } };
+const TRIAL_RESERVATION = { leadId: '3', expectedLeadVersion: 10, memberId: '42', sessionId: '101', expectedSessionVersion: 20, reason: 'Reviewed trial booking' };
+test('trial_context is an exact unkeyed read with no client-supplied scope', async () => {
+  const payload = { leadId: '3', query: 'Trial' };
+  assert.equal((await post({ operation: 'trial_context', payload, requestKey: null }, cookie)).status, 200);
+  assert.deepEqual(hubCalls, [{ siteId: '1', operation: 'trial_context', payload, requestKey: null }]);
+  hubCalls.length = 0;
+  for (const bad of [{ ...payload, siteId: '99' }, { ...payload, query: 'x'.repeat(101) }, { query: 'Trial' }]) {
+    assert.equal((await post({ operation: 'trial_context', payload: bad, requestKey: null }, cookie)).status, 400);
+  }
+  assert.equal((await post({ operation: 'trial_context', payload, requestKey: KEY }, cookie)).status, 400);
+  assert.equal(hubCalls.length, 0);
+});
+
+test('reserve_trial forwards exact versions/identity and invalidates only a matching authoritative receipt', async () => {
+  hubReply = { trialId: '7', leadId: '3', memberId: '42', sessionId: '101', enrollmentId: '8', state: 'trial_reserved',
+    reason: TRIAL_RESERVATION.reason, stageChanged: false, messageSent: false, membershipCreated: false, replayed: false };
+  assert.equal((await post({ operation: 'reserve_trial', payload: TRIAL_RESERVATION, requestKey: KEY }, cookie)).status, 200);
+  assert.deepEqual(hubCalls[0], { siteId: '1', operation: 'reserve_trial', payload: TRIAL_RESERVATION, requestKey: KEY });
+  for (const route of ['/crm/leads/3', '/people/42', '/instructor', '/today']) assert.ok(revalidated.includes(route));
+  revalidated.length = 0;
+  hubReply = { ...hubReply, sessionId: '102' };
+  await post({ operation: 'reserve_trial', payload: TRIAL_RESERVATION, requestKey: KEY }, cookie);
+  assert.equal(revalidated.length, 0);
+});
+
+test('reserve_trial rejects missing keys, scope overrides and wrong payloads before Odoo', async () => {
+  for (const bad of [{ ...TRIAL_RESERVATION, siteId: '99' }, { ...TRIAL_RESERVATION, memberId: null },
+    { ...TRIAL_RESERVATION, expectedSessionVersion: -1 }, { ...TRIAL_RESERVATION, reason: '' }]) {
+    assert.equal((await post({ operation: 'reserve_trial', payload: bad, requestKey: KEY }, cookie)).status, 400);
+  }
+  assert.equal((await post({ operation: 'reserve_trial', payload: TRIAL_RESERVATION, requestKey: null }, cookie)).status, 400);
+  assert.equal((await post({ operation: 'reserve_trial', payload: TRIAL_RESERVATION, requestKey: KEY })).status, 401);
+  assert.equal(hubCalls.length, 0);
+});
+test('assignment diagnostics identify app-origin rejection versus an authoritative Odoo refusal', async () => {
+  const payload = { leadId: '42', expectedVersion: 456, ownerId: '7' };
+  const wrongOrigin = await hubRoute(new Request(`${ORIGIN}/api/hub`, { method: 'POST', headers: { origin: 'http://127.0.0.1:3000', cookie, 'content-type': 'application/json' }, body: JSON.stringify({ operation: 'assign_lead', payload, requestKey: KEY }) }));
+  assert.equal(wrongOrigin.headers.get('x-dojang-hub-error-stage'), 'origin');
+  assert.equal(hubCalls.length, 0);
+  hubReply = { error: { code: 'FORBIDDEN', status: 403 } };
+  const denied = await post({ operation: 'assign_lead', payload, requestKey: KEY }, cookie);
+  assert.equal(denied.headers.get('x-dojang-hub-error-stage'), 'backend');
+  assert.equal(await errorOf(denied), 'FORBIDDEN');
+});
+test('assign_lead forwards exact identity/version and invalidates only matching confirmed assignments', async () => {
+  const payload = { leadId: '42', expectedVersion: 456, ownerId: '7' };
+  hubReply = { leadId: '42', ownerId: '7', state: 'assigned', replayed: false };
+  assert.equal((await post({ operation: 'assign_lead', payload, requestKey: KEY }, cookie)).status, 200);
+  assert.deepEqual(hubCalls, [{ siteId: '1', operation: 'assign_lead', payload, requestKey: KEY }]);
+  assert.ok(revalidated.includes('/crm/leads/42'));
+  revalidated.length = 0;
+  hubReply = { leadId: '42', ownerId: '8', state: 'assigned', replayed: false };
+  await post({ operation: 'assign_lead', payload, requestKey: KEY }, cookie);
+  assert.equal(revalidated.length, 0);
+});
+
+test('assign_lead rejects scope injection, clearing the owner, absent request keys and invalid staff sessions', async () => {
+  const payload = { leadId: '42', expectedVersion: 456, ownerId: '7' };
+  for (const bad of [{ ...payload, ownerId: null }, { ...payload, expectedVersion: -1 }, { ...payload, siteId: '99' }]) {
+    assert.equal((await post({ operation: 'assign_lead', payload: bad, requestKey: KEY }, cookie)).status, 400);
+  }
+  assert.equal((await post({ operation: 'assign_lead', payload, requestKey: null }, cookie)).status, 400);
+  assert.equal((await post({ operation: 'assign_lead', payload, requestKey: KEY })).status, 401);
+  assert.equal(hubCalls.length, 0);
+});
+test('update_lead forwards a narrow versioned edit and revalidates only after an identity-checked receipt', async () => {
+  hubReply = { leadId: '42', version: 457, replayed: false };
+  const response = await post({ operation: 'update_lead', payload: LEAD_EDIT, requestKey: KEY }, cookie);
+  assert.equal(response.status, 200);
+  assert.deepEqual(hubCalls, [{ siteId: '1', operation: 'update_lead', payload: LEAD_EDIT, requestKey: KEY }]);
+  assert.ok(revalidated.includes('/crm/leads/42'));
+  assert.ok(revalidated.includes('/crm'));
+  revalidated.length = 0;
+  hubReply = { leadId: '43', version: 457, replayed: false };
+  await post({ operation: 'update_lead', payload: LEAD_EDIT, requestKey: KEY }, cookie);
+  assert.equal(revalidated.length, 0);
+});
+
+test('update_lead refuses injected scope, unsupported field edits, missing keys and forged sessions', async () => {
+  for (const payload of [{ ...LEAD_EDIT, siteId: '99' }, { ...LEAD_EDIT, changes: { ownerId: '7' } },
+    { ...LEAD_EDIT, changes: { stageId: '7' } }, { ...LEAD_EDIT, changes: {} }, { ...LEAD_EDIT, changes: { email: 'bad' } }]) {
+    assert.equal((await post({ operation: 'update_lead', payload, requestKey: KEY }, cookie)).status, 400);
+  }
+  assert.equal((await post({ operation: 'update_lead', payload: LEAD_EDIT, requestKey: null }, cookie)).status, 400);
+  assert.equal((await post({ operation: 'update_lead', payload: LEAD_EDIT, requestKey: KEY }, 'dojang_hub_session=forged')).status, 401);
+  assert.equal(hubCalls.length, 0);
+});
 
 test('ai_settings forwards only an empty read and never invalidates records', async () => {
   const response = await post({ operation: 'ai_settings', payload: {}, requestKey: null }, cookie);
@@ -166,10 +436,7 @@ test("malformed fields are refused before Odoo", async () => {
 
 test("other writes stay refused with HUB_READ_ONLY", async () => {
   const writes = {
-    assign_lead: { leadId: "1", expectedVersion: 1, ownerId: "2" },
-    propose_stage: { leadId: "1", expectedVersion: 1, stageId: "2", reason: "x", due: "2026-10-29" },
-    update_lead: { leadId: "1", expectedVersion: 1, changes: { name: "X" } },
-    reserve_trial: { leadId: "1" },
+    cancel_trial: { trialId: '1', expectedVersion: 1, reason: 'x' },
     create_broadcast: { title: "x" },
   };
   for (const [operation, payload] of Object.entries(writes)) {

@@ -293,7 +293,7 @@ export default function SalesPipeline({
           )}
         </section>
 
-        {showDetails && <LeadTray lead={selected} onClose={() => setSelectedId(null)} />}
+        {showDetails && <LeadTray lead={selected} allowTrialBooking={fromOdoo && !showsSampleData} onClose={() => setSelectedId(null)} />}
       </div>
     </div>
   );

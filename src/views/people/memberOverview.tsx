@@ -1,222 +1,40 @@
 "use client";
 
-import { useSyncExternalStore, type ReactNode } from "react";
-import { Pencil } from "lucide-react";
 import type { Member, MemberAttendance } from "@/domain/member";
 import { membershipLabel } from "@/domain/member-presentation";
-
-/*
-   Member 360's Overview tab, laid out like Jodi's mockup: Member story on the
-   left, Training and Progression on the right. Ported from Companion 1cab554b
-   src/components/people/member-360/member-grid/MemberGrid.tsx.
-
-   Only real records are shown. A field DreamOS doesn't receive from its source
-   (the Hub read has no such field, or the fixture leaves it out) says
-   "Not connected": that is DreamOS not knowing, not Odoo recording nothing.
-   The ✎ buttons aren't connected yet.
-*/
-
-const NOT_CONNECTED = "Not connected";
-const NOT_CONNECTED_HINT = "DreamOS doesn't receive this field yet";
-
-const cardLabel =
-  "block font-(family-name:--crm-font-label) text-[10px] font-bold uppercase tracking-[0.16em] text-(--crm-muted)";
-
-type Stat = { label: string; value: ReactNode; action?: ReactNode };
-
-function StatList({ stats }: { stats: Stat[] }) {
-  return (
-    <ul className="mb-5">
-      {stats.map((stat) => (
-        <li
-          key={stat.label}
-          className="flex min-h-11 items-center justify-between gap-4 border-b border-(--crm-line) py-2 text-[13px] text-(--crm-text-secondary)"
-        >
-          {stat.label}
-          <div className="flex items-center gap-2 text-right">
-            <span
-              title={stat.value === NOT_CONNECTED ? NOT_CONNECTED_HINT : undefined}
-              className={
-                stat.value === NOT_CONNECTED
-                  ? "font-medium text-(--crm-muted)"
-                  : "font-bold text-(--crm-text)"
-              }
-            >
-              {stat.value}
-            </span>
-            {stat.action}
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-// One plain sentence from real records only, e.g. "Active member · 4 check-ins this week."
-function storyHeadline(member: Member, attendance: MemberAttendance) {
-  const state = `${membershipLabel(member)} member`;
-  const { count, complete } = attendance.lastSevenDays;
-  const checkIns = `${count} ${count === 1 ? "check-in" : "check-ins"}`;
-  // The source's list was cut off (or its limit unknown): the real number may be
-  // higher, so an incomplete 0 is unknown, never "none"
-  if (!complete) {
-    if (count === 0) return `${state} · this week's check-ins can't be counted exactly.`;
-    return `${state} · at least ${checkIns} this week.`;
-  }
-  if (count === 0) return `${state} · no check-ins this week.`;
-  return `${state} · ${checkIns} this week.`;
-}
-
-// "Jan 2025"
-function joinDate(iso?: string) {
-  if (!iso) return NOT_CONNECTED;
-  return new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", {
-    month: "short",
-    year: "numeric",
-  });
-}
-
-// "Today" or "Aug 31", in the viewer's time zone (worked out in the browser only)
-const noSubscription = () => () => {};
-function DayLabel({ iso }: { iso: string }) {
-  const text = useSyncExternalStore(
-    noSubscription,
-    () => {
-      const day = new Date(iso);
-      if (day.toDateString() === new Date().toDateString()) return "Today";
-      return day.toLocaleDateString([], { month: "short", day: "numeric" });
-    },
-    () => "",
-  );
-  return <time dateTime={iso}>{text}</time>;
-}
-
-// What Recent says when there are no check-ins to list. Only a complete source
-// confirms there are none (lastSevenDays.complete: the list wasn't cut off and
-// its limit is known); without a history at all, DreamOS doesn't receive it.
-function noRecentText(attendance: MemberAttendance) {
-  if (attendance.history === undefined) return "Check-in history isn't connected.";
-  if (!attendance.lastSevenDays.complete) return "Check-in history couldn't be confirmed.";
-  return "Nothing recorded yet.";
-}
-
-// The last three check-ins, newest first (the newest are always in the source's
-// list, even when it's cut off)
-function recentCheckIns(attendance: MemberAttendance) {
-  if (attendance.history?.length) return attendance.history.slice(0, 3);
-  if (attendance.latest) return [attendance.latest];
-  return [];
-}
-
-function EditButton({ field }: { field: string }) {
-  return (
-    <button
-      type="button"
-      disabled
-      title="Not connected yet"
-      aria-label={`Edit ${field}`}
-      className="grid size-7 place-items-center rounded-md border border-(--crm-line) bg-(--crm-interactive) text-(--crm-text) transition-colors hover:border-(--crm-muted)"
-    >
-      <Pencil size={11} aria-hidden="true" />
-    </button>
-  );
-}
+import { attendanceSummary, bookingsSummary } from "@/domain/memberReadPresentation";
+import { sectionUnavailable } from "@/domain/memberRecords";
+import { TimeLabel } from "@/views/crm/localTime";
 
 const card = "rounded-xl border border-(--crm-line) bg-(--crm-panel) p-5";
-
-export default function MemberOverview({
-  member,
-  attendance,
-}: {
-  member: Member;
-  attendance: MemberAttendance;
+const action = "text-[12px] font-semibold text-(--crm-text) underline underline-offset-4";
+export default function MemberOverview({ member, attendance, onTab }: {
+  member: Member; attendance: MemberAttendance; onTab?: (tab: string) => void;
 }) {
-  const recent = recentCheckIns(attendance);
-
-  return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <section className={card} aria-label="Member story">
-        <header className="mb-2">
-          <span className={cardLabel}>Member story</span>
-          <h2 className="mt-3 text-lg font-bold leading-snug text-(--crm-text)">
-            {storyHeadline(member, attendance)}
-          </h2>
-        </header>
-        <StatList
-          stats={[
-            {
-              label: "Attendance",
-              value:
-                member.attendanceRate === undefined
-                  ? NOT_CONNECTED
-                  : `${Math.round(member.attendanceRate * 100)}%`,
-            },
-            { label: "Classes", value: member.classesAttended ?? NOT_CONNECTED },
-            { label: "Current rank", value: member.rank.name },
-            { label: "Join date", value: joinDate(member.joinedOn) },
-          ]}
-        />
-
-        <span className={cardLabel}>Recent</span>
-        {recent.length ? (
-          <ul className="mt-2">
-            {recent.map((checkIn) => (
-              <li
-                key={checkIn.checkedInAt}
-                className="flex items-center gap-4 border-b border-(--crm-line) py-2.5 text-[12px]"
-              >
-                <strong className="w-12 shrink-0 font-bold text-(--crm-text)">
-                  <DayLabel iso={checkIn.checkedInAt} />
-                </strong>
-                <span className="text-(--crm-text-secondary)">
-                  Checked in · {checkIn.sessionTitle}
-                </span>
-                {checkIn.late && (
-                  <em className="rounded-full border border-(--crm-line) px-2 text-[10px] not-italic text-(--crm-text-secondary)">
-                    Late
-                  </em>
-                )}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-2 text-[13px] text-(--crm-muted)">{noRecentText(attendance)}</p>
-        )}
-      </section>
-
-      <section className={card} aria-label="Training">
-        <header className="mb-2">
-          <span className={cardLabel}>Training</span>
-        </header>
-        <StatList
-          stats={[
-            {
-              label: "Program",
-              value: member.training?.program ?? NOT_CONNECTED,
-              action: <EditButton field="program" />,
-            },
-            {
-              label: "Primary instructor",
-              value: member.training?.primaryInstructor ?? NOT_CONNECTED,
-              action: <EditButton field="primary instructor" />,
-            },
-            {
-              label: "Team",
-              value: member.training?.team ?? NOT_CONNECTED,
-              action: <EditButton field="team" />,
-            },
-            {
-              label: "Home location",
-              value: member.training?.homeLocation ?? NOT_CONNECTED,
-              action: <EditButton field="home location" />,
-            },
-          ]}
-        />
-
-        {/* Rank has no ✎: it changes through a reviewed rank award */}
-        <span className={cardLabel}>Progression</span>
-        <StatList stats={[{ label: "Current rank", value: member.rank.name }]} />
-      </section>
-    </div>
-  );
+  const courses = member.records?.courses, subscriptions = member.records?.subscriptions, awards = member.records?.rankHistory;
+  const history = attendance.history?.slice(0, 3) ?? (attendance.latest ? [attendance.latest] : []);
+  return <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <section className={card} aria-label="Member story"><h2 className="font-bold text-(--crm-text)">Member story</h2>
+      <p className="mt-3 text-lg font-semibold text-(--crm-text)">{membershipLabel(member)} student ? {member.rank.name}{member.rank.stripes === undefined ? '' : ` ? ${member.rank.stripes} stripes`}</p>
+      <dl className="mt-4 space-y-3 text-[13px]"><div><dt className="text-(--crm-muted)">Recent attendance</dt><dd className="mt-1 text-(--crm-text-secondary)">{attendanceSummary(attendance.lastSevenDays)}</dd></div><div><dt className="text-(--crm-muted)">Registered classes</dt><dd className="mt-1 text-(--crm-text-secondary)">{bookingsSummary(member)}</dd></div></dl>
+      {onTab && <div className="mt-4 flex flex-wrap gap-4"><button type="button" className={action} onClick={() => onTab('Attendance')}>Review attendance</button><button type="button" className={action} onClick={() => onTab('Bookings')}>Review bookings</button></div>}
+      <p className="mt-4 text-[11px] text-(--crm-muted)">Attendance is a bounded source read. No lifetime class count, attendance percentage, retention score or join date is inferred from it.</p>
+    </section>
+    <section className={card} aria-label="Training summary"><h2 className="font-bold text-(--crm-text)">Training and progression</h2><h3 className="mt-4 text-[12px] font-semibold text-(--crm-muted)">Assigned course rosters</h3>
+      {courses?.outcome === 'loaded' ? <><ul className="mt-2 space-y-2 text-[13px] text-(--crm-text-secondary)">{courses.rows.slice(0, 4).map(c => <li key={c.id}>{c.name}</li>)}</ul>{courses.rows.length === 0 && <p className="mt-2 text-[13px] text-(--crm-muted)">No course assignments were returned.</p>}{(courses.capped || courses.rows.length > 4) && <p className="mt-2 text-[11px] text-(--crm-muted)">More course records may be available in Training.</p>}</> : <p className="mt-2 text-[13px] text-(--crm-muted)">{courses?.outcome === 'unavailable' ? sectionUnavailable(courses.reason) : 'Course assignments are not supplied by this read.'}</p>}
+      <p className="mt-4 text-[13px] text-(--crm-text-secondary)">{awards?.outcome === 'loaded' ? `${awards.rows.length} rank awards in the returned history${awards.capped ? '; more may exist' : ''}.` : 'Rank award history is unavailable in this read.'}</p>
+      {onTab && <div className="mt-4 flex flex-wrap gap-4"><button type="button" className={action} onClick={() => onTab('Training')}>Open training</button><button type="button" className={action} onClick={() => onTab('Progress')}>Review eligibility and testing</button></div>}
+      <p className="mt-4 text-[11px] text-(--crm-muted)">Course membership is separate from program, instructor and location assignment. Testing attendance evidence is separate from curriculum completion and instructor assessment.</p>
+    </section>
+    <section className={card} aria-label="Membership summary"><h2 className="font-bold text-(--crm-text)">Membership and billing</h2>
+      {subscriptions?.outcome === 'loaded' ? <><ul className="mt-3 space-y-3 text-[13px]">{subscriptions.rows.slice(0, 3).map(s => <li key={s.id}><p className="font-semibold text-(--crm-text)">{s.plan} ? {s.state.replaceAll('_', ' ')}</p><p className="mt-1 text-(--crm-text-secondary)">Next invoice: {s.nextInvoiceDate ?? 'Date not supplied'}</p></li>)}</ul>{subscriptions.rows.length === 0 && <p className="mt-3 text-[13px] text-(--crm-muted)">No linked membership subscriptions were returned.</p>}{(subscriptions.capped || subscriptions.rows.length > 3) && <p className="mt-2 text-[11px] text-(--crm-muted)">Membership contains more of the returned plan history.</p>}</> : <p className="mt-3 text-[13px] text-(--crm-muted)">{subscriptions?.outcome === 'unavailable' ? sectionUnavailable(subscriptions.reason) : 'Membership subscriptions are not supplied by this read.'}</p>}
+      {onTab && <div className="mt-4 flex flex-wrap gap-4"><button type="button" className={action} onClick={() => onTab('Membership')}>Open membership</button><button type="button" className={action} onClick={() => onTab('Billing')}>Invoices, settlement and refunds</button></div>}
+      <p className="mt-4 text-[11px] text-(--crm-muted)">Shared household invoices are not added up as a personal student balance. Next invoice date is not a confirmed renewal or payment.</p>
+    </section>
+    <section className={card} aria-label="Recent member activity"><h2 className="font-bold text-(--crm-text)">Recent recorded attendance</h2>
+      {history.length > 0 ? <ul className="mt-3 divide-y divide-(--crm-line)">{history.map((entry, i) => <li key={`${entry.checkedInAt}:${i}`} className="space-y-1 py-3 text-[13px]"><p className="font-semibold text-(--crm-text)">{entry.sessionTitle}</p><p className="text-(--crm-text-secondary)"><TimeLabel iso={entry.checkedInAt} /></p></li>)}</ul> : <p className="mt-3 text-[13px] text-(--crm-muted)">{attendance.history === undefined ? 'Recent attendance is unavailable.' : attendance.lastSevenDays.complete ? 'No attendance entries were returned.' : 'No entries were included; the source does not establish a complete history.'}</p>}
+      {onTab && <div className="mt-4 flex flex-wrap gap-4"><button type="button" className={action} onClick={() => onTab('Timeline')}>Open action timeline</button><button type="button" className={action} onClick={() => onTab('Family')}>Household and guardians</button><button type="button" className={action} onClick={() => onTab('Messages')}>Linked messages</button></div>}
+      <p className="mt-4 text-[11px] text-(--crm-muted)">The Timeline tab also shows member-linked Hub actions. Communication windows are available in Messages.</p>
+    </section>
+  </div>;
 }

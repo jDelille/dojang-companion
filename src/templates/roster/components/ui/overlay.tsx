@@ -10,6 +10,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   type ReactNode,
 } from 'react';
@@ -44,6 +45,10 @@ export function Modal({
   onSubmit?: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  // Parent forms recreate onClose while typing. Keep Escape current without
+  // restarting the dialog's initial-focus/scroll-lock effect on every edit.
+  useLayoutEffect(() => { closeRef.current = onClose; }, [onClose]);
   const restoreFocusTo = useRef<HTMLElement | null>(null);
   // A pointer drag that starts inside and ends on the backdrop must not close.
   const backdropArmed = useRef(false);
@@ -55,7 +60,7 @@ export function Modal({
     (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.stopPropagation();
-        onClose();
+        closeRef.current();
         return;
       }
 
@@ -82,7 +87,7 @@ export function Modal({
         first.focus();
       }
     },
-    [onClose],
+    [],
   );
 
   useEffect(() => {

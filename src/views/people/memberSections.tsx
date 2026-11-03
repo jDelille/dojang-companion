@@ -4,6 +4,7 @@ import type { Member, MemberAttendance } from "@/domain/member";
 import { membershipLabel } from "@/domain/member-presentation";
 import { attendanceSummary, bookingsSummary } from "@/domain/memberReadPresentation";
 import { TimeLabel } from "@/views/crm/localTime";
+import { MemberSubscriptions } from './memberRecords';
 
 const panel = "rounded-xl border border-(--crm-line) bg-(--crm-panel) p-5";
 const muted = "text-[13px] text-(--crm-text-secondary)";
@@ -13,7 +14,7 @@ export function MemberTraining({ member }: { member: Member }) {
     ["Current rank", `${member.rank.name}${member.rank.stripes === undefined ? "" : ` · ${member.rank.stripes} stripes`}`],
     ["Program", member.training?.program], ["Primary instructor", member.training?.primaryInstructor],
     ["Team", member.training?.team], ["Home location", member.training?.homeLocation],
-  ].map(([label, value]) => <div key={label} className="flex flex-wrap justify-between gap-2 border-b border-(--crm-line) pb-3 text-[13px]"><dt className="text-(--crm-muted)">{label}</dt><dd className="text-(--crm-text)">{value ?? "Not provided by this read"}</dd></div>)}</dl><p className="mt-4 text-[12px] text-(--crm-muted)">Curriculum, promotion eligibility and instructor assessments are not connected. Rank changes require a governed review.</p></section>;
+  ].filter(([label, value]) => label === 'Current rank' || value !== undefined).map(([label, value]) => <div key={label} className="flex flex-wrap justify-between gap-2 border-b border-(--crm-line) pb-3 text-[13px]"><dt className="text-(--crm-muted)">{label}</dt><dd className="text-(--crm-text)">{value}</dd></div>)}</dl><p className="mt-4 text-[12px] text-(--crm-muted)">Course-roster assignments are shown below. Program, primary-instructor, team and home-location assignments are not supplied by this read. Progress contains the available testing workflow; curriculum and instructor-assessment evidence require additional contracts.</p></section>;
 }
 
 export function MemberBookings({ member }: { member: Member }) {
@@ -24,7 +25,7 @@ export function MemberBookings({ member }: { member: Member }) {
       <ul className="mt-4 divide-y divide-(--crm-line)">{bookings.map((booking, index) => <li key={`${booking.sessionId}:${index}`} className="flex flex-wrap justify-between gap-2 py-3 text-[13px]"><span className="font-semibold text-(--crm-text)">{booking.title}</span><span className="text-(--crm-text-secondary)"><TimeLabel iso={booking.startsAt} /></span></li>)}</ul>
       {bookings.length === 0 && !member.bookingsCapped && <p className={`${muted} mt-3`}>No registered sessions were returned.</p>}
     </>}
-    <p className="mt-4 text-[12px] text-(--crm-muted)">Bookings are read-only here. An attendance record, rather than a booking, confirms a check-in.</p>
+    <p className="mt-4 text-[12px] text-(--crm-muted)">These rows show registered sessions. Use the reviewed booking actions to reserve or change a class. Only an attendance record confirms a check-in.</p>
   </section>;
 }
 
@@ -38,7 +39,7 @@ export function MemberAttendanceHistory({ attendance, timeline = false }: { atte
 }
 
 export function MemberMembership({ member }: { member: Member }) {
-  return <div className="space-y-4"><section className={panel}><h2 className="font-bold text-(--crm-text)">Membership</h2><p className="mt-3 text-lg text-(--crm-text)">{membershipLabel(member)}</p><p className="mt-3 text-[12px] text-(--crm-muted)">This is the recorded member state. Plan terms, renewal dates and payment status are not provided by this read.</p></section><MemberBookings member={member} /></div>;
+  return <div className="space-y-4"><section className={panel}><h2 className="font-bold text-(--crm-text)">Membership</h2><p className="mt-3 text-lg text-(--crm-text)">{membershipLabel(member)}</p><p className="mt-3 text-[12px] text-(--crm-muted)">This is the recorded student state. Subscription records below provide the linked plan information available to your role.</p></section><MemberSubscriptions member={member} /><MemberBookings member={member} /></div>;
 }
 
 export function MemberContact({ member }: { member: Member }) {

@@ -1,6 +1,6 @@
 // A CRM lead as the Sales pipeline (CRM screen C03) shows it. Shaped like the
 // Hub's crm_context read (Companion 1cab554b app/(companion)/hub/CrmWorkspace.tsx;
-// Jodi's dojo_companion_hub models/crm.py _lead_row), without canEditContact.
+// Jodi's dojo_companion_hub models/crm.py _lead_row), including canEditContact.
 // The read's tasks are the follow-ups (domain/followUp.ts).
 
 import type { FollowUpsRead } from "./followUp";
@@ -43,6 +43,7 @@ export type Lead = {
   // Odoo's tags mix programs, sources and ages, so screens show them as "Tags"
   // until there's an agreed program field.
   tags: LeadTag[];
+  canEditContact?: boolean; // Hub permission/relationship hint; server rechecks.
   evidence?: LeadEvidence; // absent when the Hub's CRM update isn't installed
   // PROVISIONAL: Odoo marks a lost lead by archiving it with a lost reason, so Lost
   // isn't a pipeline stage. The Hub's crm_context search leaves archived leads out.
@@ -53,6 +54,9 @@ export type Lead = {
 // and manager grants). Read for the follow-up owner filter, and for assigning
 // leads and tasks once those writes are enabled.
 export type CrmAssignee = { id: string; name: string };
+export type LeadAssigneesRead =
+  | { outcome: 'loaded'; assignees: CrmAssignee[] }
+  | { outcome: 'unavailable'; code: string; text: string };
 
 export type CrmContext = {
   stages: CrmStage[]; // in pipeline order

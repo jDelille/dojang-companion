@@ -3,9 +3,15 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { isRequestKey } from "@/domain/hubAction";
 import { isCompanionPayload } from "@/domain/companionHub";
+import { MEMBER_OPERATIONS, memberPayloadAllowed, memberResultAllowed, commandMember, paymentUrlAllowed, recordId, type MemberCommand } from '@/domain/memberActions';
+import { workspacePayloadAllowed, projectWorkspace } from '@/domain/memberWorkspace';
+import { isStageProposalPayload, isStageProposalResult } from '@/domain/postTrial';
+import { isTrialAttendancePayload, isTrialAttendanceResult } from '@/domain/trial';
+import { isIntakeContextPayload, isIntakePreviewPayload, isCreateStudentPayload, isStudentReceipt } from '@/domain/studentIntake';
+import { isTrialContextPayload, isReserveTrialPayload, isReservedTrialResult } from '@/domain/trial';
 import { isApproveReplyPayload, isDraftPayload, isResolvePayload } from "@/domain/inbox";
 import { isChangeClassPayload, isChangedClassResult, isCreateTaskPayload, isCreatedTaskResult } from "@/domain/classMove";
-import { isAddLeadNotePayload, isCompleteTaskPayload, isCompletedTaskResult, isCreateLeadPayload, isCreatedLeadResult, isSavedLeadNoteResult } from "@/domain/crmWrites";
+import { isAddLeadNotePayload, isCompleteTaskPayload, isCompletedTaskResult, isCreateLeadPayload, isCreatedLeadResult, isSavedLeadNoteResult, isUpdateLeadPayload, isUpdatedLeadResult, isAssignLeadPayload, isAssignedLeadResult } from "@/domain/crmWrites";
 
 /*
    The real Hub connection: DreamOS server -> Odoo's POST /companion/hub/action
@@ -28,7 +34,7 @@ import { isAddLeadNotePayload, isCompleteTaskPayload, isCompletedTaskResult, isC
 
    An allowlist, narrower than the Hub: only the reads below and the governed
    actions in FORWARDED_ACTIONS are forwarded. Every other operation
-   (broadcasts, refunds, …) is refused here with HUB_READ_ONLY before it
+   (broadcasts, arbitrary ORM operations, …) is refused here with HUB_READ_ONLY before it
    reaches Odoo. An Inbox reply can be queued (approve_reply); Odoo's delivery
    worker sends it, never this gateway. For an allowed action the Hub still decides
    everything: who the actor is, their role and site, the record's scope and
@@ -60,7 +66,21 @@ const TIMEOUT_MS = 45000;
 //                    Desk arrivals (payload exactly { sessionId }; instructors
 //                    only their own classes)
 //   ai_settings      owner/manager AI status, model and activation check (payload {})
-const FORWARDED_READS = new Set(["context", "member_details", "crm_context", "lead_details", "session_roster", "companion_ask", "ai_settings"]);
+const FORWARDED_READS = new Set(["context", "member_details", "crm_context", "lead_details", "session_roster", "companion_ask", "ai_settings", 'trial_context', 'intake_context', 'intake_preview']);
+const memberReadShape = (p: Record<string, unknown>) => Object.keys(p).sort().join() === 'memberId' && recordId(p.memberId);
+const MEMBER_READS = new Map<string, (p: Record<string, unknown>) => boolean>([
+  ['member_onboarding', memberReadShape], ['billing_ledger', memberReadShape],
+  ['refund_preview', p => Object.keys(p).sort().join() === 'invoiceId,memberId' && recordId(p.memberId) && recordId(p.invoiceId)],
+  ['testing_roster', p => Object.keys(p).join() === 'testId' && recordId(p.testId)],
+  ['promotion_history', p => Object.keys(p).join() === 'query' && typeof p.query === 'string' && p.query.length <= 100],
+  ['promotion_preview', p => Object.keys(p).sort().join() === 'registrationIds,testId' && recordId(p.testId) && Array.isArray(p.registrationIds) && p.registrationIds.length === 1 && recordId(p.registrationIds[0])],
+  ['member_workspace', workspacePayloadAllowed], ['archive_review', memberReadShape], ['guardian_kiosk_access', memberReadShape], ['consent_overview', memberReadShape], ['waiver_context', memberReadShape],
+  ['attendance_sessions', p => Object.keys(p).length === 0], ['attendance_sheet', p => Object.keys(p).join() === 'sessionId' && recordId(p.sessionId)],
+  ['testing_eligibility', p => Object.keys(p).join() === 'query' && typeof p.query === 'string' && p.query.length <= 100],
+  ['archived_members', p => Object.keys(p).join() === 'query' && typeof p.query === 'string' && p.query.length <= 100],
+  ['course_roster', p => Object.keys(p).join() === 'templateId' && (p.templateId === null || recordId(p.templateId))],
+  ['course_assignment_preview', p => Object.keys(p).sort().join() === 'addMemberIds,removeMemberIds,templateId' && recordId(p.templateId) && Array.isArray(p.addMemberIds) && Array.isArray(p.removeMemberIds) && p.addMemberIds.length + p.removeMemberIds.length === 1 && [...p.addMemberIds, ...p.removeMemberIds].every(recordId)],
+]);
 
 const isRecordId = (value: unknown): value is string => typeof value === "string" && /^[1-9][0-9]{0,9}$/.test(value);
 
@@ -70,6 +90,9 @@ const isRecordId = (value: unknown): value is string => typeof value === "string
 //   add_lead_note         internal-only lead note, lead version; no notifications
 //   create_lead           a new lead from Sales: exactly name/contact/email/phone;
 //                         the Hub starts it in the intake stage (owner/manager)
+//   update_lead           reviewed name/contact/email/phone changes, lead version;
+//                         Hub rejects shared-contact edits and enforces staff scope
+//   assign_lead           lead version + authorized owner ID; Hub rechecks site grants
 //   resolve               Inbox: confirm the student and class a message is about
 //   draft                 Inbox: draft a reply for review (AI or the Hub template)
 //   approve_reply         Inbox: queue the reviewed reply in the Hub outbox. Odoo
@@ -84,6 +107,13 @@ const FORWARDED_ACTIONS = new Map<string, (payload: Record<string, unknown>) => 
   ["complete_task", isCompleteTaskPayload],
   ["add_lead_note", isAddLeadNotePayload],
   ["create_lead", isCreateLeadPayload],
+  ["update_lead", isUpdateLeadPayload],
+  ['assign_lead', isAssignLeadPayload],
+  ['reserve_trial', isReserveTrialPayload],
+  ['record_trial_outcome', isTrialAttendancePayload],
+  ...MEMBER_OPERATIONS.filter(op => op !== 'change_class' && op !== 'create_task').map(op => [op, (payload: Record<string, unknown>) => memberPayloadAllowed(op, payload)] as const),
+  ['propose_stage', isStageProposalPayload],
+  ['create_student', isCreateStudentPayload],
   ["resolve", isResolvePayload],
   ["draft", isDraftPayload],
   ["approve_reply", isApproveReplyPayload],
@@ -274,7 +304,7 @@ async function signOut(config: Config, session: string) {
 }
 
 export type ReadAnswer = { ok: true; result: Record<string, unknown> } | { ok: false; code: string; status: number };
-type StaffReadOperation = "context" | "member_details" | "crm_context" | "lead_details" | "companion_ask" | "ai_settings";
+type StaffReadOperation = "context" | "member_details" | "crm_context" | "lead_details" | "companion_ask" | "ai_settings" | 'trial_context';
 export type HubStaffRead = (operation: StaffReadOperation, payload: Record<string, unknown>) => Promise<ReadAnswer>;
 
 // One Hub call as the signed-in staff member, with the configured site: a read
@@ -334,6 +364,7 @@ export async function requireHubStaff(): Promise<
   const session = sealed ? unseal(config, sealed) : null;
   if (!session) return { ok: false, code: "SIGN_IN_REQUIRED", status: 401 };
   return { ok: true, read: (operation, payload) => {
+    if (operation === 'trial_context' && !isTrialContextPayload(payload)) return Promise.resolve({ ok: false, code: 'INVALID_COMMAND', status: 400 });
     if (operation === "ai_settings" && (!isObject(payload) || Object.keys(payload).length !== 0)) {
       return Promise.resolve({ ok: false, code: "INVALID_COMMAND", status: 400 });
     }
@@ -357,7 +388,7 @@ export async function hubRoute(request: Request): Promise<Response> {
   } catch {
     return problem("HUB_NOT_CONFIGURED", 503);
   }
-  if (request.headers.get("origin") !== config.origin) return problem("FORBIDDEN", 403);
+  if (request.headers.get("origin") !== config.origin) return problem("FORBIDDEN", 403, { 'x-dojang-hub-error-stage': 'origin' });
 
   let data: unknown;
   try {
@@ -388,23 +419,57 @@ export async function hubRoute(request: Request): Promise<Response> {
     if (!isRequestKey(data.requestKey) || !actionAllows(data.payload)) return problem("INVALID_COMMAND", 400);
     requestKey = data.requestKey;
   } else {
-    if (!FORWARDED_READS.has(operation)) return problem("HUB_READ_ONLY", 403);
+    if (!FORWARDED_READS.has(operation) && !MEMBER_READS.has(operation)) return problem("HUB_READ_ONLY", 403);
+    if (MEMBER_READS.has(operation) && !MEMBER_READS.get(operation)!(data.payload)) return problem('INVALID_COMMAND', 400);
     if (data.requestKey !== null) return problem("INVALID_COMMAND", 400);
+    if (operation === 'trial_context' && !isTrialContextPayload(data.payload)) return problem('INVALID_COMMAND', 400);
+    if (operation === 'intake_context' && !isIntakeContextPayload(data.payload)) return problem('INVALID_COMMAND', 400);
+    if (operation === 'intake_preview' && !isIntakePreviewPayload(data.payload)) return problem('INVALID_COMMAND', 400);
     if (operation === "ai_settings" && Object.keys(data.payload).length !== 0) return problem("INVALID_COMMAND", 400);
     if (operation === "companion_ask" && !isCompanionPayload(data.payload)) return problem("INVALID_COMMAND", 400);
   }
 
-  const answer = await forward(config, session, operation, data.payload, requestKey);
+  const backendPayload = operation === 'member_workspace' ? { memberId: (data.payload as Record<string, unknown>).memberId } : data.payload;
+  const answer = await forward(config, session, operation, backendPayload, requestKey);
   if (answer.ok) {
     // Invalidate only after an identity-checked authoritative receipt. Reads
     // remain no-store; the caller also refreshes its current server components.
     const result = answer.result;
+    if (operation === 'member_workspace' && workspacePayloadAllowed(data.payload)) {
+      const projected = projectWorkspace(result, data.payload);
+      return projected ? Response.json(projected, { headers: RESPONSE_HEADERS }) : problem('HUB_RESPONSE_UNREADABLE', 502);
+    }
+    if (operation === 'payment_link' && !paymentUrlAllowed(result.checkoutUrl, (data.payload as Record<string, unknown>).invoiceId, config.backend)) return problem('PAYMENT_URL_NOT_CONFIGURED', 422);
     const returnedLeadId = result.leadId;
     const returnedMemberId = result.memberId;
     let leadId: string | undefined;
     let memberId: string | undefined;
+    if (operation !== 'change_class' && operation !== 'create_task' && (MEMBER_OPERATIONS as readonly string[]).includes(operation)) {
+      const command = { operation, payload: data.payload } as MemberCommand;
+      if (memberPayloadAllowed(command.operation, command.payload) && memberResultAllowed(command, result)) {
+        memberId = commandMember(command) ?? undefined;
+        if (!memberId && recordId(result.memberId)) memberId = result.memberId;
+        if (Array.isArray(result.promotions)) for (const row of result.promotions) if (isObject(row) && recordId(row.memberId)) revalidatePath(`/people/${row.memberId}`);
+        revalidatePath('/people'); revalidatePath('/instructor'); revalidatePath('/today');
+      }
+    }
+    if (operation === 'propose_stage' && isStageProposalPayload(data.payload) && isStageProposalResult(result, data.payload)) leadId = data.payload.leadId;
+    if (operation === 'record_trial_outcome' && isTrialAttendancePayload(data.payload) && isTrialAttendanceResult(result, data.payload)) {
+      leadId = result.leadId; memberId = result.memberId;
+      revalidatePath('/instructor'); revalidatePath('/today');
+    }
+    if (operation === 'create_student' && isCreateStudentPayload(data.payload) && isStudentReceipt(result, data.payload)) {
+      memberId = result.memberId;
+      revalidatePath('/people');
+    }
+    if (operation === 'reserve_trial' && isReserveTrialPayload(data.payload) && isReservedTrialResult(result, data.payload)) {
+      leadId = data.payload.leadId; memberId = data.payload.memberId;
+      revalidatePath('/instructor'); revalidatePath('/today');
+    }
     if (operation === "add_lead_note" && isAddLeadNotePayload(data.payload) && isSavedLeadNoteResult(result, data.payload.leadId)) leadId = data.payload.leadId;
     if (operation === "create_lead" && isCreatedLeadResult(result)) leadId = result.leadId;
+    if (operation === 'update_lead' && isUpdateLeadPayload(data.payload) && isUpdatedLeadResult(result, data.payload)) leadId = data.payload.leadId;
+    if (operation === 'assign_lead' && isAssignLeadPayload(data.payload) && isAssignedLeadResult(result, data.payload)) leadId = data.payload.leadId;
     if (operation === "change_class" && isChangeClassPayload(data.payload) && isChangedClassResult(result, data.payload)) memberId = data.payload.memberId;
     if (operation === "create_task" && isCreateTaskPayload(data.payload) && isCreatedTaskResult(result, data.payload)) {
       if (data.payload.relatedType === "lead") leadId = data.payload.relatedId;
@@ -426,5 +491,5 @@ export async function hubRoute(request: Request): Promise<Response> {
   // A session Odoo no longer knows: also drop the stale cookie
   const clear: Record<string, string> =
     answer.code === "SIGN_IN_REQUIRED" ? { "set-cookie": sessionCookie(config, "", 0) } : {};
-  return problem(answer.code, answer.status, clear);
+  return problem(answer.code, answer.status, { ...clear, 'x-dojang-hub-error-stage': 'backend' });
 }

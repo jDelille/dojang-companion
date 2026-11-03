@@ -7,6 +7,7 @@ import { Search } from "lucide-react";
 import type { Member } from "@/domain/member";
 import { memberSummary } from "@/domain/member-presentation";
 import MemberAvatar from "./memberAvatar";
+import StudentIntakeLauncher from './studentIntakeLauncher';
 
 /*
    The People pane, left of Member 360 (Jodi's mockup, Desktop/inspiration/jodi-2.png):
@@ -36,16 +37,15 @@ function matchesSearch(member: Member, search: string) {
   );
 }
 
-export default function PeoplePane({ members }: { members: Member[] }) {
+export default function PeoplePane({ members, allowIntake = false }: { members: Member[]; allowIntake?: boolean }) {
   const params = useParams<{ id?: string }>();
   const selectedId = params.id;
   const selected = members.find((member) => member.id === selectedId);
 
   const [query, setQuery] = useState("");
+  const [state, setState] = useState('all');
   const search = query.trim().toLowerCase();
-  const shown = search
-    ? members.filter((member) => matchesSearch(member, search))
-    : members;
+  const shown = members.filter(member => (!search || matchesSearch(member, search)) && (state === 'all' || member.membershipState === state));
 
   return (
     <aside
@@ -53,6 +53,7 @@ export default function PeoplePane({ members }: { members: Member[] }) {
       className="flex min-w-0 flex-col gap-5 p-4"
     >
       <h2 className="px-1 text-lg font-bold text-(--crm-text)">Members</h2>
+      {allowIntake && <StudentIntakeLauncher />}
 
       <label className="relative block">
         <span className="sr-only">Search members</span>
@@ -69,6 +70,11 @@ export default function PeoplePane({ members }: { members: Member[] }) {
           className="h-10 w-full rounded-lg border border-(--crm-line) bg-(--crm-canvas) pr-3 pl-9 text-[13px] text-(--crm-text) placeholder:text-(--crm-muted) focus:border-(--crm-muted) focus:outline-none"
         />
       </label>
+      <label className="block text-[12px] text-(--crm-muted)">Recorded student state
+        <select value={state} onChange={e => setState(e.target.value)} className="mt-2 h-10 w-full rounded-lg border border-(--crm-line) bg-(--crm-canvas) px-3 text-[13px] text-(--crm-text)">
+          <option value="all">All states</option><option value="lead">Prospective · Lead</option><option value="trial">Trial</option><option value="active">Active</option><option value="paused">Paused</option><option value="cancelled">Cancelled</option>
+        </select>
+      </label>
 
       {/* Only "All members" has a source. The other two are in the mockup but
           nobody has defined who counts yet, so they show no number. */}
@@ -78,7 +84,7 @@ export default function PeoplePane({ members }: { members: Member[] }) {
           <li>
             <button
               type="button"
-              onClick={() => setQuery("")}
+              onClick={() => { setQuery(''); setState('all'); }}
               className={`${row} ${activeRow} justify-between`}
             >
               All members
@@ -102,7 +108,8 @@ export default function PeoplePane({ members }: { members: Member[] }) {
       </section>
 
       <section aria-label={search ? "Search results" : "Member list"}>
-        <span className={sectionLabel}>{search ? "Results" : "Members"}</span>
+        <span className={sectionLabel}>{search || state !== 'all' ? 'Results' : 'Members'}</span>
+        <p className="mb-2 text-[11px] text-(--crm-muted)">{shown.length} of {members.length} loaded records</p>
         {shown.length === 0 ? (
           <p className="px-1 text-[13px] text-(--crm-muted)">No members match.</p>
         ) : (

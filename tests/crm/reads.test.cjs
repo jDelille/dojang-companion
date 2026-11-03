@@ -31,6 +31,36 @@ const load = (name, hub = true) => {
 };
 const memberResult = (changes = {}) => ({ member: { id: "42", name: "Test Member", state: "active", rank: "White" }, bookings: [], attendance: [], limits: { bookings: 10, attendance: 30 }, ...changes });
 
+test('Member 360 preserves valid optional record sections while isolating malformed or restricted sections', async () => {
+  const { getMemberRecord } = load('member');
+  answer = { ok: true, result: memberResult({ canEdit: true, rankHistory: [], courses: [{ id: '1', name: 'Demo course' }], billing: { limit: 50, subscriptions: [], invoices: [{ bad: true }] } }) };
+  const result = await getMemberRecord('42');
+  assert.equal(result.outcome, 'loaded');
+  assert.equal(result.member.records.courses.rows[0].name, 'Demo course');
+  assert.equal(result.member.records.invoices.reason, 'unreadable');
+  assert.equal(result.member.records.subscriptions.outcome, 'loaded');
+  answer = { ok: true, result: memberResult({ canEdit: false, courses: [], billing: null }) };
+  const restricted = await getMemberRecord('42');
+  assert.equal(restricted.member.records.courses.reason, 'restricted');
+  assert.equal(restricted.member.records.invoices.reason, 'restricted');
+  assert.deepEqual(calls, [{ operation: 'member_details', payload: { memberId: '42' } }, { operation: 'member_details', payload: { memberId: '42' } }]);
+});
+
+test('owner choices use only site-authorized assignees, distinguishing empty, missing and malformed', async () => {
+  for (const value of [[], [{ id: '7', name: 'Manager' }], undefined, [{ id: '7', name: 'Manager' }, { id: '7', name: 'Duplicate' }], [{ id: 'bad', name: 'Bad' }]]) {
+    const { getLeadAssignees } = load('crm');
+    answer = { ok: true, result: value === undefined ? {} : { assignees: value } };
+    const result = await getLeadAssignees();
+    assert.deepEqual(calls, [{ operation: 'crm_context', payload: { query: '' } }]);
+    if (value === undefined) assert.equal(result.code, 'ASSIGNEES_NOT_PROVIDED');
+    else if (value.length === 0 || (value.length === 1 && value[0].id === '7')) assert.deepEqual(result, { outcome: 'loaded', assignees: value });
+    else assert.equal(result.code, 'HUB_RESPONSE_UNREADABLE');
+  }
+  const { getLeadAssignees } = load('crm', false);
+  assert.equal((await getLeadAssignees()).outcome, 'unavailable');
+  assert.equal(calls.length, 0);
+});
+
 test("pipeline search uses one scoped crm_context query and preserves a confirmed empty list", async () => {
   const { getCrmContext } = load("crm");
   answer = { ok: true, result: { stages: [], leads: [], moreLeads: false } };
@@ -43,6 +73,21 @@ test("an overlong CRM query is refused before a Hub read", async () => {
   const { getCrmContext } = load("crm");
   assert.equal((await getCrmContext("x".repeat(101))).code, "INVALID_COMMAND");
   assert.equal(calls.length, 0);
+});
+
+test('contact editing hints preserve true, false and unknown; malformed permission values fail closed', async () => {
+  const lead = { id: '42', name: 'Lead', contact: '', email: '', phone: '', version: 456,
+    stageId: null, stage: '', ownerId: null, owner: '', source: '', tags: [] };
+  for (const hint of [true, false, undefined, 'true']) {
+    const { getCrmContext } = load('crm');
+    answer = { ok: true, result: { stages: [], leads: [{ ...lead, ...(hint === undefined ? {} : { canEditContact: hint }) }], moreLeads: false } };
+    const result = await getCrmContext();
+    if (hint === 'true') assert.equal(result.code, 'HUB_RESPONSE_UNREADABLE');
+    else {
+      assert.equal(result.outcome, 'loaded');
+      assert.equal(result.context.leads[0].canEditContact, hint);
+    }
+  }
 });
 test("real search errors never return development leads", async () => {
   const { getCrmContext } = load("crm");

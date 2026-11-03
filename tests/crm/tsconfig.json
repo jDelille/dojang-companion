@@ -9,5 +9,5 @@
     "paths": { "@/*": ["src/*"] },
     "rootDir": "../../src"
   },
-  "files": ["../../src/domain/leadOrganization.ts", "../../src/domain/memberReadPresentation.ts", "../../src/domain/doForMeActivation.ts", "../../src/integrations/crm.ts", "../../src/integrations/member.ts", "../../src/integrations/crmWrites.ts"]
+  "files": ["../../src/domain/leadOrganization.ts", "../../src/domain/memberReadPresentation.ts", "../../src/domain/doForMeActivation.ts", "../../src/integrations/crm.ts", "../../src/integrations/member.ts", "../../src/integrations/crmWrites.ts", "../../src/integrations/trial.ts", "../../src/integrations/studentIntake.ts", "../../src/integrations/postTrial.ts", "../../src/domain/memberMessages.ts", "../../src/integrations/memberActions.ts", "../../src/domain/memberToolContext.ts", "../../src/domain/memberTesting.ts"]
 }

@@ -14,6 +14,14 @@ import { tagsOf } from "./leadViews";
 import { DateLabel, TimeLabel } from "./localTime";
 import TaskCompletion from "./taskCompletion";
 import CrmWriteForm from "./crmWriteForm";
+import LeadEditForm from './leadEditForm';
+import LeadOwnerForm from './leadOwnerForm';
+import TrialReservation from './trialReservation';
+import TrialAttendance from './trialAttendance';
+import TrialSummary from './trialSummary';
+import PostTrialReview, { type PostTrialMode } from './postTrialReview';
+import type { LeadAssigneesRead } from '@/domain/lead';
+import type { UpdateLeadResult } from '@/domain/crmWrites';
 
 /*
    Lead detail (CRM screen C04). Product rules from Jodi's implementation handoff
@@ -25,7 +33,8 @@ import CrmWriteForm from "./crmWriteForm";
 
    Governed internal actions: complete_task and add_lead_note in Hub mode,
    plus the existing reviewed prepare_lead_action follow-up in Hub/fixture mode.
-   Edit, draft response and booking stay off. Do For Me focuses this lead.
+   Contact editing uses reviewed update_lead. Draft response and booking stay off.
+   Do For Me focuses this lead.
 */
 
 const NOT_CONNECTED = "Not connected yet";
@@ -98,12 +107,16 @@ export default function LeadDetail({
   details,
   showsSampleData,
   hubMode,
+  assignees,
+  initialTrialBooking = false,
 }: {
   details: LeadDetails;
   showsSampleData: boolean;
   // DOJANG_HUB_ENABLED=true: the lead is the real Odoo lead (lead_details). The
   // server forwards only the approved internal CRM actions, with Hub permissions.
   hubMode: boolean;
+  assignees: LeadAssigneesRead;
+  initialTrialBooking?: boolean;
 }) {
   const { lead, tasks, trial, notes, timeline, memberId } = details;
   const doForMe = useDoForMe();
@@ -116,6 +129,17 @@ export default function LeadDetail({
   // The last Apply's result, kept after the review closes
   const [prepared, setPrepared] = useState<PrepareLeadActionResult | null>(null);
   const [completing, setCompleting] = useState<LeadTask | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [bookingTrial, setBookingTrial] = useState(initialTrialBooking && hubMode && !showsSampleData);
+  const [recordingTrial, setRecordingTrial] = useState<string | null>(null);
+  const [trialRevision, setTrialRevision] = useState(0);
+  const [postTrial, setPostTrial] = useState<{ trialId: string; mode: PostTrialMode } | null>(null);
+  const [ownerSaved, setOwnerSaved] = useState(false);
+  const canAssign = hubMode && !showsSampleData && assignees.outcome === 'loaded' && assignees.assignees.length > 0;
+  const assignmentUnavailable = !hubMode || showsSampleData ? 'Owner assignment requires a connected Odoo record.'
+    : assignees.outcome === 'unavailable' ? assignees.text : 'Odoo returned no authorized assignees.';
+  const [savedEdit, setSavedEdit] = useState<UpdateLeadResult | null>(null);
   const [section, setSection] = useState<"all" | "tasks" | "timeline" | "notes">("all");
   const recommendation = followUpSuggestion(details);
 
@@ -139,6 +163,18 @@ export default function LeadDetail({
       )}
 
       <article data-lead-id={lead.id}>
+        {bookingTrial && <TrialReservation leadId={lead.id} onClose={() => setBookingTrial(false)} onReserved={() => { setTrialRevision(n => n + 1); router.refresh(); }} />}
+        {recordingTrial !== null && <TrialAttendance key={recordingTrial} leadId={lead.id} initialTrialId={recordingTrial} onClose={() => setRecordingTrial(null)} onRecorded={() => { setTrialRevision(n => n + 1); router.refresh(); }} />}
+        {postTrial && <PostTrialReview key={`${postTrial.mode}:${postTrial.trialId}`} leadId={lead.id} initialTrialId={postTrial.trialId} mode={postTrial.mode} onClose={() => setPostTrial(null)} onSaved={() => { setTrialRevision(n => n + 1); router.refresh(); }} />}
+        {assigning && assignees.outcome === 'loaded' && <LeadOwnerForm lead={lead} assignees={assignees.assignees}
+          onClose={() => setAssigning(false)} onReload={() => router.refresh()}
+          onSaved={() => { setOwnerSaved(true); setAssigning(false); router.refresh(); }} />}
+        {ownerSaved && <p role="status" className="mb-4 text-sm text-(--crm-text-secondary)">Lead owner assigned in Odoo.
+          <button type="button" className="ml-3 underline" onClick={() => setOwnerSaved(false)}>Dismiss</button></p>}
+        {editing && <LeadEditForm lead={lead} onClose={() => setEditing(false)} onReload={() => router.refresh()}
+          onSaved={result => { setSavedEdit(result); setEditing(false); router.refresh(); }} />}
+        {savedEdit && <p role="status" className="mb-4 text-sm text-(--crm-text-secondary)">Lead changes saved in Odoo{savedEdit.replayed ? ' (confirmed from the original request)' : ''}.
+          <button type="button" className="ml-3 underline" onClick={() => setSavedEdit(null)}>Dismiss</button></p>}
         <Link
           href="/crm"
           className="mb-4 inline-flex items-center gap-1.5 text-[12px] text-(--crm-muted) hover:text-(--crm-text)"
@@ -147,7 +183,7 @@ export default function LeadDetail({
           Sales
         </Link>
 
-        {/* Header: identity, stage, the actions C04 names (none connected yet) */}
+        {/* Header: identity, stage and the supported C04 actions. */}
         <header className="mb-6 flex flex-wrap items-start gap-4">
           <div
             aria-hidden="true"
@@ -166,18 +202,20 @@ export default function LeadDetail({
             {lead.phone && <a href={`tel:${lead.phone.replace(/[^+\d]/g, "")}`} className={actionButton}>Call contact</a>}
             {lead.email && <a href={`mailto:${encodeURIComponent(lead.email)}`} className={actionButton}>Email contact</a>}
             <button type="button" onClick={() => router.refresh()} className={actionButton}>Refresh record</button>
-            <button type="button" disabled title={NOT_CONNECTED} className={actionButton}>
+            <button type="button" disabled={!hubMode || showsSampleData} title={!hubMode || showsSampleData ? 'Editing requires a connected Odoo record' : undefined} onClick={() => setEditing(true)} className={actionButton}>
               Edit
             </button>
+            <button type="button" disabled={!canAssign} title={canAssign ? undefined : assignmentUnavailable}
+              onClick={() => setAssigning(true)} className={actionButton}>Assign owner</button>
             <button type="button" disabled title={NOT_CONNECTED} className={actionButton}>
               Draft response
             </button>
             {!lead.lostReason && (
               <>
-                <button type="button" disabled title={NOT_CONNECTED} className={actionButton}>
+                <button type="button" disabled={!hubMode || showsSampleData} title={!hubMode || showsSampleData ? 'Trial booking requires a connected Odoo record' : undefined} onClick={() => setBookingTrial(true)} className={actionButton}>
                   Book trial
                 </button>
-                <button type="button" disabled title={NOT_CONNECTED} className={actionButton}>
+                <button type="button" disabled={!hubMode || showsSampleData} title="Create an internal stage-review task using recorded trial attendance" onClick={() => setPostTrial({ trialId: '', mode: 'stage' })} className={actionButton}>
                   Propose stage
                 </button>
               </>
@@ -310,7 +348,7 @@ export default function LeadDetail({
               <Facts
                 facts={[
                   { label: "Stage", value: lead.stage },
-                  { label: "Owner", value: lead.owner },
+                  { label: "Owner", value: <span>{lead.owner}{!canAssign && <span className="mt-1 block text-[11px] font-normal text-(--crm-muted)">{assignmentUnavailable}</span>}</span> },
                   { label: "Tags", value: tagsOf(lead) },
                   { label: "Source", value: lead.source },
                   { label: "Phone", value: lead.phone || NOT_RECORDED },
@@ -322,7 +360,7 @@ export default function LeadDetail({
 
             <section className={card} aria-label="Trial session">
               <span className={cardLabel}>Trial session</span>
-              {trial ? (
+              {hubMode && !showsSampleData ? <TrialSummary leadId={lead.id} revision={trialRevision} onRecord={setRecordingTrial} onPostTrial={(trialId, mode) => setPostTrial({ trialId, mode })} /> : trial ? (
                 <>
                   <p className="text-[13px] font-bold text-(--crm-text)">{trial.title}</p>
                   <p className="mt-1 text-[12px] text-(--crm-text-secondary)">

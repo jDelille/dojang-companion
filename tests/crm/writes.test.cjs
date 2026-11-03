@@ -7,10 +7,13 @@ Module._resolveFilename = function (request, ...rest) {
   if (request.startsWith("@/")) request = path.join(process.env.DOJANG_CRM_BUILD, request.slice(2));
   return resolve.call(this, request, ...rest);
 };
-const { completeTask, addLeadNote, createLead } = require(path.join(process.env.DOJANG_CRM_BUILD, "integrations/crmWrites.js"));
+const { completeTask, addLeadNote, createLead, updateLead, assignLead } = require(path.join(process.env.DOJANG_CRM_BUILD, "integrations/crmWrites.js"));
+const { changedLeadFields } = require(path.join(process.env.DOJANG_CRM_BUILD, 'domain/crmWrites.js'));
 const key = "crm-0123456789-0123456789";
 const task = { taskId: "501", expectedVersion: 123, feedback: "Outcome recorded." };
 const note = { leadId: "42", expectedVersion: 456, note: "Internal context." };
+const edit = { leadId: '42', expectedVersion: 456, changes: { name: 'Updated lead' } };
+const assignment = { leadId: '42', expectedVersion: 456, ownerId: '7' };
 let requests;
 let reply;
 test.beforeEach(() => {
@@ -18,6 +21,85 @@ test.beforeEach(() => {
   global.fetch = async (url, init) => { requests.push({ url, ...JSON.parse(init.body) }); return reply(); };
 });
 const json = (body, status = 200) => () => new Response(JSON.stringify(body), { status });
+
+test('assignment requires matching lead and owner receipts and sends the exact versioned request', async () => {
+  reply = json({ leadId: '42', ownerId: '7', state: 'assigned', replayed: false });
+  assert.equal((await assignLead(assignment, key)).outcome, 'done');
+  assert.deepEqual(requests[0], { url: '/api/hub', operation: 'assign_lead', payload: assignment, requestKey: key });
+  for (const result of [{ leadId: '43', ownerId: '7', state: 'assigned', replayed: false },
+    { leadId: '42', ownerId: '8', state: 'assigned', replayed: false },
+    { leadId: '42', ownerId: '7', state: 'pending', replayed: false }, { leadId: '42', ownerId: '7', state: 'assigned' }]) {
+    reply = json(result);
+    assert.equal((await assignLead(assignment, key)).outcome, 'notConfirmed');
+  }
+});
+
+test('assignment diagnostics distinguish local origin rejection from Odoo denial without assuming a cause', async () => {
+  for (const [stage, code] of [['origin', 'REQUEST_ORIGIN_REJECTED'], ['backend', 'ODOO_ASSIGNMENT_FORBIDDEN']]) {
+    reply = () => new Response(JSON.stringify({ error: { code: 'FORBIDDEN' } }), { status: 403, headers: { 'x-dojang-hub-error-stage': stage } });
+    assert.deepEqual(await assignLead(assignment, key), { outcome: 'failed', code });
+  }
+});
+
+test('assignment forbids clearing the owner, extra authority fields and invalid versions before fetch', async () => {
+  for (const payload of [{ ...assignment, ownerId: null }, { ...assignment, ownerId: '' }, { ...assignment, ownerId: '0' },
+    { ...assignment, ownerId: 7 }, { ...assignment, siteId: '99' }, { ...assignment, expectedVersion: -1 }]) {
+    assert.equal((await assignLead(payload, key)).code, 'INVALID_COMMAND');
+  }
+  assert.equal(requests.length, 0);
+});
+
+test('uncertain assignment can replay the exact request; permission and version failures stay explicit', async () => {
+  reply = json({ error: { code: 'BACKEND_UNAVAILABLE' } }, 503);
+  assert.equal((await assignLead(assignment, key)).outcome, 'notConfirmed');
+  reply = json({ leadId: '42', ownerId: '7', state: 'assigned', replayed: true });
+  assert.equal((await assignLead(assignment, key)).result.replayed, true);
+  assert.deepEqual(requests[0], requests[1]);
+  for (const code of ['FORBIDDEN', 'VERSION_CONFLICT', 'SIGN_IN_REQUIRED']) {
+    reply = json({ error: { code } }, 409);
+    assert.deepEqual(await assignLead(assignment, key), { outcome: 'failed', code });
+  }
+});
+
+test('lead edits send only changed trimmed fields, leaving untouched shared contact fields out', () => {
+  const original = { name: 'Lead', contact: '  Original contact  ', email: '', phone: '' };
+  assert.deepEqual(changedLeadFields(original, { ...original, name: ' Updated lead ' }), { name: 'Updated lead' });
+  assert.deepEqual(changedLeadFields(original, { ...original, name: 'Lead ' }), {});
+  assert.deepEqual(changedLeadFields({ ...original, email: 'old@example.com' }, original), { email: '' });
+});
+
+test('lead updates validate identity/version receipts and preserve exact requests on uncertain retry', async () => {
+  reply = json({ leadId: '42', version: 457, replayed: false });
+  assert.equal((await updateLead(edit, key)).outcome, 'done');
+  assert.deepEqual(requests[0], { url: '/api/hub', operation: 'update_lead', payload: edit, requestKey: key });
+  for (const result of [{ leadId: '43', version: 457, replayed: false }, { leadId: '42', version: 455, replayed: false },
+    { leadId: '42', version: 457 }, { leadId: '42', version: '457', replayed: false }]) {
+    reply = json(result);
+    assert.equal((await updateLead(edit, key)).outcome, 'notConfirmed');
+  }
+  global.fetch = async (url, init) => { requests.push(JSON.parse(init.body)); throw new Error('network'); };
+  assert.equal((await updateLead(edit, key)).outcome, 'notConfirmed');
+  reply = json({ leadId: '42', version: 457, replayed: true });
+  global.fetch = async (url, init) => { requests.push(JSON.parse(init.body)); return reply(); };
+  assert.equal((await updateLead(edit, key)).result.replayed, true);
+  assert.deepEqual(requests.at(-1), requests.at(-2));
+});
+
+test('lead edits reject extra authority/stage fields, empty changes, invalid email and versions before fetch', async () => {
+  for (const payload of [{ ...edit, changes: {} }, { ...edit, changes: { stageId: '7' } }, { ...edit, role: 'owner' },
+    { ...edit, changes: { name: ' ' } }, { ...edit, changes: { email: 'bad' } },
+    { ...edit, changes: { phone: 'x'.repeat(201) } }, { ...edit, expectedVersion: -1 }]) {
+    assert.equal((await updateLead(payload, key)).code, 'INVALID_COMMAND');
+  }
+  assert.equal(requests.length, 0);
+});
+
+test('lead edit permission, shared-contact and version errors retain their authoritative state', async () => {
+  for (const code of ['SHARED_CONTACT_REVIEW_REQUIRED', 'VERSION_CONFLICT', 'FORBIDDEN', 'SIGN_IN_REQUIRED']) {
+    reply = json({ error: { code } }, code === 'SIGN_IN_REQUIRED' ? 401 : code === 'FORBIDDEN' ? 403 : 409);
+    assert.deepEqual(await updateLead(edit, key), { outcome: 'failed', code });
+  }
+});
 
 test("task completion requires confirmed task and linked-record identity, including member tasks", async () => {
   for (const kind of ["lead", "member"]) {

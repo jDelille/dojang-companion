@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { memberRecordsFrom } from '@/domain/memberRecords';
 import { explainHubError } from "@/domain/hubAction";
 import type {
   CheckIn,
@@ -86,6 +87,8 @@ function memberFromDetails(details: Record<string, unknown>): Member | null {
     ...(typeof member.phone === "string" ? { phone: member.phone } : {}),
     membershipState: member.state,
     rank: { name: member.rank, stripes },
+    records: memberRecordsFrom(details),
+    ...(typeof member.photo === 'string' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/.test(member.photo) ? { photo: member.photo } : {}),
     bookings,
     // No known limit: assume the list may be cut off
     bookingsCapped: bookings ? bookingsLimit === null || bookings.length >= bookingsLimit : undefined,

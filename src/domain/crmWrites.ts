@@ -38,3 +38,38 @@ export function isCreateLeadPayload(value: unknown): value is CreateLeadPayload 
 export function isCreatedLeadResult(value: unknown): value is CreateLeadResult {
   return object(value) && id(value.leadId) && version(value.version) && typeof value.replayed === "boolean";
 }
+
+// Hub crm.py _update_lead: partial contact fields, optimistic version and receipt.
+export type LeadContactFields = CreateLeadPayload;
+export type UpdateLeadPayload = { leadId: string; expectedVersion: number; changes: Partial<LeadContactFields> };
+export type UpdateLeadResult = CreateLeadResult;
+export type AssignLeadPayload = { leadId: string; expectedVersion: number; ownerId: string };
+export type AssignLeadResult = { leadId: string; ownerId: string; state: 'assigned'; replayed: boolean };
+export function isAssignLeadPayload(value: unknown): value is AssignLeadPayload {
+  return object(value) && Object.keys(value).sort().join() === 'expectedVersion,leadId,ownerId'
+    && id(value.leadId) && version(value.expectedVersion) && id(value.ownerId);
+}
+export function isAssignedLeadResult(value: unknown, payload: AssignLeadPayload): value is AssignLeadResult {
+  return object(value) && value.leadId === payload.leadId && value.ownerId === payload.ownerId
+    && value.state === 'assigned' && typeof value.replayed === 'boolean';
+}
+export function isUpdateLeadPayload(value: unknown): value is UpdateLeadPayload {
+  if (!object(value) || Object.keys(value).sort().join() !== 'changes,expectedVersion,leadId'
+    || !id(value.leadId) || !version(value.expectedVersion) || !object(value.changes)) return false;
+  const entries = Object.entries(value.changes);
+  return entries.length > 0 && entries.every(([key, v]) => ['name', 'contact', 'email', 'phone'].includes(key)
+    && field(v) && (key !== 'name' || text(v, 200))
+    && (key !== 'email' || v === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v).trim())));
+}
+export function isUpdatedLeadResult(value: unknown, payload: UpdateLeadPayload): value is UpdateLeadResult {
+  return isCreatedLeadResult(value) && value.leadId === payload.leadId && value.version >= payload.expectedVersion;
+}
+export function changedLeadFields(original: LeadContactFields, draft: LeadContactFields): Partial<LeadContactFields> {
+  const changes: Partial<LeadContactFields> = {};
+  for (const key of ['name', 'contact', 'email', 'phone'] as const) {
+    if (draft[key] === original[key]) continue;
+    const value = draft[key].trim();
+    if (value !== original[key]) changes[key] = value;
+  }
+  return changes;
+}

@@ -15,6 +15,8 @@ export type Rank = {
 };
 
 export type Member = {
+  records?: import('./memberRecords').MemberRecords;
+  photo?: string;
   tenantId?: string; // which school (fixture only; the Hub scopes by site instead)
   id: string; // in Hub mode, the Odoo dojo.member id (the same id the Inbox links to)
   memberNumber?: string; // not in the Hub's member reads

@@ -3,6 +3,7 @@ import { getPageMetadata } from "@/config/metadata";
 import { focusKey, type CompanionFocus } from "@/domain/companion";
 import { getCompanionContext } from "@/integrations/companion";
 import { getMemberRecord } from "@/integrations/member";
+import { hubEnabled } from '@/server/hub-gateway';
 import { DoForMeFocus } from "@/views/doForMe/doForMeProvider";
 import Member360 from "@/views/people/member360";
 import HubUnavailable from "@/views/shell/hubUnavailable";
@@ -55,7 +56,7 @@ export default async function MemberPage({
     <>
       {companion && <DoForMeFocus focusKey={focusKey(focus)} context={companion} />}
       <WorkspaceTabName label={member.name} />
-      <Member360 key={member.id} member={member} attendance={attendance} />
+      <Member360 key={member.id} member={member} attendance={attendance} hubMode={hubEnabled()} />
     </>
   );
 }

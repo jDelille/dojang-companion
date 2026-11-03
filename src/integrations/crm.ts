@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { explainHubError } from "@/domain/hubAction";
 import type { FollowUp, FollowUpsRead } from "@/domain/followUp";
-import type { CrmAssignee, CrmContext, CrmStage, Lead, LeadEvidence, LeadTag } from "@/domain/lead";
+import type { CrmAssignee, CrmContext, CrmStage, Lead, LeadAssigneesRead, LeadEvidence, LeadTag } from "@/domain/lead";
 import type { LeadDetails, LeadNote, LeadTask, LeadTimelineEntry } from "@/domain/leadDetails";
 import { hubEnabled, readHubAsStaff } from "@/server/hub-gateway";
 import { devCrmContext, devLeadDetails } from "@/server/crm-fixture";
@@ -113,7 +113,8 @@ function leadFromContext(entry: unknown): Lead | null {
     !isTextOrNull(entry.ownerId) ||
     !isText(entry.owner) ||
     !isText(entry.source) ||
-    !Array.isArray(entry.tags)
+    !Array.isArray(entry.tags) ||
+    (entry.canEditContact !== undefined && typeof entry.canEditContact !== 'boolean')
   ) {
     return null;
   }
@@ -138,6 +139,7 @@ function leadFromContext(entry: unknown): Lead | null {
     owner: entry.owner,
     source: entry.source,
     tags,
+    ...(typeof entry.canEditContact === 'boolean' ? { canEditContact: entry.canEditContact } : {}),
     evidence,
   };
 }
@@ -205,6 +207,21 @@ function assigneesFrom(value: unknown): CrmAssignee[] | null {
     assignees.push({ id: entry.id, name: entry.name });
   }
   return assignees;
+}
+
+// The established crm_context read supplies site-authorized assignees. Keep
+// missing, malformed and confirmed-empty choices distinct; never use lead owners.
+export async function getLeadAssignees(): Promise<LeadAssigneesRead> {
+  if (!hubEnabled()) return { outcome: 'unavailable', code: 'HUB_NOT_CONFIGURED', text: 'Owner assignment requires a connected Odoo site.' };
+  const answer = await readHubAsStaff('crm_context', { query: '' });
+  if (!answer.ok) return unavailable(answer.code);
+  if (answer.result.assignees === undefined) return { outcome: 'unavailable', code: 'ASSIGNEES_NOT_PROVIDED', text: 'This Hub read does not provide authorized assignees.' };
+  const assignees = assigneesFrom(answer.result.assignees);
+  if (!assignees || assignees.some(a => !/^[1-9][0-9]{0,9}$/.test(a.id) || !a.name.trim())
+    || new Set(assignees.map(a => a.id)).size !== assignees.length) {
+    return { outcome: 'unavailable', code: 'HUB_RESPONSE_UNREADABLE', text: 'Odoo returned assignee data this app cannot read.' };
+  }
+  return { outcome: 'loaded', assignees };
 }
 
 // cache(): the Sales page and Do For Me share one read per request. query ""

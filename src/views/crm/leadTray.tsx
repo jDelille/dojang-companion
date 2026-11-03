@@ -9,7 +9,7 @@ import { NEXT_ACTION_LABELS } from "@/domain/followUp";
    The contextual tray beside the pipeline (Jodi's C03: "Lead inbox + pipeline +
    contextual companion tray"). For now it shows the selected lead from the list
    data only; "Open lead" goes to the full record (C04). The actions below
-   (book a trial, next action, stage proposal) stay off until writes exist.
+   use the full record for governed actions and trial reservation.
 */
 
 const NOT_CONNECTED = "Not connected yet";
@@ -21,9 +21,11 @@ const actionButton =
 export default function LeadTray({
   lead,
   onClose,
+  allowTrialBooking = false,
 }: {
   lead: Lead | null;
   onClose: () => void;
+  allowTrialBooking?: boolean;
 }) {
   return (
     <aside
@@ -81,9 +83,9 @@ export default function LeadTray({
 
           {!lead.lostReason && (
             <div className="flex flex-wrap gap-2">
-              <button type="button" disabled title={NOT_CONNECTED} className={actionButton}>
+              {allowTrialBooking ? <Link href={`/crm/leads/${lead.id}?action=book-trial`} className={actionButton}>Book trial</Link> : <button type="button" disabled title={NOT_CONNECTED} className={actionButton}>
                 Book trial
-              </button>
+              </button>}
               <Link href={`/crm/leads/${lead.id}`} className={actionButton}>Review next action</Link>
               <button type="button" disabled title={NOT_CONNECTED} className={actionButton}>
                 Propose stage
