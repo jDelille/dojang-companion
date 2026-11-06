@@ -9,6 +9,7 @@ import {
 import { initials } from "../../../utils/formatUtils";
 import leadAvatar from "../leadAvatar";
 import DaysPill from "../daysPill";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Send Reminder — ported from #modal-reminder in tailwind/src/renewals.html
@@ -62,6 +63,7 @@ const RenewalReminderModal = ({ member, onClose, onSend }: RenewalReminderModalP
             <div className="icon-box ic-orange ic-38">
               <BellRing className="w-[17px] h-[17px] c-orange shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Send Reminder</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

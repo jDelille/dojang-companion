@@ -56,3 +56,162 @@
 
   color-scheme: dark;
 }
+
+/* ==========================================================================
+   Dojang shell layout (views/shell/dojangShell.tsx), responsive like
+   Companion's AdaptiveShell (dojang/companion src/components/shell/Shell.module.scss,
+   breakpoints from styles/_breakpoints.scss):
+
+     wide      >= 1440px  nav rail | context | page | Do For Me (all columns)
+     expanded  1024-1439  Do For Me slides in from the right, page makes room
+     standard  600-1023   context becomes a left drawer; Do For Me covers the page
+     compact   <= 599px   bottom nav instead of the rail; Do For Me is a bottom tray
+   ========================================================================== */
+
+.ds-shell {
+  --ds-rail-width: 4.5rem;
+  --ds-context-width: 15rem;
+  --ds-companion-width: 19.5rem;
+  display: flex;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* ---------- Nav rail / bottom nav ---------- */
+.ds-rail-slot { flex: 0 0 var(--ds-rail-width); min-height: 0; }
+.ds-bottom-nav { display: none; }
+
+/* ---------- Context column ---------- */
+.ds-context {
+  position: relative;
+  flex: 0 0 var(--ds-context-width);
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--crm-line);
+  background: var(--crm-canvas);
+}
+/* Nothing in it: no column, no drawer, no button to open it */
+.ds-context:has(> .ds-context-slot:empty) { display: none; }
+.ds-shell:has(.ds-context-slot:empty) .ds-context-toggle { display: none; }
+.ds-context-close { display: none; }
+
+/* ---------- Page ---------- */
+.ds-workspace { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; transition: margin-right 200ms ease; }
+.ds-main { flex: 1; min-height: 0; overflow-y: auto; padding: 1rem; }
+@media (min-width: 640px) { .ds-main { padding: 1.5rem; } }
+
+/* ---------- Do For Me ---------- */
+.ds-companion { flex: 0 0 var(--ds-companion-width); width: var(--ds-companion-width); min-width: 0; min-height: 0; }
+.ds-companion:empty { display: none; }
+.ds-backdrop { display: none; }
+.ds-companion-trigger { display: none; }
+
+/* The context toggle in the top bar shows only when the context is a drawer */
+.ds-context-toggle { display: none; }
+
+@keyframes ds-slide-from-right { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes ds-slide-from-bottom { from { transform: translateY(calc(100% + 2rem)); } to { transform: none; } }
+
+/* ----- Below wide (< 1440): Do For Me slides in over the right edge ----- */
+@media (max-width: 1439px) {
+  .ds-companion {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    width: min(var(--ds-companion-width), 90vw);
+    box-shadow: -24px 0 48px -24px rgb(0 0 0 / .6);
+    animation: ds-slide-from-right 200ms ease;
+  }
+  /* Hidden until the shell has checked the window width (no flash on load) */
+  .ds-shell:not([data-ready]) :is(.ds-companion, .ds-companion-trigger) { display: none; }
+  .ds-companion-trigger {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 999px;
+    background: var(--crm-agent);
+    color: #fff;
+    box-shadow: 0 8px 24px rgb(0 0 0 / .45);
+  }
+}
+
+/* ----- Expanded (1024-1439): the page makes room instead of being covered ----- */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .ds-shell[data-companion-open="true"] .ds-workspace { margin-right: min(var(--ds-companion-width), 90vw); }
+}
+
+/* ----- Below expanded (< 1024): context drawer; Do For Me covers the page ----- */
+@media (max-width: 1023px) {
+  .ds-context {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    width: min(300px, 85vw);
+    border-right: 1px solid var(--crm-line);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 200ms ease, visibility 0s linear 200ms;
+  }
+  .ds-shell[data-context-open="true"] .ds-context {
+    transform: none;
+    visibility: visible;
+    transition: transform 200ms ease, visibility 0s;
+  }
+  .ds-context-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--crm-interactive);
+    color: var(--crm-text);
+  }
+  .ds-context-toggle { display: grid; }
+  .ds-shell[data-context-open="true"] .ds-backdrop,
+  .ds-shell[data-companion-open="true"] .ds-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    display: block;
+    background: rgb(0 0 0 / .5);
+  }
+}
+
+/* ----- Compact (< 600): bottom nav; Do For Me is a bottom tray ----- */
+@media (max-width: 599px) {
+  .ds-shell { flex-direction: column; }
+  .ds-rail-slot { display: none; }
+  .ds-bottom-nav { display: block; flex: 0 0 auto; }
+  .ds-companion {
+    top: auto;
+    left: 1rem;
+    right: 1rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom));
+    width: auto;
+    height: 60dvh;
+    max-height: 75dvh;
+    overflow: hidden;
+    border: 1px solid var(--crm-line);
+    border-radius: 20px;
+    animation: ds-slide-from-bottom 220ms ease;
+  }
+  .ds-companion-trigger { bottom: 88px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-companion, .ds-context, .ds-workspace { animation: none; transition: none; }
+}

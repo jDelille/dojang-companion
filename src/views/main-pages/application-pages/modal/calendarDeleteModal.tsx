@@ -3,6 +3,7 @@ import { Check, Trash2 } from "lucide-react";
 import type { CalendarEvent, DeleteScope } from "../../../../types/calendarApp";
 import { fmtDateShort } from "../../../../utils/json/calendarAppData";
 import { DEL_SCOPE_ICON } from "../calendarAppIcons";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete Event — ported from #modal-delete in tailwind/src/calendar-app.html
@@ -53,6 +54,7 @@ const CalendarDeleteModal = ({ event, series, onClose, onConfirm }: CalendarDele
         <div className="confirm-ic danger">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Delete Event?</h3>
         <p className="text-sm text-center mb-4 c-dim">
           Remove <span className="font-semibold c-text">{event ? `"${event.title}" on ${fmtDateShort(event.date)}` : "this event"}</span>{" "}

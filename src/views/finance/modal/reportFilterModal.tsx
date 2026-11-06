@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import type { ReportSort } from "../../../types/reports";
 import { REPORT_CATS, REPORT_FORMATS } from "../../../utils/json/reportsData";
 import CommonSelect from "../../../components/common-select/commonSelect";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Filter Reports — ported from #modal-filter in tailwind/src/reports.html and
@@ -54,7 +55,10 @@ const ReportFilterModal = ({
     >
       <div className="modal-box glass modal-w-460">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">Filter Reports</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Filter Reports</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Shared confirm dialog for the Referrals page — covers #modal-approve,
@@ -57,6 +58,7 @@ const ReferralConfirmModal = ({
     >
       <div className="modal-box glass modal-w-380">
         <div className={iconClassName}>{icon}</div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">{title}</h3>
         <p className="text-sm text-center mb-5 c-dim">{body}</p>
         <div className="flex gap-3">

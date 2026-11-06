@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import type { Announcement } from "../../../types/announcements";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete — ported from #modal-delete in tailwind/src/announcements.html and
@@ -35,6 +36,7 @@ const AnnouncementDeleteModal = ({
         <div className="confirm-ic danger">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Delete Announcement?</h3>
         <p className="text-sm text-center mb-4 c-dim">
           Permanently remove{" "}

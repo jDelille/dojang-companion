@@ -14,10 +14,10 @@ const button = "rounded-lg border border-(--crm-line) px-3 py-2 text-[12px] font
 
 // Only these two approved internal operations. An uncertain attempt retains
 // its exact payload and request key; editing cannot turn a retry into a new write.
-export default function CrmWriteForm({ kind, title, description, unavailable, build, onDone, onReload, onClose }: {
+export default function CrmWriteForm({ kind, title, description, unavailable, build, onDone, onReload, onClose, onAuthenticationLost }: {
   kind: "task" | "note"; title: string; description: string; unavailable?: string;
   build: (text: string) => Command; onDone: (result: Result) => void;
-  onReload: () => void; onClose?: () => void;
+  onReload: () => void; onClose?: () => void; onAuthenticationLost?: () => void;
 }) {
   const id = useId();
   const [text, setText] = useState("");
@@ -50,7 +50,7 @@ export default function CrmWriteForm({ kind, title, description, unavailable, bu
     frozen.current = null;
     if (answer.outcome === "failed") {
       if (answer.code === "SIGN_IN_REQUIRED" || answer.code === "UNAUTHENTICATED") {
-        resetSession(); markSignedOut(); onReload();
+        resetSession(); markSignedOut(); if (onAuthenticationLost) onAuthenticationLost(); else onReload(); return;
       }
       setError(answer.code);
       setStatus(answer.code === "VERSION_CONFLICT" ? "conflict" : "failed");
@@ -79,7 +79,7 @@ export default function CrmWriteForm({ kind, title, description, unavailable, bu
       {status === "failed" && <p role="alert" className="mb-3 text-[12px]">{explainHubError(error)}</p>}
       <div className="flex flex-wrap gap-2">
         <button type="submit" disabled={status === "pending" || (!locked && !text.trim())} className={`${button} bg-(--crm-brand) text-white`}>{status === "pending" ? "Waiting for Hub confirmation…" : status === "uncertain" ? "Retry original request" : kind === "task" ? "Confirm task completion" : "Save internal note"}</button>
-        {(status === "conflict" || status === "failed" || status === "uncertain") && <button type="button" onClick={onReload} className={button}>Refresh records</button>}
+        {(status === "conflict" || status === "failed" || status === "uncertain") && <button type="button" disabled={locked} onClick={onReload} className={button}>Refresh records</button>}
         {onClose && <button type="button" disabled={locked} onClick={onClose} className={button}>Cancel</button>}
       </div>
     </form>}

@@ -5,6 +5,7 @@ import type { DayPass } from "../../../types/dayPasses";
 import { PAYMENT_OPTIONS, RENEW_DURATIONS } from "../../../utils/json/dayPassesData";
 import { initials, moneyWhole } from "../../../utils/formatUtils";
 import leadAvatar from "../leadAvatar";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Renew / Extend Pass — ported from #modal-renew in
@@ -64,6 +65,7 @@ const RenewPassModal = ({ pass, onClose, onRenew }: RenewPassModalProps) => {
             <div className="icon-box ic-gold ic-38">
               <RefreshCw className="w-[17px] h-[17px] c-gold shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Renew / Extend Pass</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

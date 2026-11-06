@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import type { SessionRoster } from "@/domain/arrivals";
 import { roleLabel } from "@/domain/staff";
@@ -28,6 +28,11 @@ import { DoForMeFocus } from "@/views/doForMe/doForMeProvider";
 import { ErrorBlock, LoadingBlock } from "@/views/inbox/inboxStates";
 import { HubSignOutButton } from "@/views/shell/hubUnavailable";
 import StaffSignIn from "@/views/shell/staffSignIn";
+import Link from 'next/link';
+import OperationsPanel from './operationsPanel';
+import TaskCompletion from '@/views/crm/taskCompletion';
+import type { FollowUp } from '@/domain/followUp';
+import { Modal } from '@/templates/roster/components/ui/overlay';
 import NeedsDecision from "./needsDecision";
 import TodayClasses from "./todayClasses";
 import { todayRailContext } from "./todayRail";
@@ -72,6 +77,11 @@ export default function Today({ crm, source }: { crm: TodayCrmRead; source: "hub
   const router = useRouter();
   const [answer, setAnswer] = useState<InboxContextAnswer | null>(null); // null while loading
   const [rosters, setRosters] = useState<Record<string, SessionRosterAnswer | undefined>>({});
+  const request = useRef(0);
+  const [selection, setSelection] = useState({ id: '', attempt: 0 });
+  const [task, setTask] = useState<FollowUp | null>(null), [operationsLocked, setOperationsLocked] = useState(false);
+  const [taskReceipt, setTaskReceipt] = useState('');
+  const [suppressedCrm, setSuppressedCrm] = useState<TodayCrmRead | null>(null);
   const [reads, setReads] = useState(0); // counts reloads, so rosters are read again
   const date = useBrowserText(() =>
     new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" }),
@@ -81,8 +91,9 @@ export default function Today({ crm, source }: { crm: TodayCrmRead; source: "hub
   // The first read, when the page opens
   useEffect(() => {
     let cancelled = false;
+    const sequence = ++request.current;
     getInboxContext().then((next) => {
-      if (!cancelled) setAnswer(next);
+      if (!cancelled && sequence === request.current) setAnswer(next);
     });
     return () => {
       cancelled = true;
@@ -91,12 +102,21 @@ export default function Today({ crm, source }: { crm: TodayCrmRead; source: "hub
 
   // Read everything again (Refresh, after sign-in or sign-out)
   const reload = useCallback(async () => {
+    const sequence = ++request.current;
     setAnswer(null);
+    setSuppressedCrm(crm);
+    setSelection({ id: '', attempt: 0 });
     setRosters({});
     setReads((count) => count + 1);
-    setAnswer(await getInboxContext());
-  }, []);
+    const next = await getInboxContext();
+    if (sequence === request.current) setAnswer(next);
+  }, [crm]);
 
+  const authenticationLost = useCallback(() => {
+    request.current += 1; setTaskReceipt(''); setSuppressedCrm(crm); setRosters({}); setTask(null); setOperationsLocked(false);
+    setAnswer({ outcome: 'unavailable', code: 'SIGN_IN_REQUIRED', text: 'Sign in again to continue.' });
+  }, [crm]);
+  const visibleCrm: TodayCrmRead = crm === suppressedCrm ? { outcome: 'unavailable', code: null, text: 'Refreshing staff-scoped CRM context.' } : crm;
   const context = answer?.outcome === "loaded" ? answer.context : null;
   const needsSignIn = answer?.outcome === "unavailable" && SIGN_IN_CODES.includes(answer.code ?? "");
   const sessions = context ? remainingToday(context) : [];
@@ -111,14 +131,22 @@ export default function Today({ crm, source }: { crm: TodayCrmRead; source: "hub
     let cancelled = false;
     for (const id of rosterIds.split(",")) {
       getSessionRoster(id).then((next) => {
+        if (!cancelled && next.outcome === 'unavailable' && SIGN_IN_CODES.includes(next.code ?? '')) { authenticationLost(); return; }
         if (!cancelled) setRosters((current) => ({ ...current, [id]: next }));
       });
     }
     return () => {
       cancelled = true;
     };
-  }, [rosterIds, reads]);
+  }, [rosterIds, reads, authenticationLost]);
 
+  useEffect(() => {
+    if (!task && !operationsLocked) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    const guard = (event: MouseEvent) => { if (event.target instanceof Element && event.target.closest('a[href]') && !event.ctrlKey && !event.metaKey) { event.preventDefault(); event.stopPropagation(); } };
+    window.addEventListener('beforeunload', warn); document.addEventListener('click', guard, true);
+    return () => { window.removeEventListener('beforeunload', warn); document.removeEventListener('click', guard, true); };
+  }, [task, operationsLocked]);
   function refresh() {
     void reload();
     router.refresh(); // the server's CRM read too
@@ -130,10 +158,11 @@ export default function Today({ crm, source }: { crm: TodayCrmRead; source: "hub
     readRosters[id] = roster?.outcome === "loaded" ? roster.roster : roster ? null : undefined;
   }
   const rostersPending = sessions.slice(0, ROSTER_LIMIT).some((session) => rosters[session.id] === undefined);
-  const crmContext = crm.outcome === "loaded" ? crm.context : null;
+  const crmContext = context && visibleCrm.outcome === "loaded" ? visibleCrm.context : null;
   const work: TodayWork = {
     coverage: context ? coverageOf(sessions, readRosters) : null,
     rostersPending,
+    crmExpected: context ? ['owner', 'manager'].includes(context.principal.role) : false,
     messages: context ? messageWork(context) : null,
     deliveries: context ? deliveryProblems(context) : null,
     due: crmContext ? dueFollowUps(crmContext) : null,
@@ -168,7 +197,7 @@ export default function Today({ crm, source }: { crm: TodayCrmRead; source: "hub
           <button
             type="button"
             onClick={refresh}
-            disabled={!answer}
+            disabled={!answer || task !== null || operationsLocked}
             className="font-bold text-(--crm-text) hover:underline disabled:opacity-50"
           >
             Refresh
@@ -193,21 +222,27 @@ export default function Today({ crm, source }: { crm: TodayCrmRead; source: "hub
         </div>
       ) : (
         <div className="grid gap-4">
+          {context && <nav aria-label="Operational workspaces" className="flex flex-wrap gap-4 text-sm"><Link href="/operations" className="underline">Staff Operations</Link><Link href="/front-desk" className="underline">Front Desk</Link><Link href="/instructor" className="underline">Instructor workspace</Link><Link href="/crm/follow-ups" className="underline">Follow-ups</Link><Link href="/inbox" className="underline">Inbox</Link><p className="text-xs muted">Site #{context.principal.siteId} / access follows your Odoo account.</p></nav>}
+          {context && taskReceipt && <p role="status" className="rounded-xl border border-(--crm-line) p-3 text-xs">{taskReceipt}</p>}
           <NeedsDecision
             work={work}
-            crm={crm}
+            crm={visibleCrm}
+            onCompleteTask={source === 'hub' ? next => { setTaskReceipt(''); setTask(next); } : undefined}
+            onOpenClass={source === 'hub' ? id => setSelection(current => ({ id, attempt: current.attempt + 1 })) : undefined}
             contextFailure={answer.outcome === "unavailable" ? answer.text : null}
             onRetry={refresh}
           />
           {answer.outcome === "loaded" ? (
-            <TodayClasses sessions={sessions} rosters={rosters} />
+            <TodayClasses sessions={sessions} rosters={rosters} onOpenClass={source === 'hub' ? id => setSelection(current => ({ id, attempt: current.attempt + 1 })) : undefined} />
           ) : (
             <div className="rounded-2xl border border-(--crm-line) bg-(--crm-panel)">
               <ErrorBlock message={`Today's classes couldn't be read. ${answer.text}`} onRetry={refresh} />
             </div>
           )}
+          {source === 'hub' && context && <OperationsPanel manager={['owner', 'manager'].includes(context.principal.role)} sessions={context.sessions} selection={selection} onSelect={id => setSelection(current => ({ id, attempt: current.attempt + 1 }))} onAuthenticationLost={authenticationLost} onLockChange={setOperationsLocked} />}
         </div>
       )}
+      {task && <div className="roster-scope"><Modal open title="Complete internal follow-up" onClose={() => {}}><TaskCompletion task={task} subject={{ kind: task.relatedType, id: task.relatedId }} enabled onAuthenticationLost={authenticationLost} onClose={() => setTask(null)} onReload={() => { setTask(null); refresh(); }} onDone={() => { setTaskReceipt(`Task #${task.id} completion confirmed in Odoo. No outbound message was sent.`); setTask(null); refresh(); }} /></Modal></div>}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import type { MembershipPlan } from "../../../types/membershipPlans";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete Plan — ported from #modal-del-plan in
@@ -48,6 +49,7 @@ const DeletePlanModal = ({ plan, onClose, onConfirm }: DeletePlanModalProps) => 
         <div className="danger-ic">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Delete Plan?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Are you sure you want to delete{" "}

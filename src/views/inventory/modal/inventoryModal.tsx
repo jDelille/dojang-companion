@@ -1,3 +1,4 @@
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 const InventoryModal = () => {
   return (
     <>
@@ -5,9 +6,12 @@ const InventoryModal = () => {
       <div id="modal-item-form" className="modal-overlay">
         <div className="modal-box glass modal-w-540">
           <div className="flex items-center justify-between mb-5">
-            <h3 id="if-title" className="text-base font-black c-text">
-              Add Inventory Item
-            </h3>
+            <div className="min-w-0">
+              <DialogEyebrow />
+              <h3 id="if-title" className="text-base font-black c-text">
+                Add Inventory Item
+              </h3>
+            </div>
             <button
               type="button"
               className="hbtn"
@@ -101,7 +105,10 @@ const InventoryModal = () => {
       <div id="modal-view" className="modal-overlay">
         <div className="modal-box glass modal-w-460">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-black c-text">Item Details</h3>
+            <div className="min-w-0">
+              <DialogEyebrow />
+              <h3 className="text-base font-black c-text">Item Details</h3>
+            </div>
             <button
               type="button"
               className="hbtn"
@@ -203,7 +210,10 @@ const InventoryModal = () => {
       <div id="modal-adjust" className="modal-overlay">
         <div className="modal-box glass modal-w-380">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-black c-text">Stock Adjustment</h3>
+            <div className="min-w-0">
+              <DialogEyebrow />
+              <h3 className="text-base font-black c-text">Stock Adjustment</h3>
+            </div>
             <button
               type="button"
               className="hbtn"
@@ -262,7 +272,10 @@ const InventoryModal = () => {
       <div id="modal-transfer" className="modal-overlay">
         <div className="modal-box glass modal-w-460">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-black c-text">Transfer Stock</h3>
+            <div className="min-w-0">
+              <DialogEyebrow />
+              <h3 className="text-base font-black c-text">Transfer Stock</h3>
+            </div>
             <button
               type="button"
               className="hbtn"
@@ -323,7 +336,10 @@ const InventoryModal = () => {
       <div id="modal-import" className="modal-overlay">
         <div className="modal-box glass">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-black c-text">Import Inventory</h3>
+            <div className="min-w-0">
+              <DialogEyebrow />
+              <h3 className="text-base font-black c-text">Import Inventory</h3>
+            </div>
             <button
               type="button"
               className="hbtn"
@@ -365,7 +381,10 @@ const InventoryModal = () => {
       <div id="modal-movements" className="modal-overlay">
         <div className="modal-box glass modal-w-540">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-black c-text">Stock Movements</h3>
+            <div className="min-w-0">
+              <DialogEyebrow />
+              <h3 className="text-base font-black c-text">Stock Movements</h3>
+            </div>
             <button
               type="button"
               className="hbtn"
@@ -401,6 +420,7 @@ const InventoryModal = () => {
           <div className="confirm-ic danger">
             <i data-lucide="trash-2" className="w-6 h-6 c-red" />
           </div>
+          <DialogEyebrow />
           <h3 className="text-base font-black c-text text-center mb-1">
             Delete Item?
           </h3>

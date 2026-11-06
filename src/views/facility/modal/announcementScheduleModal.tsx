@@ -4,6 +4,7 @@ import type { Announcement, ScheduleValues } from "../../../types/announcements"
 import { NOW, TODAY } from "../../../utils/json/announcementsData";
 import CommonDatePicker from "../../../components/common-date-picker/commonDatePicker";
 import { datePart, daysBetween, fmtDate, fmtTime, timePart, toMin } from "../useAnnouncements";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Schedule Announcement — ported from #modal-schedule in
@@ -111,7 +112,10 @@ const AnnouncementScheduleModal = ({
     >
       <div className="modal-box glass modal-w-460">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">Schedule Announcement</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Schedule Announcement</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

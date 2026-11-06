@@ -7,6 +7,7 @@ import {
   REFERRING_MEMBERS,
 } from "../../../utils/json/referralsData";
 import type { ReferralEditInput } from "../useReferrals";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Edit Referral — ported from #modal-edit in tailwind/src/referrals.html and
@@ -59,6 +60,7 @@ const EditReferralModal = ({ referral, onClose, onSave }: EditReferralModalProps
             <div className="icon-box grad-gold ic-38">
               <Edit2 className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Edit Referral</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

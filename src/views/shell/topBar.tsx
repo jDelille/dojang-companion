@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Sparkles } from "lucide-react";
+import { PanelLeft, Plus, Sparkles } from "lucide-react";
 import { useDoForMeRailOpen } from "@/views/doForMe/doForMeProvider";
 import CommandPalette from "./commandPalette";
 import SiteControl from "./siteControl";
@@ -14,11 +14,27 @@ import SiteControl from "./siteControl";
 
 const NOT_CONNECTED = "Not connected yet";
 
-export default function TopBar() {
+export default function TopBar({ contextOpen = false, onToggleContext }: {
+  contextOpen?: boolean;
+  // Opens the context pane (e.g. the People list) when it's a drawer (below 1024px)
+  onToggleContext?: () => void;
+}) {
   const [railOpen, setRailOpen] = useDoForMeRailOpen();
 
   return (
     <header className="flex items-center gap-3 border-b border-(--crm-line) px-4 py-3">
+      {/* Shown only below 1024px, and only when the page has a context pane (dojang-shell.css) */}
+      {onToggleContext && (
+        <button
+          type="button"
+          onClick={onToggleContext}
+          aria-expanded={contextOpen}
+          aria-label="Show list"
+          className="ds-context-toggle size-10 shrink-0 place-items-center rounded-xl border border-(--crm-line) bg-(--crm-raised) text-(--crm-text) hover:border-(--crm-muted)"
+        >
+          <PanelLeft size={16} aria-hidden="true" />
+        </button>
+      )}
       <SiteControl />
       <CommandPalette />
 

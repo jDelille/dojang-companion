@@ -3,6 +3,7 @@ import { AlertCircle, Check, UserCheck, X } from "lucide-react";
 import type { Branch } from "../../../types/branches";
 import { MANAGERS, mgrName } from "../../../utils/json/branchesData";
 import { avClass, initials } from "../useBranches";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Assign Manager — ported from #modal-manager in tailwind/src/branches.html and
@@ -66,9 +67,12 @@ const BranchManagerModal = ({
     >
       <div className="modal-box glass modal-w-420">
         <div className="flex items-center justify-between mb-4">
-          <h3 id="mg-title" className="text-base font-black c-text">
-            Assign Manager
-          </h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 id="mg-title" className="text-base font-black c-text">
+              Assign Manager
+            </h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

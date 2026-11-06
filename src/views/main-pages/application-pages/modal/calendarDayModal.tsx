@@ -1,6 +1,7 @@
 import { MapPin, Pencil, Plus, Trash2, X, Bell } from "lucide-react";
 import type { CalendarEvent } from "../../../../types/calendarApp";
 import { TODAY, TYPE_META, fmtDateLong, fmtTime } from "../../../../utils/json/calendarAppData";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Day Events — ported from #modal-day in tailwind/src/calendar-app.html and
@@ -40,7 +41,10 @@ const CalendarDayModal = ({
     >
       <div className="modal-box glass modal-w-560">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">{fmtDateLong(date)}</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">{fmtDateLong(date)}</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

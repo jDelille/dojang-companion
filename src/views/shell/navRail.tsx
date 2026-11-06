@@ -65,9 +65,9 @@ export default function NavRail() {
   return (
     <nav
       aria-label="Primary navigation"
-      className="row-span-3 border-r border-(--crm-line) lg:row-span-1"
+      className="h-full border-r border-(--crm-line)"
     >
-      <div className="sticky top-0 flex h-dvh flex-col items-center gap-4 py-4 lg:h-full">
+      <div className="flex h-full flex-col items-center gap-4 py-4">
         {/* Dojang mark: the black square "D" from Companion's sidebar */}
         <Link
           href={homeRoute(perspective)}
@@ -122,6 +122,50 @@ export default function NavRail() {
           )}
         </div>
       </div>
+    </nav>
+  );
+}
+
+// Phones (below 600px): the same sections as a bar along the bottom, like
+// Companion's bottom nav. Scrolls sideways when they don't all fit.
+export function BottomNav() {
+  const pathname = usePathname();
+  const perspective = useCurrentPerspective();
+
+  return (
+    <nav aria-label="Primary navigation" className="border-t border-(--crm-line) bg-(--crm-canvas) pb-[env(safe-area-inset-bottom)]">
+      <ul className="flex items-stretch gap-1 overflow-x-auto px-2 py-1.5">
+        <li className="shrink-0">
+          <Link
+            href={homeRoute(perspective)}
+            aria-label="Dojang home"
+            className="grid h-full min-h-12 w-12 place-items-center rounded-xl text-[15px] font-black text-white"
+          >
+            D
+          </Link>
+        </li>
+        {LINKS.map((item) => {
+          const active = isActive(item, pathname);
+          return (
+            <li key={item.label} className="shrink-0">
+              <Link
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-12 min-w-14 flex-col items-center justify-center gap-0.5 rounded-xl border-t-2 px-2 transition-colors ${
+                  active
+                    ? "border-(--crm-nav-active) bg-(--crm-interactive) text-(--crm-nav-active)"
+                    : "border-transparent text-(--crm-muted) hover:bg-(--crm-raised) hover:text-(--crm-text)"
+                }`}
+              >
+                <span aria-hidden="true" className="font-(family-name:--crm-font-label) text-[11px] font-bold tracking-wide">
+                  {item.label.slice(0, 2).toUpperCase()}
+                </span>
+                <span className={`text-[10px] ${active ? "" : "text-(--crm-text-secondary)"}`}>{item.label}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
     </nav>
   );
 }

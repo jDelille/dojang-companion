@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import type { RenewalMember } from "../../../types/renewals";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Remove Renewal — ported from #modal-delete in tailwind/src/renewals.html
@@ -47,6 +48,7 @@ const RenewalDeleteModal = ({ member, onClose, onConfirm }: RenewalDeleteModalPr
         <div className="danger-ic">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Remove Renewal?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Remove <span className="font-semibold c-text">{member?.name ?? "this member"}</span>{" "}

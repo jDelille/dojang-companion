@@ -121,13 +121,13 @@ test('refund review commands preserve native effects and authoritative refund id
   assert.equal((await post({ ...body, role: 'owner' }, cookie)).status, 400);
   assert.equal((await post({ ...body, subjectId: '5' }, cookie)).status, 400, 'Client selection metadata is not a backend authority field');
 });
-test('testing commands allow a single reviewed registration and verify test/result identities before invalidation', async () => {
+test('testing commands preserve individual receipts while bounding reviewed bulk results', async () => {
   const payload = { testId: '7', expectedVersion: 1, results: [{ registrationId: '10', result: 'pass' }], reason: 'Staff assessment' };
   hubReply = { testId: '7', state: 'test_results_saved', reason: payload.reason, changes: [{ registrationId: '10', before: 'pending', after: 'pass' }], version: 2, replayed: false };
   assert.equal((await post({ operation: 'record_test_results', payload, requestKey: KEY }, cookie)).status, 200);
   assert.deepEqual(hubCalls[0].payload, payload);
   hubCalls.length = 0;
-  for (const bad of [{ ...payload, results: [...payload.results, { registrationId: '11', result: 'pass' }] }, { ...payload, expectedVersion: -1 }, { ...payload, memberId: '5' }]) {
+  for (const bad of [{ ...payload, results: [...payload.results, { registrationId: '10', result: 'pass' }] }, { ...payload, expectedVersion: -1 }, { ...payload, memberId: '5' }]) {
     assert.equal((await post({ operation: 'record_test_results', payload: bad, requestKey: KEY }, cookie)).status, 400);
   }
   assert.equal(hubCalls.length, 0);
@@ -226,7 +226,7 @@ test('trial attendance forwards only the named attended action and invalidates c
   assert.equal(revalidated.length, 0);
 });
 test('trial attendance rejects alternate outcomes, scope overrides, invalid versions and missing auth/key', async () => {
-  for (const bad of [{ ...ATTENDANCE, outcome: 'no_show' }, { ...ATTENDANCE, siteId: '99' }, { ...ATTENDANCE, memberId: '42' }, { ...ATTENDANCE, expectedVersion: -1 }, { ...ATTENDANCE, reason: '' }]) {
+  for (const bad of [{ ...ATTENDANCE, outcome: 'unknown' }, { ...ATTENDANCE, siteId: '99' }, { ...ATTENDANCE, memberId: '42' }, { ...ATTENDANCE, expectedVersion: -1 }, { ...ATTENDANCE, reason: '' }]) {
     assert.equal((await post({ operation: 'record_trial_outcome', payload: bad, requestKey: KEY }, cookie)).status, 400);
   }
   assert.equal((await post({ operation: 'record_trial_outcome', payload: ATTENDANCE, requestKey: null }, cookie)).status, 400);
@@ -372,9 +372,14 @@ test('ai_settings rejects browser scope, write keys, and missing authentication'
   assert.equal(hubCalls.length, 0);
 });
 
-test('AI configuration read does not enable AI activation writes', async () => {
-  assert.equal((await post({ operation: 'enable_ai', payload: { expectedSiteVersion: 1, expectedConfigVersion: 1 }, requestKey: KEY }, cookie)).status, 403);
-  assert.equal(hubCalls.length, 0);
+test('reviewed AI activation requires exact versions, a request key and native owner approval', async () => {
+  const payload={expectedSiteVersion:1,expectedConfigVersion:1};
+  assert.equal((await post({operation:'enable_ai',payload:{...payload,role:'owner'},requestKey:KEY},cookie)).status,400);
+  assert.equal((await post({operation:'enable_ai',payload,requestKey:null},cookie)).status,400);
+  assert.equal(hubCalls.length,0);
+  hubReply={error:{code:'FORBIDDEN',status:403}};
+  assert.equal((await post({operation:'enable_ai',payload,requestKey:KEY},cookie)).status,403);
+  assert.equal(hubCalls.length,1);
 });
 
 test("prepare_lead_action with a valid payload and request key is forwarded as is", async () => {
@@ -436,8 +441,7 @@ test("malformed fields are refused before Odoo", async () => {
 
 test("other writes stay refused with HUB_READ_ONLY", async () => {
   const writes = {
-    cancel_trial: { trialId: '1', expectedVersion: 1, reason: 'x' },
-    create_broadcast: { title: "x" },
+    arbitrary_send: { title: "x" },
   };
   for (const [operation, payload] of Object.entries(writes)) {
     const response = await post({ operation, payload, requestKey: KEY }, cookie);
@@ -620,4 +624,56 @@ test("companion_ask still requires a valid sealed staff session", async () => {
   assert.equal((await post(body)).status, 401);
   assert.equal((await post(body, "dojang_hub_session=forged")).status, 401);
   assert.equal(hubCalls.length, 0);
+});
+
+test('operations report forwards only a bounded exact read under the signed-in site', async () => {
+ const payload = { fromDate: '2026-11-01', toDate: '2026-11-04' };
+ assert.equal((await post({ operation: 'operations_report', payload, requestKey: null }, cookie)).status, 200);
+ assert.deepEqual(hubCalls[0], { siteId: '1', operation: 'operations_report', payload, requestKey: null });
+ const count = hubCalls.length;
+ for (const p of [{ ...payload, siteId: '2' }, { ...payload, role: 'owner' }, { fromDate: '2026-01-01', toDate: '2026-02-01' }, { fromDate: '2026-02-30', toDate: '2026-03-01' }]) assert.equal((await post({ operation: 'operations_report', payload: p, requestKey: null }, cookie)).status, 400);
+ assert.equal((await post({ operation: 'operations_report', payload, requestKey: KEY }, cookie)).status, 400);
+ assert.equal((await post({ operation: 'operations_report', payload, requestKey: null })).status, 401);
+ assert.equal(hubCalls.length, count);
+});
+
+test('migrated staff reads use exact scope-free payloads under the sealed session',async()=>{
+ for(const operation of ['instructor_context','setup_checklist','broadcast_context','automation_overview']){
+  assert.equal((await post({operation,payload:{},requestKey:null},cookie)).status,200);
+  assert.deepEqual(hubCalls.at(-1),{siteId:'1',operation,payload:{},requestKey:null});
+  const before=hubCalls.length;
+  assert.equal((await post({operation,payload:{role:'owner'},requestKey:null},cookie)).status,400);
+  assert.equal((await post({operation,payload:{},requestKey:KEY},cookie)).status,400);
+  assert.equal((await post({operation,payload:{},requestKey:null})).status,401);
+  assert.equal(hubCalls.length,before);
+ }
+});
+test('instructor clock forwards exact own-identity PIN command with stable request identity',async()=>{
+ const payload={direction:'out',currentShiftId:'8',pin:'123456'};
+ hubReply={state:'clocked_out',shift:{id:'8',instructor:'Staff',checkIn:'2026-11-04T10:00:00Z',checkOut:'2026-11-04T11:00:00Z',hours:1,version:2,state:'draft',needsReview:false,correctable:true},replayed:false};
+ const body={operation:'instructor_clock',payload,requestKey:KEY};
+ assert.equal((await post(body,cookie)).status,200);assert.deepEqual(hubCalls[0],{siteId:'1',...body});assert.ok(revalidated.includes('/operations'));
+ const before=hubCalls.length;assert.equal((await post({...body,payload:{...payload,userId:'99'}},cookie)).status,400);assert.equal(hubCalls.length,before);
+ hubReply={error:{code:'PIN_INCORRECT',status:403}};assert.equal((await post(body,cookie)).status,403);
+});
+test('bulk course/test operations stay bounded and reject arbitrary ORM or automation models',async()=>{
+ const token='a'.repeat(64);const preview={testId:'7',registrationIds:['8','9']};
+ assert.equal((await post({operation:'promotion_preview',payload:preview,requestKey:null},cookie)).status,200);
+ assert.equal((await post({operation:'promotion_preview',payload:{...preview,registrationIds:['8','8']},requestKey:null},cookie)).status,400);
+ assert.equal((await post({operation:'set_automation_active',payload:{automationId:'res.partner:1',active:true,expectedVersion:1,reason:'Override'},requestKey:KEY},cookie)).status,400);
+ const payload={templateId:'7',expectedVersion:1,addMemberIds:['5','6'],removeMemberIds:[],reason:'Reviewed class assignment',reviewToken:token};
+ hubReply={templateId:'7',state:'course_roster_updated',added:['5','6'],removed:[],bookingsCreated:0,bookingsCancelled:0,version:2,replayed:false};
+ assert.equal((await post({operation:'assign_course_members',payload,requestKey:KEY},cookie)).status,200);assert.ok(revalidated.includes('/people/5'));assert.ok(revalidated.includes('/people/6'));
+});
+
+test('trial lifecycle uses native cancellation and reviewed conversion without scope overrides',async()=>{
+ const p={trialId:'7',expectedVersion:1,reason:'Reviewed cancellation'};
+ hubReply={trialId:'7',leadId:'3',memberId:'42',state:'trial_cancelled',reason:p.reason,messageSent:false,replayed:false};
+ assert.equal((await post({operation:'cancel_trial',payload:p,requestKey:KEY},cookie)).status,200);
+ assert.ok(revalidated.includes('/crm/leads/3'));assert.ok(revalidated.includes('/people/42'));
+ assert.equal((await post({operation:'cancel_trial',payload:{...p,siteId:'9'},requestKey:KEY},cookie)).status,400);
+ assert.equal((await post({operation:'cancel_trial',payload:p,requestKey:null},cookie)).status,400);
+ const conversion={...p,planId:'8',startDate:'2026-11-06',reviewToken:'a'.repeat(64)};
+ assert.equal((await post({operation:'convert_trial',payload:conversion,requestKey:KEY},cookie)).status,200);
+ assert.equal((await post({operation:'convert_trial',payload:{...conversion,reviewToken:''},requestKey:KEY},cookie)).status,400);
 });

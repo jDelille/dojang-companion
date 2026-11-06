@@ -2,6 +2,7 @@ import { Zap } from "lucide-react";
 import type { StaffPay } from "../../../types/payroll";
 import { moneyWhole } from "../../../utils/formatUtils";
 import { netOf } from "../usePayroll";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Process Salary — ported from #modal-process in tailwind/src/payroll.html and
@@ -31,6 +32,7 @@ const PayrollProcessModal = ({ employee, onClose, onConfirm }: PayrollProcessMod
         <div className="confirm-ic ok">
           <Zap className="w-6 h-6 c-green shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Process Salary?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Disburse{" "}

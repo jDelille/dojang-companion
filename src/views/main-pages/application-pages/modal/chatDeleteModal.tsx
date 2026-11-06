@@ -1,6 +1,7 @@
 import { Trash2 } from "lucide-react";
 import type { Conversation } from "../../../../types/chat";
 import { nameOf } from "../useChat";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete Chat — ported from #modal-delete in tailwind/src/chat.html and
@@ -31,6 +32,7 @@ const ChatDeleteModal = ({ conversation: c, onClose, onConfirm }: ChatDeleteModa
         <div className="confirm-ic danger">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Delete Chat?</h3>
         <p className="text-sm text-center mb-4 c-dim">
           Permanently delete{" "}

@@ -1,6 +1,7 @@
 import { Wrench, X } from "lucide-react";
 import type { Locker } from "../../../types/lockers";
 import { fmtDate } from "../useLockers";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Maintenance History — ported from #modal-history in tailwind/src/lockers.html
@@ -29,9 +30,12 @@ const LockerHistoryModal = ({ locker, onClose, onLogMaintenance }: LockerHistory
     >
       <div className="modal-box glass modal-w-540">
         <div className="flex items-center justify-between mb-4">
-          <h3 id="sh-title" className="text-base font-black c-text">
-            {locker ? "Maintenance History · Locker " + locker.num : "Maintenance History"}
-          </h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 id="sh-title" className="text-base font-black c-text">
+              {locker ? "Maintenance History · Locker " + locker.num : "Maintenance History"}
+            </h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

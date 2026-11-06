@@ -1,6 +1,7 @@
 import { Ban } from "lucide-react";
 import type { ApiKey } from "../../../types/settings";
 import { fmtDate } from "../../../utils/json/settingsData";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Revoke API Key — ported from #modal-key-revoke in tailwind/src/settings.html
@@ -30,6 +31,7 @@ const SettingsKeyRevokeModal = ({ apiKey: k, onClose, onConfirm }: SettingsKeyRe
         <div className="confirm-ic danger">
           <Ban className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Revoke API Key?</h3>
         <p className="text-sm text-center mb-4 c-dim">
           Any integration using{" "}

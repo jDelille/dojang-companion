@@ -1,6 +1,7 @@
 import { EyeOff } from "lucide-react";
 import type { Announcement } from "../../../types/announcements";
 import { fmtDateTime } from "../useAnnouncements";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Unpublish — ported from #modal-unpublish in tailwind/src/announcements.html and
@@ -34,6 +35,7 @@ const AnnouncementUnpublishModal = ({
         <div className="confirm-ic warn">
           <EyeOff className="w-6 h-6 c-orange shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Unpublish?</h3>
         <p className="text-sm text-center mb-4 c-dim">
           <span className="font-semibold c-text">

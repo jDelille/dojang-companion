@@ -10,6 +10,7 @@ import type {
 } from "../../../types/lockers";
 import { DEPOSIT, KEY_TYPES, SIZES, STATUSES, ZONES } from "../../../utils/json/lockersData";
 import CommonSelect from "../../../components/common-select/commonSelect";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Add / Edit Locker — ported from #modal-locker-form in tailwind/src/lockers.html
@@ -126,9 +127,12 @@ const LockerFormModal = ({
     >
       <div className="modal-box glass modal-w-540">
         <div className="flex items-center justify-between mb-5">
-          <h3 id="lf-title" className="text-base font-black c-text">
-            {target ? "Edit Locker " + target.num : "Add Lockers"}
-          </h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 id="lf-title" className="text-base font-black c-text">
+              {target ? "Edit Locker " + target.num : "Add Lockers"}
+            </h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

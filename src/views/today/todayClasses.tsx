@@ -41,7 +41,9 @@ function RosterDetail({ answer, index }: { answer: SessionRosterAnswer | undefin
 export default function TodayClasses({
   sessions,
   rosters,
+  onOpenClass,
 }: {
+  onOpenClass?: (id: string) => void;
   sessions: TodaySession[]; // soonest first
   rosters: Record<string, SessionRosterAnswer | undefined>; // undefined: loading or not loaded
 }) {
@@ -77,6 +79,7 @@ export default function TodayClasses({
                   )}
                 </span>
                 <RosterDetail answer={answer} index={index} />
+                {onOpenClass && <button type="button" className="text-xs font-semibold underline" onClick={() => onOpenClass(session.id)}>Open roster</button>}
               </li>
             );
           })}

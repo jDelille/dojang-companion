@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import type { DayPass } from "../../../types/dayPasses";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete Pass — ported from #modal-delete in tailwind/src/day-passes.html
@@ -46,6 +47,7 @@ const DeletePassModal = ({ pass, onClose, onConfirm }: DeletePassModalProps) => 
         <div className="danger-ic">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Delete Pass?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Delete the pass for{" "}

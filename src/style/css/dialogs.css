@@ -1,0 +1,217 @@
+/*
+   One look for every modal on the site, taken from the Member 360 windows
+   (Desktop/msg.png, book.png, payment.png, edit-modal.png, dots-1.png):
+   small uppercase label, big title, one-line subtitle, a divider, the body,
+   and the buttons bottom-left. Dark panel, round close button, red primary.
+
+   Three kinds of modal use it:
+   1. app-dialog-*        the Member 360 windows (views/people/memberDialog.tsx)
+                          and the Dojang Modal (templates/roster/components/ui/overlay.tsx)
+   2. .modal-overlay/.modal-box   the Dreams Gym template modals (components/common/Modal.tsx
+                          and the ~220 hand-written ones in each views/(section)/modal folder)
+
+   This file is not in a CSS layer, so it wins over style.css (whose modal rules
+   live in @layer components) and over Tailwind utilities.
+*/
+
+/* ---------- Colours (dark, the default) ---------- */
+.app-dialog,
+.modal-box {
+  --dlg-panel: #111114;
+  --dlg-field: #1a1a1f;
+  --dlg-field-hover: #222228;
+  --dlg-line: #2a2a35;
+  --dlg-text: #f6f6f8;
+  --dlg-text-secondary: #a8a8b8;
+  --dlg-muted: #717184;
+  --dlg-brand: #e8192c;
+  --dlg-selected: #221417;
+  --dlg-font-label: ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+/* The template has a light mode; its modals follow it */
+:root.mode-light .modal-box {
+  --dlg-panel: #ffffff;
+  --dlg-field: #f4f5f7;
+  --dlg-field-hover: #eceef1;
+  --dlg-line: #e2e3e8;
+  --dlg-text: #111216;
+  --dlg-text-secondary: #4b4d57;
+  --dlg-muted: #8a8c96;
+  --dlg-selected: #fdecee;
+}
+
+/* ================================================================
+   1. app-dialog: Member 360 windows and the Dojang Modal
+   ================================================================ */
+
+/* Native <dialog> (memberDialog.tsx) */
+dialog.app-dialog { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); margin: auto; padding: 0; }
+dialog.app-dialog::backdrop { background: rgb(0 0 0 / .6); backdrop-filter: blur(2px); }
+
+.app-dialog { border: 1px solid var(--dlg-line); border-radius: 16px; background: var(--dlg-panel); color: var(--dlg-text); box-shadow: 0 24px 64px -12px rgb(0 0 0 / .6); }
+.app-dialog-panel { max-height: calc(100vh - 34px); overflow-y: auto; padding: 28px 28px 22px; }
+.app-dialog-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--dlg-line); padding-bottom: 18px; }
+.app-dialog-eyebrow { color: var(--dlg-muted); font-family: var(--dlg-font-label); font-size: 9px; font-weight: 500; letter-spacing: .15em; text-transform: uppercase; }
+.app-dialog-title { margin-top: 10px; color: var(--dlg-text); font-size: 26px; font-weight: 800; line-height: 1.15; }
+.app-dialog-eyebrow + .app-dialog-title { margin-top: 10px; }
+.app-dialog-description { margin-top: 8px; color: var(--dlg-text-secondary); font-size: 14px; line-height: 1.5; }
+.app-dialog-close { display: grid; flex-shrink: 0; place-items: center; width: 38px; height: 38px; border: 1px solid var(--dlg-line); border-radius: 999px; background: var(--dlg-field); color: var(--dlg-text); }
+.app-dialog-close:hover { border-color: var(--dlg-muted); }
+.app-dialog-body { display: grid; gap: 16px; padding-top: 20px; }
+/* The Dojang Modal's body: scrolls on its own, keeps its children's layout */
+/* 6px of room on each side (pulled back with a negative margin) so focus rings
+   aren't clipped by the scrolling edge */
+.app-dialog-scroll { max-height: 65vh; overflow-y: auto; margin-inline: -6px; padding: 20px 6px 6px; color: var(--dlg-text); font-size: 14px; }
+.app-dialog-scroll :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]), select, textarea) {
+  border: 1px solid var(--dlg-line);
+  border-radius: 10px;
+  background-color: var(--dlg-field);
+  color: var(--dlg-text);
+}
+.app-dialog-scroll :is(input, select, textarea):focus { border-color: var(--dlg-muted); }
+
+/* Fields */
+.app-dialog-field { display: grid; gap: 8px; color: var(--dlg-text-secondary); font-size: 14px; }
+.app-dialog-input { width: 100%; border: 1px solid var(--dlg-line); border-radius: 10px; background: var(--dlg-field); padding: 11px 12px; color: var(--dlg-text); font-size: 14px; }
+.app-dialog-input:focus { border-color: var(--dlg-muted); outline: none; }
+.app-dialog-input:disabled, .app-dialog-tags { color: var(--dlg-muted); cursor: not-allowed; }
+.app-dialog-select { max-width: 250px; }
+textarea.app-dialog-input { min-height: 116px; resize: vertical; }
+.app-dialog-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.app-dialog-tags { font-size: 12px; }
+.app-dialog-note { color: var(--dlg-muted); font-size: 12px; line-height: 1.6; }
+
+/* Boxes inside the body */
+.app-dialog-preview { border: 1px solid var(--dlg-line); border-radius: 10px; background: var(--dlg-field); padding: 12px; font-size: 14px; }
+.app-dialog-preview .app-dialog-note { margin-top: 8px; }
+.app-dialog-card { border: 1px solid var(--dlg-line); border-radius: 10px; background: var(--dlg-field); padding: 16px; }
+.app-dialog-card-label { color: var(--dlg-text-secondary); font-size: 13px; }
+.app-dialog-card-title { margin-top: 8px; font-size: 17px; font-weight: 700; }
+.app-dialog-card-detail { margin-top: 8px; color: var(--dlg-text-secondary); font-size: 13px; }
+.app-dialog-checks { border-radius: 10px; background: var(--dlg-field); padding: 16px; }
+.app-dialog-checks ul { display: grid; gap: 6px; margin-top: 12px; font-size: 12px; font-weight: 600; }
+
+/* Pick lists and plain rows */
+.app-dialog-options { display: grid; max-height: 50vh; overflow-y: auto; margin-inline: -6px; padding: 6px; border-radius: 4px; }
+.app-dialog-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; border: 1px solid transparent; border-bottom-color: var(--dlg-line); background: var(--dlg-field); padding: 12px; text-align: left; color: var(--dlg-text); }
+.app-dialog-option:hover { background: var(--dlg-field-hover); }
+.app-dialog-option[aria-checked="true"] { border-color: var(--dlg-brand); background: var(--dlg-selected); }
+.app-dialog-option-title { display: block; font-size: 14px; font-weight: 700; }
+.app-dialog-option-detail { display: block; margin-top: 4px; color: var(--dlg-muted); font-size: 12px; }
+.app-dialog-option-value { flex-shrink: 0; font-size: 14px; font-weight: 700; }
+.app-dialog-rows { display: grid; }
+.app-dialog-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--dlg-line); background: var(--dlg-field); padding: 12px; }
+.app-dialog-row-action { flex-shrink: 0; color: var(--dlg-text); font-size: 14px; font-weight: 700; }
+.app-dialog-row-action:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Grouped menu ("•••") */
+.app-dialog-body:has(> .app-menu-group) { gap: 18px; }
+.app-dialog:has(.app-menu-group) .app-dialog-panel { max-height: min(560px, calc(100vh - 34px)); }
+.app-menu-group + .app-menu-group { border-top: 1px solid var(--dlg-line); padding-top: 18px; }
+.app-menu-group { padding-bottom: 2px; }
+.app-menu-heading { color: var(--dlg-muted); font-family: var(--dlg-font-label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.app-menu-rows { display: grid; gap: 2px; margin-top: 12px; }
+.app-menu-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 54px; width: 100%; border-radius: 6px; background: var(--dlg-field); padding: 10px 12px; text-align: left; color: var(--dlg-text); }
+.app-menu-row:hover:not(:disabled) { background: var(--dlg-field-hover); }
+.app-menu-row:disabled { cursor: not-allowed; opacity: .45; }
+.app-menu-label { display: inline-flex; flex-shrink: 0; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; }
+.app-menu-detail { min-width: 0; color: var(--dlg-text-secondary); font-size: 12px; text-align: right; }
+
+/* Buttons, bottom-left */
+.app-dialog-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 22px; }
+.app-dialog-body > .app-dialog-actions { padding-top: 6px; }
+.app-dialog-button,
+.app-dialog-actions > button[data-variant] { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; border: 1px solid var(--dlg-line); border-radius: 8px; background: var(--dlg-field); padding: 0 14px; color: var(--dlg-text); font-size: 13px; font-weight: 700; box-shadow: none; }
+.app-dialog-button:hover,
+.app-dialog-actions > button[data-variant]:hover { border-color: var(--dlg-muted); }
+.app-dialog-button-primary,
+.app-dialog-actions > button[data-variant="primary"] { border-color: var(--dlg-brand); background: var(--dlg-brand); color: #fff; }
+.app-dialog-actions > button[data-variant="danger"] { border-color: var(--dlg-brand); background: transparent; color: var(--dlg-brand); }
+.app-dialog-button-primary:hover,
+.app-dialog-actions > button[data-variant="primary"]:hover { border-color: var(--dlg-brand); filter: brightness(1.1); }
+.app-dialog-button:disabled,
+.app-dialog-actions > button:disabled { cursor: not-allowed; opacity: .45; }
+.app-dialog button:focus-visible { outline: 2px solid var(--dlg-text-secondary); outline-offset: 3px; }
+
+/* ================================================================
+   2. Template modals: .modal-overlay > .modal-box
+      header row (title + .hbtn close), body, footer row of buttons
+   ================================================================ */
+
+.modal-overlay { background: rgb(0 0 0 / .6); backdrop-filter: blur(2px); }
+
+.modal-box {
+  border: 1px solid var(--dlg-line);
+  border-radius: 16px;
+  background: var(--dlg-panel);
+  padding: 28px 28px 22px;
+  color: var(--dlg-text);
+  box-shadow: 0 24px 64px -12px rgb(0 0 0 / .6);
+}
+:root.mode-light .modal-box,
+:root.mode-light .modal-box.glass { border-color: var(--dlg-line); background: var(--dlg-panel); box-shadow: 0 12px 40px rgb(16 17 20 / .14); }
+
+/* Header row: divider underneath, close button top-right */
+.modal-box > .flex.justify-between:first-child {
+  align-items: flex-start;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--dlg-line);
+  padding-bottom: 18px;
+}
+
+/* Small uppercase label above the title */
+.modal-box .app-dialog-eyebrow { display: block; margin-bottom: 10px; }
+
+/* Title and the line under it */
+.modal-box > .flex.justify-between:first-child h3,
+.modal-box > h3,
+.modal-box h3.text-center { color: var(--dlg-text); font-size: 26px; font-weight: 800; line-height: 1.15; letter-spacing: normal; }
+.modal-box > .flex.justify-between:first-child h3 + p,
+.modal-box h3.text-center + p { margin-top: 8px; color: var(--dlg-text-secondary); font-size: 14px; }
+
+/* Confirm-style modals (icon, then title): left-aligned like the rest */
+.modal-box > :is(.confirm-ic, .danger-ic) { margin-inline: 0; margin-bottom: 14px; }
+.modal-box h3.text-center,
+.modal-box h3.text-center + p.text-center,
+.modal-box > .text-center:first-child { text-align: left; }
+.modal-box > .text-center:first-child > :is(.confirm-ic, .danger-ic, div:first-child) { margin-inline: 0; }
+
+/* Round close button */
+.modal-box .hbtn[aria-label="Close"],
+.modal-box > .flex.justify-between:first-child > .hbtn {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--dlg-line);
+  border-radius: 999px;
+  background: var(--dlg-field);
+  color: var(--dlg-text);
+  transform: none;
+}
+.modal-box .hbtn[aria-label="Close"]:hover,
+.modal-box > .flex.justify-between:first-child > .hbtn:hover { border-color: var(--dlg-muted); background: var(--dlg-field); color: var(--dlg-text); }
+
+/* Fields */
+.modal-box .fp-input { height: auto; min-height: 42px; border: 1px solid var(--dlg-line); border-radius: 10px; background: var(--dlg-field); padding: 11px 12px; color: var(--dlg-text); font-size: 14px; }
+.modal-box .fp-input:focus { border-color: var(--dlg-muted); box-shadow: none; }
+.modal-box label { color: var(--dlg-text-secondary); }
+
+/* Footer row: buttons sized to their text and placed bottom-left */
+.modal-box > .flex.gap-3:last-child { margin-top: 0; padding-top: 22px; }
+/* Any button row (also ones inside a <form>) */
+.modal-box .flex.gap-3:has(> :is(.btn-gold, .btn-ghost, .btn-danger)) { flex-wrap: wrap; justify-content: flex-start; gap: 8px; }
+.modal-box .flex.gap-3 > :is(.btn-gold, .btn-ghost, .btn-danger) { flex: none; }
+.modal-box :is(.btn-gold, .btn-ghost, .btn-danger) {
+  height: 40px;
+  border-radius: 8px;
+  padding-inline: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: none;
+  transform: none;
+}
+.modal-box .btn-gold { border: 1px solid var(--dlg-brand); background: var(--dlg-brand); color: #fff; }
+.modal-box .btn-gold:hover { box-shadow: none; filter: brightness(1.1); }
+.modal-box .btn-ghost { border: 1px solid var(--dlg-line); background: var(--dlg-field); color: var(--dlg-text); }
+.modal-box .btn-ghost:hover { border-color: var(--dlg-muted); color: var(--dlg-text); }
+.modal-box .btn-danger { border: 1px solid var(--dlg-brand); background: var(--dlg-brand); color: #fff; }

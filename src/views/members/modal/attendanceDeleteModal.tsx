@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import type { AttendanceRecord } from "../../../types/attendance";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Remove Attendance Entry — ported from #modal-delete in
@@ -53,6 +54,7 @@ const AttendanceDeleteModal = ({
           <div className="danger-ic">
             <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
           </div>
+          <DialogEyebrow />
           <h3 className="text-base font-black c-text mb-1">Remove Attendance Entry?</h3>
           <p className="text-sm c-dim mb-5">
             This will permanently remove{" "}

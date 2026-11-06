@@ -1,0 +1,85 @@
+.ds-main:has(> .inbox-workspace) { display: flex; flex-direction: column; overflow: hidden; }
+.inbox-workspace, .inbox-page { display: flex; flex: 1; flex-direction: column; min-height: 0; min-width: 0; }
+.inbox-page-heading { flex-shrink: 0; }
+.inbox-page-heading > div { margin-bottom: 12px; }
+.inbox-queues { flex-shrink: 0; }
+.inbox-queues [role=tablist] { scrollbar-width: thin; }
+.inbox-filters { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px 12px; padding-block: 12px; flex-shrink: 0; }
+.inbox-filter-controls { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.inbox-filter-controls > input { flex: 1; min-width: 120px; max-width: none; }
+.inbox-filter-controls > div { max-width: 150px; }
+.inbox-result-count { align-self: start; font-size: 11px; line-height: 1.5; }
+.inbox-channel-status { justify-self: end; max-width: 250px; font-size: 11px; }
+.inbox-channel-status summary { cursor: pointer; text-align: right; }
+.inbox-channel-status p { margin-top: 6px; line-height: 1.6; }
+.inbox-layout { display: grid; flex: 1; min-height: 0; min-width: 0; grid-template-columns: minmax(0,1fr); gap: 12px; }
+.inbox-list-card, .inbox-detail-card { min-height: 0; overflow: hidden; flex-direction: column; }
+.inbox-list-card { display: flex; }
+.inbox-detail-card { display: none; }
+.inbox-workspace[data-detail=true] .inbox-list-card { display: none; }
+.inbox-workspace[data-detail=true] .inbox-detail-card { display: flex; }
+.inbox-list-card > ul { min-height: 0; flex: 1; overscroll-behavior: contain; }
+.inbox-detail-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; padding: 10px 12px; border-bottom: 1px solid var(--crm-line); }
+.inbox-toolbar-label { font-size: 11px; color: var(--crm-muted); margin-right: auto; }
+.inbox-message-view { display: flex; flex: 1; min-height: 0; min-width: 0; }
+.inbox-message-view-hidden { display: none; }
+.inbox-person-context { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 12px; }
+.inbox-person-context > aside { max-height: none; border: 0; background: transparent; }
+.inbox-message-header { flex-shrink: 0; }
+.inbox-message-header > div { flex: 1; min-width: 0; }
+.inbox-message-header > span { max-width: 100%; white-space: normal; }
+.inbox-message-scroll { min-height: 60px; overscroll-behavior: contain; overflow-wrap: anywhere; }
+.inbox-composer { flex-shrink: 0; max-height: 48%; overflow-y: auto; background: var(--crm-panel); padding-bottom: max(12px,env(safe-area-inset-bottom)); }
+.inbox-composer textarea { min-height: 64px; max-height: 150px; }
+.inbox-composer select { min-width: 0; }
+.inbox-workspace button:disabled { cursor: not-allowed; }
+@media (min-width: 1024px) {
+ .inbox-layout { grid-template-columns: minmax(240px,.8fr) minmax(0,1.6fr); }
+ .inbox-workspace[data-detail=true] .inbox-list-card, .inbox-detail-card { display: flex; }
+ .inbox-back { display: none; }
+ .inbox-toolbar-label { display: block; }
+}
+@media (max-width: 1023px) {
+ .inbox-workspace[data-detail=true] :is(.inbox-page-heading,.inbox-queues,.inbox-filters) { display: none; }
+ .inbox-toolbar-label { display: none; }
+ .inbox-detail-toolbar button { min-height: 40px; }
+ .inbox-bubble-wrap { max-width: 88%; }
+ .inbox-message-header { padding: 12px 14px; gap: 8px; }
+ .inbox-message-header h2 { font-size: 15px; }
+ .inbox-message-scroll { padding: 16px 12px; }
+ .inbox-list-card > ul > li > button { padding: 16px 14px; min-height: 86px; }
+ .inbox-composer button { min-height: 40px; }
+ .inbox-composer [role=group] > div { min-width: 0; }
+ .inbox-composer [role=group] select { width: 100%; }
+}
+@media (max-width: 599px) {
+ .ds-main:has(> .inbox-workspace) { padding: 10px; }
+ .inbox-page-heading h1 { font-size: 20px; }
+ .inbox-page-heading p { display: none; }
+ .inbox-filter-controls > div { max-width: 135px; }
+ .inbox-filters { gap: 6px; }
+ .inbox-layout { gap: 0; }
+ .inbox-composer { font-size: 12px; }
+ .inbox-composer textarea { font-size: 16px; }
+ .inbox-person-context { padding: 4px; }
+}
+
+.inbox-message > details { flex-shrink: 0; max-height: 28%; overflow-y: auto; }
+.inbox-list-card [aria-current=true] { box-shadow: inset 3px 0 var(--crm-brand); }
+.inbox-message-scroll :is(p,span,blockquote) { overflow-wrap: anywhere; }
+@media (max-width: 1023px) { .inbox-workspace { max-height: var(--inbox-visible-height,100%); } }
+
+.inbox-mobile-companion { display: none; }
+@media (max-width: 1023px) {
+ .inbox-mobile-companion { display: inline-flex; color: var(--crm-agent); }
+ .ds-shell:has(.inbox-workspace[data-detail=true]) .ds-companion-trigger { display: none; }
+}
+
+/* Spec §14: the person (Odoo member) as its own card beside the message, like
+   the message list. Only when the row has room (inboxClient.tsx SPLIT_WIDTH);
+   otherwise the Student button in the message card switches. */
+.inbox-person-card { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.inbox-person-card > .inbox-person-context { padding: 4px; }
+@media (min-width: 1024px) {
+ .inbox-layout[data-split=true] { grid-template-columns: minmax(220px,.75fr) minmax(0,1.5fr) 300px; }
+}

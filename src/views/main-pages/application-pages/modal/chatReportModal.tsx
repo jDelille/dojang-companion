@@ -4,6 +4,7 @@ import type { Conversation } from "../../../../types/chat";
 import { REPORT_REASONS } from "../../../../utils/json/chatData";
 import { CHAT_ICON, CHAT_ICON_FALLBACK } from "../chatIcons";
 import { nameOf, roleOf } from "../useChat";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Report Conversation — ported from #modal-report in tailwind/src/chat.html and
@@ -60,7 +61,10 @@ const ChatReportModal = ({ conversation: c, onClose, onConfirm }: ChatReportModa
     >
       <div className="modal-box glass modal-w-460">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">Report Conversation</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Report Conversation</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AlertOctagon, Check, RotateCcw } from "lucide-react";
 import { SECTION_LABEL, tabSection } from "../../../utils/json/settingsData";
 import type { SettingsTab } from "../../../types/settings";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Reset Settings — ported from #modal-reset in tailwind/src/settings.html and
@@ -58,6 +59,7 @@ const SettingsResetModal = ({ open, activeTab, onClose, onConfirm }: SettingsRes
         <div className="confirm-ic warn">
           <RotateCcw className="w-6 h-6 c-orange shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Reset Settings?</h3>
         <p className="text-sm text-center mb-4 c-dim">
           Restore settings to their factory defaults. Unsaved edits are discarded too.

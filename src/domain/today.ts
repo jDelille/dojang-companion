@@ -94,7 +94,7 @@ export function deliveryProblems(context: HubContext) {
   const problems: { delivery: HubDelivery; message: HubMessage }[] = [];
   for (const message of context.messages) {
     const delivery = deliveryOf(context, message.id);
-    if (delivery && (delivery.state === "failed" || delivery.state === "uncertain")) {
+    if (delivery && (delivery.state === "failed" || delivery.state === "uncertain" || delivery.state === "cancelled")) {
       problems.push({ delivery, message });
     }
   }
@@ -124,6 +124,7 @@ export function leadsNeedingNextAction(crm: CrmContext): { leads: Lead[]; partia
 // Everything Needs decision and the rail are built from. A part is null when
 // its read didn't load (or, for the CRM, isn't this staff member's to see).
 export type TodayWork = {
+  crmExpected?: boolean;
   coverage: ReturnType<typeof coverageOf> | null;
   rostersPending: boolean; // some of the rosters are still being read
   messages: ReturnType<typeof messageWork> | null;
@@ -136,7 +137,7 @@ export type TodayWork = {
 // source hit its limit or a class's roster couldn't be checked.
 export function decisionCount(work: TodayWork) {
   let count = 0;
-  let partial = false;
+  let partial = work.coverage === null || work.messages === null || work.deliveries === null || (work.crmExpected === true && (work.due === null || work.noNextAction === null));
   if (work.coverage) {
     count += work.coverage.gaps.length;
     partial ||= work.coverage.unchecked > 0;

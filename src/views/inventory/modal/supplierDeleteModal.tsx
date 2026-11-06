@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import type { Supplier } from "../../../types/suppliers";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Remove Supplier — ported from #modal-delete in tailwind/src/suppliers.html and
@@ -29,6 +30,7 @@ const SupplierDeleteModal = ({ supplier, onClose, onConfirm }: SupplierDeleteMod
         <div className="confirm-ic danger">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Remove Supplier?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Permanently remove{" "}

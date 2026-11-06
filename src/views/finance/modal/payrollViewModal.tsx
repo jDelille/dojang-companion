@@ -3,6 +3,7 @@ import type { StaffPay } from "../../../types/payroll";
 import { PAYROLL_STATUS_BADGE } from "../../../utils/json/payrollData";
 import { avatarFor, initials, moneyWhole } from "../../../utils/formatUtils";
 import { grossOf, netOf } from "../usePayroll";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Payroll Details — ported from #modal-view in tailwind/src/payroll.html and
@@ -39,7 +40,10 @@ const PayrollViewModal = ({
     >
       <div className="modal-box glass modal-w-460">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">Payroll Details</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Payroll Details</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

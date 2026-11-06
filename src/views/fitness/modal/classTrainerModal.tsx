@@ -3,6 +3,7 @@ import { CircleCheck, UserCog, X } from "lucide-react";
 import type { GymClass } from "../../../types/classes";
 import { ASSIGN_TRAINERS, TIMETABLE_DAYS } from "../../../utils/json/classesData";
 import CommonSelect from "../../../components/common-select/commonSelect";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Assign Trainer — ported from #modal-trainer in tailwind/src/classes.html and
@@ -37,6 +38,7 @@ const ClassTrainerModal = ({ target, onClose, onConfirm }: ClassTrainerModalProp
             <div className="icon-box grad-gold ic-38">
               <UserCog className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Assign Trainer</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

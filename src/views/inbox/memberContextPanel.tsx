@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { UserRound } from "lucide-react";
 import type { HubMessage } from "@/domain/inbox";
-import type { MemberBooking, WindowCount } from "@/domain/member";
+import type { MemberBooking } from "@/domain/member";
 import { membershipLabel } from "@/domain/member-presentation";
+import { SIGN_IN_CODES } from "@/integrations/hub";
 import { readMemberForInbox } from "@/integrations/memberForInbox";
 import type { MemberRecordAnswer } from "@/integrations/member";
 import { TimeLabel } from "@/views/crm/localTime";
+import MemberTools from "@/views/people/memberTools";
 import MemberAvatar from "@/views/people/memberAvatar";
-import { senderName } from "./inboxCompanion";
 
 /*
    The Inbox's third pane: the Odoo member a message is linked to, next to the
@@ -26,16 +27,6 @@ import { senderName } from "./inboxCompanion";
 const sectionLabel =
   "mb-2 block font-(family-name:--crm-font-label) text-[10px] font-bold uppercase tracking-[0.16em] text-(--crm-muted)";
 
-const BOOKINGS_SHOWN = 3;
-
-// "4" (exact), "at least 30" when the list was cut off, and "Not known exactly"
-// for an incomplete 0, which is unknown, never "none"
-function countText(value: WindowCount) {
-  if (value.complete) return String(value.count);
-  if (value.count === 0) return "Not known exactly";
-  return `at least ${value.count}`;
-}
-
 // Why there's no member, from what the Hub says about the message
 function notLinkedReason(message: HubMessage) {
   if (message.state === "unmatched") {
@@ -46,51 +37,38 @@ function notLinkedReason(message: HubMessage) {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex justify-between gap-4 border-b border-(--crm-line) py-2 text-[12px]">
+    <div className="flex justify-between gap-4 border-b border-(--crm-line) px-4 py-2 text-[12px] last:border-b-0">
       <dt className="text-(--crm-text-secondary)">{label}</dt>
       <dd className="text-right font-bold text-(--crm-text)">{children}</dd>
     </div>
   );
 }
 
-function Bookings({ bookings, capped }: { bookings: MemberBooking[] | undefined; capped: boolean }) {
-  if (!bookings) {
-    return <p className="text-[12px] text-(--crm-muted)">Unavailable from this read.</p>;
-  }
-  if (bookings.length === 0) {
-    return <p className="text-[12px] text-(--crm-muted)">No upcoming classes booked.</p>;
-  }
-  const sorted = [...bookings].sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
-  const hidden = sorted.length - BOOKINGS_SHOWN;
-  return (
-    <ul className="space-y-1.5">
-      {sorted.slice(0, BOOKINGS_SHOWN).map((booking) => (
-        <li key={booking.sessionId} className="flex justify-between gap-3 text-[12px]">
-          <span className="min-w-0 truncate font-semibold text-(--crm-text)">{booking.title}</span>
-          <span className="shrink-0 text-(--crm-text-secondary)">
-            <TimeLabel iso={booking.startsAt} />
-          </span>
-        </li>
-      ))}
-      {(hidden > 0 || capped) && (
-        <li className="text-[11px] text-(--crm-muted)">
-          {hidden > 0 && `${hidden} more booked. `}
-          {capped && "Odoo sent its limit, so there may be more."}
-        </li>
-      )}
-    </ul>
-  );
+function NextBooking({ bookings, capped }: { bookings: MemberBooking[] | undefined; capped: boolean }) {
+  if (!bookings) return <span className="font-normal text-(--crm-muted)">Unavailable</span>;
+  const next = [...bookings].sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))[0];
+  if (!next) return <span className="font-normal text-(--crm-muted)">{capped ? 'Not established by this read' : 'No upcoming booking'}</span>;
+  return <><span>{next.title}</span><span className="block text-[11px] font-normal text-(--crm-text-secondary)"><TimeLabel iso={next.startsAt} /></span>{capped && <span className="block text-[10px] font-normal text-(--crm-muted)">Earliest returned booking; list is limited</span>}</>;
 }
 
 export default function MemberContextPanel({
   message,
   source,
   staffRole,
+  onAuthenticationLost,
+  onLockChange,
+  locked,
 }: {
   message: HubMessage;
   source: "hub" | "fixture";
+  onAuthenticationLost: () => void;
+  onLockChange: (locked: boolean) => void;
+  locked: boolean;
   staffRole: string; // the signed-in staff member's Hub role ("instructor" sees only their own classes)
 }) {
+  const authLost = useRef(onAuthenticationLost);
+  useEffect(() => { authLost.current = onAuthenticationLost; }, [onAuthenticationLost]);
+  const [classOptionsOpen, setClassOptionsOpen] = useState(false);
   const memberId = message.memberId;
   const [answer, setAnswer] = useState<MemberRecordAnswer | null>(null); // null while loading
   const [attempt, setAttempt] = useState(0);
@@ -102,7 +80,10 @@ export default function MemberContextPanel({
     let cancelled = false;
     readMemberForInbox(memberId).then(
       (next) => {
-        if (!cancelled) setAnswer(next);
+        if (!cancelled) {
+          if (next.outcome === "unavailable" && SIGN_IN_CODES.includes(next.code ?? "")) { authLost.current(); return; }
+          setAnswer(next);
+        }
       },
       () => {
         if (!cancelled) setAnswer({ outcome: "unavailable", code: "", text: "Odoo isn't reachable right now." });
@@ -119,8 +100,12 @@ export default function MemberContextPanel({
   }
 
   const onlyOwnClasses = staffRole === "instructor";
+  const canAct = ['owner', 'manager', 'instructor'].includes(staffRole);
+  function openClassOptions() { if (locked) return; setClassOptionsOpen(true); onLockChange(true); }
+  function closeClassOptions() { setClassOptionsOpen(false); onLockChange(false); retry(); }
 
   return (
+    <>
     <aside
       aria-label="Member context"
       className="flex min-h-40 flex-col overflow-hidden rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-elevated)] 2xl:max-h-[calc(100vh-15rem)]"
@@ -164,18 +149,16 @@ export default function MemberContextPanel({
               <MemberAvatar member={answer.member} size="small" />
               <div className="min-w-0">
                 <p className="truncate text-[14px] font-bold text-(--crm-text)">{answer.member.name}</p>
-                <p className="mt-0.5 text-[11px] text-(--crm-text-secondary)">
-                  Message from {senderName(message)}
-                </p>
+                {answer.member.householdName && <p className="mt-0.5 text-[11px] text-(--crm-text-secondary)">{answer.member.householdName}</p>}
               </div>
             </div>
 
-            <dl>
+            <dl className="-mx-4">
               <Row label="Membership">{membershipLabel(answer.member)}</Row>
               <Row label="Rank">
                 <span className="text-(--crm-mastery)">
                   {answer.member.rank.name}
-                  {answer.member.rank.stripes !== undefined &&
+                  {answer.member.rank.stripes !== undefined && answer.member.rank.stripes > 0 &&
                     ` · ${answer.member.rank.stripes} ${answer.member.rank.stripes === 1 ? "stripe" : "stripes"}`}
                 </span>
               </Row>
@@ -188,16 +171,11 @@ export default function MemberContextPanel({
                     </span>
                   </>
                 ) : (
-                  <span className="font-normal text-(--crm-muted)">No check-ins on record</span>
+                  <span className="font-normal text-(--crm-muted)">No check-ins in this read</span>
                 )}
               </Row>
-              <Row label="Check-ins, last 7 days">{countText(answer.attendance.lastSevenDays)}</Row>
+              <Row label="Next booked class"><NextBooking bookings={answer.member.bookings} capped={answer.member.bookingsCapped ?? false} /></Row>
             </dl>
-
-            <section aria-label="Upcoming classes">
-              <span className={sectionLabel}>Upcoming classes</span>
-              <Bookings bookings={answer.member.bookings} capped={answer.member.bookingsCapped ?? false} />
-            </section>
 
             {onlyOwnClasses && (
               <p className="text-[11px] text-(--crm-muted)">
@@ -210,17 +188,18 @@ export default function MemberContextPanel({
 
       {memberId && (
         <div className="border-t border-(--crm-line) px-4 py-3">
+          {source === 'hub' && canAct && answer?.outcome === 'loaded' && message.sessionId && <button type="button" disabled={locked} onClick={openClassOptions} className="mb-2 inline-flex h-8 w-full items-center justify-center rounded-lg border border-(--crm-line) px-3 text-[12px] font-semibold disabled:opacity-50">Find class options</button>}
           <Link
             href={`/people/${memberId}`}
             className="inline-flex h-8 w-full items-center justify-center rounded-lg border border-(--crm-line) bg-(--crm-interactive) px-3 text-[12px] font-bold text-(--crm-text) hover:border-(--crm-muted)"
           >
             Open full profile
           </Link>
-          <p className="mt-2 text-[10px] text-(--crm-muted)">
-            {source === "hub" ? "From Odoo · read-only" : "Sample member · development preview"}
-          </p>
+          {source === 'fixture' && <p className="mt-2 text-[10px] text-(--crm-muted)">Sample member / development preview</p>}
         </div>
       )}
     </aside>
+    {memberId && classOptionsOpen && <MemberTools memberId={memberId} tool="book" onClose={closeClassOptions} onAuthenticationLost={() => authLost.current()} />}
+    </>
   );
 }

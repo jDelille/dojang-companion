@@ -1,5 +1,6 @@
 import { LogOut, Monitor, X } from "lucide-react";
 import type { Session } from "../../../types/settings";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Active Sessions — ported from #modal-sessions in tailwind/src/settings.html and
@@ -32,7 +33,10 @@ const SettingsSessionsModal = ({
   >
     <div className="modal-box glass modal-w-520">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-black c-text">Active Sessions</h3>
+        <div className="min-w-0">
+          <DialogEyebrow />
+          <h3 className="text-base font-black c-text">Active Sessions</h3>
+        </div>
         <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
           <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
         </button>

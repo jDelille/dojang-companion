@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AlertCircle, AlertOctagon } from "lucide-react";
 import { DEL_PHRASE } from "../../../utils/json/settingsData";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete Account — ported from #modal-delete in tailwind/src/settings.html and
@@ -55,6 +56,7 @@ const SettingsDeleteModal = ({
         <div className="confirm-ic danger">
           <AlertOctagon className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Delete Account?</h3>
         <p className="text-sm text-center mb-4 c-dim">
           This permanently removes the account, all branches, members and billing history. It

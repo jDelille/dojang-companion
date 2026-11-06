@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import CommonSelect from "../../../components/common-select/commonSelect";
 import { EXPORT_FORMATS } from "../../../utils/json/referralsData";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Export Referrals — ported from #modal-export in
@@ -58,6 +59,7 @@ const ReferralExportModal = ({ open, onClose, onExport }: ReferralExportModalPro
             <div className="icon-box grad-gold ic-38">
               <Download className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Export Referrals</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

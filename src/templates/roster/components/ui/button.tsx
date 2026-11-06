@@ -23,6 +23,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     <button
       ref={ref}
       disabled={disabled || loading}
+      // Lets shared styles (style/css/dialogs.css) tell primary from secondary
+      data-variant={variant}
       className={buttonStyles({ variant, size, className })}
       {...props}
     >

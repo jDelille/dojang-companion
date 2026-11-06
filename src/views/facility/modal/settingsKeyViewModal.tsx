@@ -1,4 +1,5 @@
 import { Copy, KeyRound } from "lucide-react";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    API Key Reveal — ported from #modal-key-view in tailwind/src/settings.html and
@@ -28,6 +29,7 @@ const SettingsKeyViewModal = ({ open, code, meta, onClose, onCopy }: SettingsKey
       <div className="confirm-ic gold">
         <KeyRound className="w-6 h-6 c-gold shrink-0" aria-hidden="true" />
       </div>
+      <DialogEyebrow />
       <h3 className="text-base font-black c-text text-center mb-1">Your New API Key</h3>
       <p className="text-sm text-center mb-4 c-dim">
         Copy it now — for security it is only shown once.

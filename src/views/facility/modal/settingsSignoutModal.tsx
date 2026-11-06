@@ -1,5 +1,6 @@
 import { LogOut } from "lucide-react";
 import type { Session } from "../../../types/settings";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Sign Out Other Devices — ported from #modal-signout in
@@ -42,6 +43,7 @@ const SettingsSignoutModal = ({
         <div className="confirm-ic warn">
           <LogOut className="w-6 h-6 c-orange shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Sign Out Other Devices?</h3>
         <p className="text-sm text-center mb-4 c-dim">
           Every device except this one will be signed out immediately.

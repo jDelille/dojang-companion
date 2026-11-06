@@ -3,6 +3,7 @@ import { CheckCircle, UserPlus, X } from "lucide-react";
 import CommonSelect from "../../../components/common-select/commonSelect";
 import type { Challenge } from "../../../types/challenges";
 import { JOIN_MEMBERS } from "../../../utils/json/challengesData";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Join Challenge — ported from #modal-join in tailwind/src/challenges.html
@@ -58,6 +59,7 @@ const JoinChallengeModal = ({ challenge, onClose, onJoin }: JoinChallengeModalPr
             <div className="icon-box grad-gold ic-38">
               <UserPlus className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Join Challenge</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

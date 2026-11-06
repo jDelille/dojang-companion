@@ -2,6 +2,7 @@ import { Download, X } from "lucide-react";
 import type { AnalyticsView } from "../../../types/analytics";
 import { AN_DAYS, GOALS, RINGS } from "../../../utils/json/analyticsData";
 import { usd } from "../../../utils/formatUtils";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    View Details — ported from #modal-view in tailwind/src/analytics.html and
@@ -59,7 +60,10 @@ const AnalyticsViewModal = ({
     >
       <div className="modal-box glass modal-w-460">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">{title}</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">{title}</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

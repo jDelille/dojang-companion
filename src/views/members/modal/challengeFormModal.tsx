@@ -11,6 +11,7 @@ import {
   THEME_OPTIONS,
 } from "../../../utils/json/challengesData";
 import type { ChallengeFormInput } from "../useChallenges";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    New / Edit Challenge — ported from #modal-edit in
@@ -96,6 +97,7 @@ const ChallengeFormModal = ({
             <div className="icon-box grad-gold ic-38">
               <Trophy className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">
               {challenge ? "Edit Challenge" : "New Challenge"}
             </h3>

@@ -4,6 +4,7 @@ import CommonSelect from "../../../components/common-select/commonSelect";
 import type { LoyaltyMember } from "../../../types/rewards";
 import { ASSIGN_REASONS } from "../../../utils/json/rewardsData";
 import { number } from "../../../utils/formatUtils";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Assign Points — ported from #modal-assign in tailwind/src/rewards.html and
@@ -67,6 +68,7 @@ const AssignPointsModal = ({
             <div className="icon-box grad-gold ic-38">
               <Coins className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Assign Points</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

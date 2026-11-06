@@ -3,6 +3,7 @@ import { FileText, Printer, Send, X } from "lucide-react";
 import type { DayPass } from "../../../types/dayPasses";
 import { PASS_TAX_RATE } from "../../../utils/json/dayPassesData";
 import { moneyWhole } from "../../../utils/formatUtils";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Pass Invoice — ported from #modal-invoice in tailwind/src/day-passes.html
@@ -54,6 +55,7 @@ const PassInvoiceModal = ({ pass, onClose, onSend }: PassInvoiceModalProps) => {
             <div className="icon-box ic-gold ic-38">
               <FileText className="w-[17px] h-[17px] c-gold shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Pass Invoice</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

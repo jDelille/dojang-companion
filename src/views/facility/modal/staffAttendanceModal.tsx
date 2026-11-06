@@ -3,6 +3,7 @@ import type { StaffMember, StaffStatus } from "../../../types/staff";
 import { WEEK } from "../../../utils/json/staffData";
 import { ATTENDANCE_GLYPH } from "../staffIcons";
 import { attendanceWeek } from "../useStaff";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Attendance — ported from #modal-attendance in tailwind/src/staff.html and
@@ -37,9 +38,12 @@ const StaffAttendanceModal = ({ staff, onClose, onMark }: StaffAttendanceModalPr
     >
       <div className="modal-box glass modal-w-540">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">
-            Attendance · <span>{staff?.name ?? "Staff"}</span>
-          </h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">
+              Attendance · <span>{staff?.name ?? "Staff"}</span>
+            </h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

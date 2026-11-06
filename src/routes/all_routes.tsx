@@ -5,6 +5,7 @@ export const all_routes = {
 
   // Dojang (CRM screens C01–C05 and the public kiosk)
   today: "/today",
+  operations: "/operations",
   people: "/people",
   crm: "/crm",
   inbox: "/inbox",

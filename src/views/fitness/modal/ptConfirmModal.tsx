@@ -1,6 +1,7 @@
 import { Ban, CircleCheck, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { PtSession } from "../../../types/ptSessions";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Complete / Cancel / Delete confirms — ported from #modal-complete,
@@ -87,6 +88,7 @@ const PtConfirmModal = ({ kind, target, onClose, onConfirm }: PtConfirmModalProp
         <div className={config.icClass}>
           <Icon className={config.iconClass} aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">{config.title}</h3>
         <p className="text-sm text-center mb-5 c-dim">{config.body(name)}</p>
         <div className="flex gap-3">

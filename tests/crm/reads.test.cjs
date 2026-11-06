@@ -168,3 +168,12 @@ test("legacy task reads remain visible but cannot acquire completion authority f
   answer = { ok: true, result: leadDetails([{ ...legacy, canComplete: true, version }]) };
   assert.equal((await getLeadDetails("42")).details.tasks[0].canComplete, false);
 });
+
+test('full CRM evidence projects native weights and omits malformed detail without inventing scores',async()=>{
+ const lead={id:'42',name:'Lead',contact:'',email:'',phone:'',version:1,stageId:null,stage:'',ownerId:null,owner:'',source:'',tags:[]};
+ const evidence={journey:'New',priority:'High',priorityReason:'Needs follow-up',nextAction:'follow_up',openTasks:0,overdueTasks:0,dueToday:0,trialLinked:false,memberLinked:false,score:10,scoreKind:'record_completeness',method:'v1-fixed-evidence',reasons:[{label:'Name recorded',points:10,available:10,recorded:true}]};
+ const {getCrmContext}=load('crm');answer={ok:true,result:{stages:[],leads:[{...lead,evidence}],moreLeads:false}};
+ const valid=await getCrmContext();assert.equal(valid.context.leads[0].evidence.detail.score,10);
+ answer={ok:true,result:{stages:[],leads:[{...lead,evidence:{...evidence,score:101}}],moreLeads:false}};
+ const invalid=await getCrmContext();assert.equal(invalid.context.leads[0].evidence.detail,undefined);assert.equal(invalid.context.leads[0].evidence.priority,'High');
+});

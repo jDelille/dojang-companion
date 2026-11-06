@@ -1,6 +1,7 @@
 import { History } from "lucide-react";
 import type { Backup } from "../../../types/settings";
 import { fmtDate, fmtDateTime } from "../../../utils/json/settingsData";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Restore Confirm — ported from #modal-restore in tailwind/src/settings.html and
@@ -31,6 +32,7 @@ const SettingsRestoreModal = ({ backup: b, onClose, onConfirm }: SettingsRestore
         <div className="confirm-ic warn">
           <History className="w-6 h-6 c-orange shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Restore This Backup?</h3>
         <p className="text-sm text-center mb-4 c-dim">
           Your current settings will be replaced by{" "}

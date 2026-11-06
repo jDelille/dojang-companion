@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import type { Challenge } from "../../../types/challenges";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete Challenge — ported from #modal-delete in
@@ -49,6 +50,7 @@ const DeleteChallengeModal = ({
         <div className="danger-ic">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Delete Challenge?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Delete{" "}

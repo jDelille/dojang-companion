@@ -37,6 +37,7 @@ export const dojangMenu: SidebarSection[] = [
     title: "Workspace",
     items: [
       { label: "Today", icon: "calendar-check", routeKey: "today" },
+      { label: "Operations", icon: "layers", routeKey: "operations", matchSubpaths: true },
       { label: "People", icon: "users", routeKey: "people", matchSubpaths: true },
       { label: "Sales", icon: "trending-up", routeKey: "crm", matchSubpaths: true },
       { label: "Inbox", icon: "inbox", routeKey: "inbox", matchSubpaths: true },

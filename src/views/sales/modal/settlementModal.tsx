@@ -4,6 +4,7 @@ import { METHOD_META } from "../../../utils/json/salesData";
 import { money } from "../../../utils/salesUtils";
 import METHOD_ICON from "../methodIcon";
 import type { MethodTotal } from "../usePayments";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Settlements — ported from #modal-settle in tailwind/src/payments.html and
@@ -49,6 +50,7 @@ const SettlementModal = ({ open, onClose, total, rows, onSettle }: SettlementMod
       <div className="modal-box glass modal-w-480">
         <div className="flex items-center justify-between mb-4">
           <div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Settlements</h3>
             <div className="text-[11px] c-dim mt-0.5">Today&apos;s payout by method</div>
           </div>

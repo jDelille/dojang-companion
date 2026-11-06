@@ -10,6 +10,7 @@ import {
 } from "../../../utils/json/ptSessionsData";
 import CommonSelect, { type Option } from "../../../components/common-select/commonSelect";
 import { moneyWhole } from "../../../utils/formatUtils";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Book / Edit PT Session — ported from #modal-session-form in
@@ -88,9 +89,12 @@ const PtSessionFormModal = ({
     >
       <div className="modal-box glass">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-black c-text">
-            {target ? "Edit PT Session" : "Book PT Session"}
-          </h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">
+              {target ? "Edit PT Session" : "Book PT Session"}
+            </h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

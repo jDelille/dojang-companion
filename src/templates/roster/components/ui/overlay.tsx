@@ -17,6 +17,7 @@ import {
 import { X } from 'lucide-react';
 import { cn } from '@/templates/roster/lib/utils';
 import { Button } from '@/templates/roster/components/ui/button';
+import DialogEyebrow from '@/components/common/DialogEyebrow';
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -25,6 +26,7 @@ export function Modal({
   open,
   onClose,
   title,
+  eyebrow,
   description,
   children,
   footer,
@@ -34,6 +36,8 @@ export function Modal({
   open: boolean;
   onClose: () => void;
   title: string;
+  /** The small label above the title; defaults to the site section. */
+  eyebrow?: string;
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
@@ -139,7 +143,7 @@ export function Modal({
       {/* Centerd on tall viewports, top-aligned when content is taller. */}
       <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
         <div
-          className="fixed inset-0 bg-[color:var(--color-scrim)]/55 backdrop-blur-[2px]"
+          className="fixed inset-0 bg-black/60 backdrop-blur-[2px]"
           aria-hidden
           onMouseDown={() => {
             backdropArmed.current = true;
@@ -161,30 +165,23 @@ export function Modal({
             e.stopPropagation();
             backdropArmed.current = false;
           }}
-          className={cn(
-            'relative z-10 w-full animate-fade-in rounded-lg border border-[color:var(--color-border)] shadow-modal focus:outline-none',
-            // Opaque surface: the panel must never let the page bleed through.
-            'bg-[color:var(--color-surface)] dark:bg-[color:var(--color-surface-dark)]',
-            widths[width],
-          )}
+          // Looks: style/css/dialogs.css (app-dialog), shared with every modal on the site
+          className={cn('app-dialog relative z-10 w-full animate-fade-in focus:outline-none', widths[width])}
         >
-          <div className="flex items-start justify-between gap-4 border-b border-[color:var(--color-border)] px-5 py-4">
+          <div className="app-dialog-panel">
+          <div className="app-dialog-header">
             <div className="min-w-0">
-              <h2 id={titleId} className="font-sans text-base font-semibold">
+              <DialogEyebrow label={eyebrow} />
+              <h2 id={titleId} className="app-dialog-title">
                 {title}
               </h2>
               {description && (
-                <p id={descId} className="mt-1 text-xs leading-relaxed muted">
+                <p id={descId} className="app-dialog-description">
                   {description}
                 </p>
               )}
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close dialog"
-              className="-me-1.5 -mt-1.5 shrink-0 rounded-md p-1.5 text-[color:var(--color-fg-muted)] transition-colors hover:bg-black/5 hover:text-[color:var(--color-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)] dark:hover:bg-white/10"
-            >
+            <button type="button" onClick={onClose} aria-label="Close dialog" className="app-dialog-close">
               <X className="h-4 w-4" strokeWidth={1.75} />
             </button>
           </div>
@@ -192,11 +189,11 @@ export function Modal({
           {(() => {
             const body = (
               <>
-                <div className="scrollbar-thin max-h-[65vh] overflow-y-auto px-5 py-5">
+                <div className="app-dialog-scroll scrollbar-thin">
                   {children}
                 </div>
                 {footer && (
-                  <div className="flex flex-wrap items-center justify-end gap-2 border-t border-[color:var(--color-border)] bg-[color:var(--color-paper)] px-5 py-3.5 dark:bg-white/[0.02]">
+                  <div className="app-dialog-actions">
                     {footer}
                   </div>
                 )}
@@ -216,6 +213,7 @@ export function Modal({
               body
             );
           })()}
+          </div>
         </div>
       </div>
     </div>

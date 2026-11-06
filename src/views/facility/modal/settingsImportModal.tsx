@@ -7,6 +7,7 @@ import {
   SECTION_LABEL,
 } from "../../../utils/json/settingsData";
 import { SETTINGS_ICON, SETTINGS_ICON_FALLBACK } from "../settingsIcons";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Import Settings — ported from #modal-import in tailwind/src/settings.html and
@@ -97,7 +98,10 @@ const SettingsImportModal = ({ open, draft, onClose, onConfirm }: SettingsImport
     >
       <div className="modal-box glass modal-w-520">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">Import Settings</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Import Settings</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

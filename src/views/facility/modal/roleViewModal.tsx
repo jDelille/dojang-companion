@@ -1,6 +1,7 @@
 import { KeyRound, Pencil, Users, X } from "lucide-react";
 import type { Role } from "../../../types/accessControl";
 import { LEVEL_BADGE, MODULES } from "../../../utils/json/accessControlData";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    View Permissions — ported from #modal-view in
@@ -31,6 +32,7 @@ const RoleViewModal = ({ role, onClose, onAssign, onEdit }: RoleViewModalProps) 
       <div className="modal-box glass modal-w-460">
         <div className="flex items-center justify-between mb-4">
           <div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">{role?.name ?? "Role"}</h3>
             <span className={`badge ${role ? LEVEL_BADGE[role.level] : "badge-active"} mt-1`}>
               {role?.level ?? "Level"}

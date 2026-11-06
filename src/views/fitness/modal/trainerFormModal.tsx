@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import type { Trainer, TrainerFormValues, TrainerLevel } from "../../../types/trainers";
 import { LEVELS, SPECS } from "../../../utils/json/trainersData";
 import CommonSelect from "../../../components/common-select/commonSelect";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Add / Edit Trainer — ported from #modal-trainer-form in tailwind/src/trainers.html
@@ -52,9 +53,12 @@ const TrainerFormModal = ({ open, target, onClose, onSubmit }: TrainerFormModalP
     >
       <div className="modal-box">
         <div className="flex items-center justify-between mb-5">
-          <h3 id="tf-title" className="font-black c-text text-lg">
-            {target ? "Edit Trainer" : "Add New Trainer"}
-          </h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 id="tf-title" className="font-black c-text text-lg">
+              {target ? "Edit Trainer" : "Add New Trainer"}
+            </h3>
+          </div>
           <button type="button" className="modal-x" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

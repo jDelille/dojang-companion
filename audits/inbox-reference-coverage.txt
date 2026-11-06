@@ -1,0 +1,144 @@
+INBOX REFERENCE COVERAGE â€” 2026-11-03
+
+Scope: current staff Inbox implementation. Source/code audit, not live-provider
+or manual browser acceptance. Member 360 work is parked. Beta 0.3 stays excluded.
+
+References checked
+- New_Kiosk_Martial_Dream_Eb_Gym_Whats_Max (6).pdf: all Inbox/omnichannel passages;
+  p15 section14 person-linked Inbox; pp25â€“26 provider separation and untrusted
+  inbound content; p28 structured action cards. Later Beta0.3 is not implemented.
+- Kiosk_Core_Ui_Designs_Unity_Map_Cards (1).pdf: p24 section34 communications
+  conversation/person/AI draft/edit/send/book-and-send; pp36â€“37 role policies;
+  pp38â€“42 compact views, operational states and communications constraints.
+- Dojang_CRM_Kiosk_Roster_Implementation_Template.pdf: p2 C05 person/lead context,
+  draft/review/send/delivery/follow-up; p5 extraction; acceptance stable identity,
+  permissions, honest failed sends and AI-independent staff work.
+- Dojang_Justin_Kiosk_UI_Reference_v2.pdf: p6 consequential action previews and
+  authoritative receipts. Kiosk-specific flows do not redefine staff Inbox.
+- Odoo_Kiosk_React_Companion_Update_Saas.pdf: pp72â€“75 channel capability states,
+  human versus agent identities, escalation and unified Inbox; p142 untrusted
+  external content; p151 reviewed attendance-follow-up vertical.
+- Companion app/(companion)/hub/page.tsx MessageCard and current app Inbox/domain/
+  integration/gateway/fixture source; native Odoo service.py _context, _resolve,
+  _draft, _approve_reply. Existing MemberTools/MemberWorkspace service boundaries.
+
+Implemented/retained
+- Scoped native incoming work items, linked through exact Odoo member IDs.
+  Sender identity is never guessed from names or household membership.
+- Queue filters: Needs review, Drafts, In progress, Delivery issues, Delivered,
+  All. Failed, cancelled and uncertain approvals do not appear delivered.
+- Search loaded sender/student/class/text/contact reference/message ID, plus
+  available channel filters. Counts refer to loaded records; 50-row cap disclosed.
+- Explicit inbound/outbound capability visibility, fixture labeling, manual
+  refresh and linked-message-outside-window explanation.
+- Three-region desktop layout; focused list/message phone views and Back control.
+- Existing governed student/class resolve, draft, edit/review and approval
+  controls retained. This pass does not change gateway write allowlists, provider
+  credentials, consent, quiet hours, frequency caps or outbound configuration.
+- Draft evidence is visible separately from original content; AI drafts are not
+  authoritative bookings. No client-generated claims of class eligibility.
+- Delivery receipt actor/time/ID/provider reference; queued, dispatching,
+  accepted, delivered, failed, uncertain, cancelled remain distinct.
+- Contextual member truth: membership, rank, bounded attendance/bookings, scoped
+  invoice records (shared household amounts not summed into personal balance).
+- Explicitly requested, role-restricted family/messaging permissions through the
+  existing section-projected member_workspace read. No safety/medical display.
+- Existing reviewed book/change-class tools reused separately from replies.
+  Booking does not send a message; reply approval does not book a class.
+- Role hints mirror native staff actions; server still enforces all permissions.
+- Malformed/duplicate/orphan snapshots rejected; exact resolve receipts checked;
+  unknown delivery states/unreadable drafts cannot confirm success.
+- Busy/uncertain message actions hold selection/filters/refresh until resolved.
+  No automatic uncertain send retry. Explicit checks retain the same request key.
+- Authentication loss from message actions/member reads suppresses Inbox context
+  and leads to existing staff sign-in/session reset.
+
+Remaining product/backend gaps
+- Native Hub context exposes one incoming message per work item, no thread ID,
+  received time, full history pagination or immutable approved reply body.
+  Do not fake chronological threads, timestamps, or approved text from draft text.
+- Native message channels are SMS/WhatsApp. Email, calls, Facebook, Instagram,
+  web chat and agent-owned identities/handoffs need approved normalized adapters.
+- Lead/staff thread categories, conversation owners, read/unread, close/reopen,
+  escalation, attachments and conversation-specific follow-up state are absent.
+  Existing member tasks are not evidence of a conversation follow-up.
+- Combined Book & Send needs explicit orchestration with partial-failure,
+  approval and idempotency semantics. Separate native actions remain available.
+- Complete readiness percentages, balance totals and slot eligibility previews
+  shown in conceptual frames cannot be fabricated from current Inbox reads.
+- No live provider setup, send, payment, booking or guardian mutation was performed
+  during implementation. Real delivery acceptance and consent/quiet-hours/caps
+  require separate configured environment verification.
+
+Validation
+- New tests exercise queues, search identity, selection boundaries, malformed
+  snapshots, auth/empty distinction, invalid receipts and exact-key uncertain checks.
+- Manual desktop/phone/keyboard and owner/manager/instructor acceptance remains.
+
+Verification results: 108 CRM/domain/integration tests passed (7 new Inbox tests).
+Typecheck, scoped ESLint and production build passed. No browser automation ran.
+
+Roster source review
+- Inspected the original components/inbox/inbox-client.tsx in the licensed
+  Companion_Biz_Violoop/roster source, plus our existing extraction/license map.
+- Current Dojang Inbox already adapts its list/detail panes, row previews,
+  channel icons/badges, contact link, inbound/outbound bubbles, composer and
+  Ctrl/Cmd+Enter interaction (opening our approval review instead of direct send).
+- Roster's conversation model supplies thread IDs, timestamps, agent attribution,
+  open/closed state and needsHuman. Our native Hub message model does not expose
+  equivalent fields, so those UI features require a mapped authoritative contract.
+- Source refresh polling and scroll-to-bottom assume a real chronological thread;
+  do not transplant them onto unrelated incoming work items or replace edited
+  drafts while staff are reviewing them.
+- Roster's direct /api/inbox/send, PATCH close/reopen, workspace auth and database
+  are not imported. No new licensed source was copied in this review.
+
+Supported-workflow completion pass
+- Rechecked main writeup p15/p28, Atlas p24/p41/p42, handoff p2; native
+  service.py guardian-binding/resolve behavior and communications.py operations;
+  Roster Inbox models/composer, Companion's existing member/task/booking controls.
+- Added exact-member open task reads/create/review/completion with bounded-read
+  disclosure. Message ID is a summary reference, not a new database relationship.
+- Added future class search with still-future timestamp checks and selected-class
+  handoff into fresh native booking/replacement review. No fabricated seat counts,
+  eligibility, capacity, AI recommendations or booking-and-send transaction.
+- Added authorized guardian verification and consent shortcuts beside the record.
+- Existing native resolve can recheck a formerly unmatched sender after staff
+  verify the channel. The UI now permits explicit student/class review; Odoo's
+  binding, relationship, registration, revision and role checks remain intact.
+- Added draft regeneration, local-edit/character state, discard, edited-text review,
+  and navigation/unload protection. Local drafts are not persisted in storage.
+- Split message-action/member-action locks so parallel actions cannot cross;
+  uncertain task completion cannot refresh away its frozen request.
+- Task authentication failure immediately clears the Inbox through the existing
+  authentication-loss callback. Re-sign-in clears prior Inbox search/filter state.
+- Client Inbox writes now validate exact payload/request identity before fetch;
+  resolve/draft receipts require the native next revision.
+- Native communications.py includes broadcast/automation workflows, not missing
+  conversation-thread/assignment/attachment endpoints. Broadcasts are a separate
+  campaign surface; this pass does not enable them or change live outbound setup.
+- Five additional tests cover task identity/malformed/capped reads, chronological
+  future class options, descriptive message references and invalid/stale commands.
+
+Completion-pass verification: 113 CRM/domain/integration tests passed; scoped ESLint, typecheck and production build passed. No live Odoo/provider writes or browser automation were executed. Manual role/keyboard/mobile acceptance remains.
+
+
+ROSTER VISUAL / MOBILE PASS - 2026-11-04
+- Re-inspected licensed components/inbox/inbox-client.tsx: list/detail Cards,
+  header, row preview/channel/status hierarchy, message bubbles and composer.
+- Adapted two-pane desktop layout with independently scrollable list/message.
+- Compact view shows one region at a time. Selecting a row opens the message;
+  Back restores the list and selected-row focus. Filters remain on the list.
+- Student context is a toggled detail view rather than a third column or a long
+  stack under the composer. Message remains mounted to retain local state.
+- Channel capability details collapsed; scoped counts and limit notice retained.
+- Larger touch controls, readable composer text, wrapping bubbles/statuses,
+  bounded composer/evidence scroll and visual-viewport resize handling.
+- Mobile Do For Me access moved to the detail toolbar so its floating trigger
+  does not cover the composer. Existing shell drawers/navigation preserved.
+- Busy/uncertain/local-edit locks, role enforcement, exact record identities and
+  existing native actions unchanged. No invented threads, timestamps or sends.
+- 118 CRM/domain/integration tests passed; typecheck and scoped lint passed.
+- Visual acceptance remains manual; no browser automation or live sends ran.
+
+2026-11-05 user-directed context-panel reduction: compact identity/household, membership, rank, last attendance, one next returned booking and full-profile link. Removed invoice list, seven-day count, task forms, consent/verification and expanded family controls from this panel. One class-options dialog remains for linked class context; deeper work stays in Member 360.

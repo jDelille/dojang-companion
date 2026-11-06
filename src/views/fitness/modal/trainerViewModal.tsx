@@ -3,6 +3,7 @@ import type { Trainer } from "../../../types/trainers";
 import { moneyWhole } from "../../../utils/formatUtils";
 import { fullName } from "../useTrainers";
 import TrainerStars from "../trainerStars";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Trainer Profile — ported from #modal-view in tailwind/src/trainers.html and
@@ -39,7 +40,10 @@ const TrainerViewModal = ({
     >
       <div className={`modal-box modal-w-540 acc-${trainer?.accent ?? "gold"}`}>
         <div className="flex items-center justify-between mb-5">
-          <h3 className="font-black c-text text-lg">Trainer Profile</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="font-black c-text text-lg">Trainer Profile</h3>
+          </div>
           <button type="button" className="modal-x" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

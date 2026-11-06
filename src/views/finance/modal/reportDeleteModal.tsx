@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import type { Report } from "../../../types/reports";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete Report — ported from #modal-delete in tailwind/src/reports.html and
@@ -29,6 +30,7 @@ const ReportDeleteModal = ({ report, onClose, onConfirm }: ReportDeleteModalProp
         <div className="confirm-ic danger">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Delete Report?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Remove <span className="font-semibold c-text">{report?.name ?? "this report"}</span>{" "}

@@ -3,6 +3,7 @@ import { Check, RotateCcw } from "lucide-react";
 import CommonSelect from "../../../components/common-select/commonSelect";
 import type { Txn } from "../../../types/sales";
 import { money } from "../../../utils/salesUtils";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Refund confirm — ported from #modal-refund in tailwind/src/payments.html
@@ -59,6 +60,7 @@ const RefundModal = ({ txn, onClose, onConfirm }: RefundModalProps) => {
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 badge-red-custom">
             <RotateCcw className="w-[24px] h-[24px] c-red shrink-0" aria-hidden="true" />
           </div>
+          <DialogEyebrow />
           <h3 className="text-lg font-black c-text mb-1">Refund Transaction?</h3>
           <p className="text-sm c-dim mb-4">
             Refund <span className="c-gold font-bold">{txn ? money(txn.amount) : "$0"}</span> for{" "}

@@ -1,5 +1,6 @@
 import { useEffect, useId, type ReactNode } from "react";
 import { X } from "lucide-react";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Dialog shell for the register.
@@ -76,6 +77,7 @@ const PosModal = ({
         {head ??
           (chromeless ? null : (
             <div className="modal-head">
+              <DialogEyebrow />
               <h3 id={titleId} className="modal-title">
                 {title}
               </h3>

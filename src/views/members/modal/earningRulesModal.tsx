@@ -3,6 +3,7 @@ import { Check, Settings, X } from "lucide-react";
 import type { EarningRule } from "../../../types/rewards";
 import { RULE_DEFAULTS } from "../../../utils/json/rewardsData";
 import { RULE_ICON } from "../rewardIcons";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Earning Rules — ported from #modal-rules in tailwind/src/rewards.html and
@@ -65,6 +66,7 @@ const EarningRulesModal = ({
             <div className="icon-box grad-gold ic-38">
               <Settings className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Earning Rules</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

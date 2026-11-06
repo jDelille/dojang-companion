@@ -3,6 +3,7 @@ import type { DietPlan, Meal } from "../../../types/diet";
 import { C_COL, F_COL, P_COL, TYPE_BADGE } from "../../../utils/json/dietData";
 import { DIET_GOAL_ICON, MEAL_FALLBACK, MEAL_ICON } from "../dietIcons";
 import { macroPct } from "../useDiet";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Diet Plan detail — ported from #modal-diet in tailwind/src/diet.html and
@@ -37,7 +38,10 @@ const DietPlanModal = ({ plan, onClose, onEdit, onAssign }: DietPlanModalProps) 
     >
       <div className="modal-box glass modal-w-560">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">Diet Plan</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Diet Plan</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

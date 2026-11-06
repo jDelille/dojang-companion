@@ -2,6 +2,7 @@ import { Phone, PhoneCall } from "lucide-react";
 import type { Conversation } from "../../../../types/chat";
 import { person } from "../../../../utils/json/chatData";
 import { nameOf } from "../useChat";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Start Call — ported from #modal-call in tailwind/src/chat.html and
@@ -32,6 +33,7 @@ const ChatCallModal = ({ conversation: c, onClose, onConfirm }: ChatCallModalPro
         <div className="confirm-ic warn">
           <PhoneCall className="w-6 h-6 c-gold shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Start Call?</h3>
         <p className="text-sm text-center mb-4 c-dim">
           Place a voice call to{" "}

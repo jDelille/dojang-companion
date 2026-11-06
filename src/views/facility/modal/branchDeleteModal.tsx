@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AlertCircle, Trash2 } from "lucide-react";
 import type { Branch } from "../../../types/branches";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete Branch — ported from #modal-delete in tailwind/src/branches.html and
@@ -49,6 +50,7 @@ const BranchDeleteModal = ({ branch, hqName, onClose, onConfirm }: BranchDeleteM
         <div className="confirm-ic danger">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 id="dl-title" className="text-base font-black c-text text-center mb-1">
           Delete Branch?
         </h3>

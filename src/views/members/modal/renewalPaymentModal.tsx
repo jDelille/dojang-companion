@@ -6,6 +6,7 @@ import type { RenewalMember } from "../../../types/renewals";
 import { PAYMENT_OPTIONS } from "../../../utils/json/renewalsData";
 import { initials } from "../../../utils/formatUtils";
 import leadAvatar from "../leadAvatar";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Record Payment — ported from #modal-payment in tailwind/src/renewals.html
@@ -63,6 +64,7 @@ const RenewalPaymentModal = ({ member, onClose, onSave }: RenewalPaymentModalPro
             <div className="icon-box ic-green ic-38">
               <DollarSign className="w-[17px] h-[17px] c-green shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Record Payment</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

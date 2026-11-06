@@ -9,6 +9,9 @@ const countText = (value: WindowCount) => value.complete ? String(value.count)
 // the member ID; Jodi re-reads scoped facts and owns all AI privacy policy.
 export function memberCompanionContext(member: Member, attendance: MemberAttendance): CompanionContext {
   const intel = [
+    { label: "Engagement", value: "Not available" },
+    { label: "Retention risk", value: "Not available" },
+    { label: "Testing readiness", value: member.testReadiness === undefined ? "Not available" : `${member.testReadiness}%` },
     { label: "Membership", value: membershipLabel(member) },
     { label: "Rank", value: member.rank.stripes === undefined ? member.rank.name : `${member.rank.name} · ${member.rank.stripes} stripes` },
     { label: "Check-ins, last 7 days", value: countText(attendance.lastSevenDays) },

@@ -3,7 +3,6 @@ import { getMembers, USES_SAMPLE_MEMBERS } from "@/integrations/member";
 import PeoplePane from "@/views/people/peoplePane";
 import { ContextPane } from "@/views/shell/contextPane";
 import HubUnavailable from "@/views/shell/hubUnavailable";
-import { hubEnabled } from '@/server/hub-gateway';
 
 // Member data is read per request, never at build time
 export const dynamic = "force-dynamic";
@@ -30,7 +29,7 @@ export default async function PeopleLayout({
       {answer.outcome === "loaded" ? (
         <>
           <ContextPane>
-            <PeoplePane members={answer.members} allowIntake={hubEnabled()} />
+            <PeoplePane members={answer.members} />
           </ContextPane>
           {children}
         </>

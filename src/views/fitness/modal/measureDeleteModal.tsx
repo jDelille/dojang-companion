@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import type { MeasureLog } from "../../../types/bodyMeasurements";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete Entry — ported from #modal-delete in
@@ -30,6 +31,7 @@ const MeasureDeleteModal = ({ entry, onClose, onConfirm }: MeasureDeleteModalPro
         <div className="confirm-ic danger">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Delete Entry?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Permanently remove the measurement from{" "}

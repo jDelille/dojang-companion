@@ -2,6 +2,7 @@ import { Send } from "lucide-react";
 import type { Announcement } from "../../../types/announcements";
 import { estReach } from "../../../utils/json/announcementsData";
 import { fmtDateTime } from "../useAnnouncements";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Publish Now — ported from #modal-publish in tailwind/src/announcements.html and
@@ -37,6 +38,7 @@ const AnnouncementPublishModal = ({
         <div className="confirm-ic gold">
           <Send className="w-6 h-6 c-gold shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Publish Now?</h3>
         <p className="text-sm text-center mb-4 c-dim">
           <span className="font-semibold c-text">

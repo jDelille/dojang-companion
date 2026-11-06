@@ -12,6 +12,7 @@ import {
   WORKOUT_LEVELS,
 } from "../../../utils/json/workoutsData";
 import CommonSelect from "../../../components/common-select/commonSelect";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    New / Edit Workout Plan — ported from #modal-workout-form in
@@ -62,9 +63,12 @@ const WorkoutFormModal = ({ open, target, onClose, onSubmit }: WorkoutFormModalP
     >
       <div className="modal-box glass modal-w-560">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-black c-text">
-            {target ? "Edit Workout Plan" : "New Workout Plan"}
-          </h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">
+              {target ? "Edit Workout Plan" : "New Workout Plan"}
+            </h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

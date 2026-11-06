@@ -1,6 +1,7 @@
 import { Trash2 } from "lucide-react";
 import type { Trainer } from "../../../types/trainers";
 import { fullName } from "../useTrainers";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Remove Trainer — ported from #modal-delete in tailwind/src/trainers.html and
@@ -30,6 +31,7 @@ const TrainerDeleteModal = ({ trainer, onClose, onConfirm }: TrainerDeleteModalP
         <div className="danger-ic">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Remove Trainer?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Permanently remove{" "}

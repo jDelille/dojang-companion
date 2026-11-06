@@ -84,6 +84,7 @@ function evidenceFromLead(value: unknown): LeadEvidence | undefined | null {
     return null;
   }
   return {
+    ...(isCount(value.score) && value.score <= 100 && isText(value.scoreKind) && isText(value.method) && Array.isArray(value.reasons) && value.reasons.length <= 100 && value.reasons.every(r=>isObject(r)&&isText(r.label)&&isCount(r.points)&&isCount(r.available)&&r.points<=r.available&&typeof r.recorded==='boolean') ? { detail: { score: value.score, scoreKind: value.scoreKind, method: value.method, reasons: value.reasons.map(r => ({ label: r.label as string, points: r.points as number, available: r.available as number, recorded: r.recorded as boolean })) } } : {}),
     journey: value.journey,
     priority,
     priorityReason: value.priorityReason,

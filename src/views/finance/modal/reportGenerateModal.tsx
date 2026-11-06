@@ -8,6 +8,7 @@ import {
   REPORT_FORMATS,
 } from "../../../utils/json/reportsData";
 import CommonSelect from "../../../components/common-select/commonSelect";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Generate Report — ported from #modal-generate in tailwind/src/reports.html and
@@ -48,7 +49,10 @@ const ReportGenerateModal = ({
     >
       <div className="modal-box glass modal-w-560">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-black c-text">Generate Report</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Generate Report</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

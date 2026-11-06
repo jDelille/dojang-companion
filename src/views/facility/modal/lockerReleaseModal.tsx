@@ -4,6 +4,7 @@ import type { Locker } from "../../../types/lockers";
 import { RELEASE_REASONS } from "../../../utils/json/lockersData";
 import CommonSelect from "../../../components/common-select/commonSelect";
 import { fmtDate } from "../useLockers";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Release Locker — ported from #modal-release in tailwind/src/lockers.html and
@@ -45,6 +46,7 @@ const LockerReleaseModal = ({ targets, onClose, onConfirm }: LockerReleaseModalP
         <div className="confirm-ic warn">
           <LockOpen className="w-6 h-6 c-orange shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 id="rl-title" className="text-base font-black c-text text-center mb-1">
           Release Locker?
         </h3>

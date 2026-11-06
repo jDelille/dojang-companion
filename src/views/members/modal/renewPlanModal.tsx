@@ -5,6 +5,7 @@ import CommonDatePicker from "../../../components/common-date-picker/commonDateP
 import type { MembershipPlan } from "../../../types/membershipPlans";
 import { PAYMENT_OPTIONS, RENEW_MEMBERS } from "../../../utils/json/membershipPlansData";
 import { moneyWhole } from "../../../utils/formatUtils";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Renew Subscription — ported from #modal-renew-plan in
@@ -63,6 +64,7 @@ const RenewPlanModal = ({ plan, onClose, onRenew }: RenewPlanModalProps) => {
             <div className="icon-box w-9! h-9! grad-gold">
               <RefreshCw className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Renew Subscription</h3>
           </div>
           <button type="button" className="modal-x" onClick={onClose} aria-label="Close">

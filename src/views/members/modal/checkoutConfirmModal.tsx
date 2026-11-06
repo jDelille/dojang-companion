@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { LogOut } from "lucide-react";
 import type { CheckinLogEntry } from "../../../types/checkin";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Check Out Member — ported from #modal-checkout in
@@ -47,6 +48,7 @@ const CheckoutConfirmModal = ({ entry, onClose, onConfirm }: CheckoutConfirmModa
         <div className="danger-ic c-red">
           <LogOut className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text mb-1">Check Out Member?</h3>
         <p className="text-sm c-dim mb-5">
           Mark <span className="font-semibold c-text">{entry?.name ?? "this member"}</span> as

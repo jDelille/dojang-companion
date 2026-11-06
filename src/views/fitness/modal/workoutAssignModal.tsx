@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import type { WorkoutPlan } from "../../../types/workouts";
 import { WORKOUT_MEMBERS } from "../../../utils/json/workoutsData";
 import CommonSelect from "../../../components/common-select/commonSelect";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Assign Workout — ported from #modal-assign in tailwind/src/workouts.html and
@@ -33,7 +34,10 @@ const WorkoutAssignModal = ({ plan, onClose, onConfirm }: WorkoutAssignModalProp
     >
       <div className="modal-box glass">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">Assign Workout</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Assign Workout</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

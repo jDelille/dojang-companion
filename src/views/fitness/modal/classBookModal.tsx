@@ -7,6 +7,7 @@ import {
   TIMETABLE_DAYS,
 } from "../../../utils/json/classesData";
 import CommonSelect from "../../../components/common-select/commonSelect";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Book Members — ported from #modal-book in tailwind/src/classes.html and
@@ -48,6 +49,7 @@ const ClassBookModal = ({ target, onClose, onConfirm }: ClassBookModalProps) => 
             <div className="icon-box grad-gold ic-38">
               <UserPlus className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Book Members</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

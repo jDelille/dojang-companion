@@ -1,3 +1,5 @@
+import { MIGRATION_READS, MIGRATION_WRITES, migrationReadAllowed, migrationPayloadAllowed, migrationResultAllowed } from '@/domain/companionMigration';
+import { operationsRangeAllowed } from '@/domain/operations';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -69,6 +71,7 @@ const TIMEOUT_MS = 45000;
 const FORWARDED_READS = new Set(["context", "member_details", "crm_context", "lead_details", "session_roster", "companion_ask", "ai_settings", 'trial_context', 'intake_context', 'intake_preview']);
 const memberReadShape = (p: Record<string, unknown>) => Object.keys(p).sort().join() === 'memberId' && recordId(p.memberId);
 const MEMBER_READS = new Map<string, (p: Record<string, unknown>) => boolean>([
+  ['operations_report', operationsRangeAllowed],
   ['member_onboarding', memberReadShape], ['billing_ledger', memberReadShape],
   ['refund_preview', p => Object.keys(p).sort().join() === 'invoiceId,memberId' && recordId(p.memberId) && recordId(p.invoiceId)],
   ['testing_roster', p => Object.keys(p).join() === 'testId' && recordId(p.testId)],
@@ -80,6 +83,7 @@ const MEMBER_READS = new Map<string, (p: Record<string, unknown>) => boolean>([
   ['archived_members', p => Object.keys(p).join() === 'query' && typeof p.query === 'string' && p.query.length <= 100],
   ['course_roster', p => Object.keys(p).join() === 'templateId' && (p.templateId === null || recordId(p.templateId))],
   ['course_assignment_preview', p => Object.keys(p).sort().join() === 'addMemberIds,removeMemberIds,templateId' && recordId(p.templateId) && Array.isArray(p.addMemberIds) && Array.isArray(p.removeMemberIds) && p.addMemberIds.length + p.removeMemberIds.length === 1 && [...p.addMemberIds, ...p.removeMemberIds].every(recordId)],
+  ...MIGRATION_READS.map(op => [op, (p: Record<string,unknown>) => migrationReadAllowed(op,p)] as const),
 ]);
 
 const isRecordId = (value: unknown): value is string => typeof value === "string" && /^[1-9][0-9]{0,9}$/.test(value);
@@ -132,6 +136,7 @@ const FORWARDED_ACTIONS = new Map<string, (payload: Record<string, unknown>) => 
       typeof payload.due === "string" &&
       /^\d{4}-\d{2}-\d{2}$/.test(payload.due),
   ],
+  ...MIGRATION_WRITES.map(op => [op, (p: Record<string,unknown>) => migrationPayloadAllowed(op,p)] as const),
 ]);
 
 const RESPONSE_HEADERS = { "cache-control": "private, no-store", vary: "Cookie" };
@@ -440,6 +445,13 @@ export async function hubRoute(request: Request): Promise<Response> {
       return projected ? Response.json(projected, { headers: RESPONSE_HEADERS }) : problem('HUB_RESPONSE_UNREADABLE', 502);
     }
     if (operation === 'payment_link' && !paymentUrlAllowed(result.checkoutUrl, (data.payload as Record<string, unknown>).invoiceId, config.backend)) return problem('PAYMENT_URL_NOT_CONFIGURED', 422);
+    if ((MIGRATION_WRITES as readonly string[]).includes(operation) && migrationResultAllowed(operation,data.payload,result)) {
+      const workflowPayload = data.payload as Record<string,unknown>;
+      if(recordId(result.leadId)){revalidatePath(`/crm/leads/${result.leadId}`);revalidatePath('/crm');}
+      if(recordId(result.memberId))revalidatePath(`/people/${result.memberId}`);
+      for (const candidate of [...(Array.isArray(workflowPayload.addMemberIds)?workflowPayload.addMemberIds:[]),...(Array.isArray(workflowPayload.removeMemberIds)?workflowPayload.removeMemberIds:[]),...(Array.isArray(workflowPayload.add)?workflowPayload.add.filter(isObject).map(r=>r.memberId):[]),...(Array.isArray(result.promotions)?result.promotions.filter(isObject).map(r=>r.memberId):[]),...(Array.isArray(result.removedMembers)?result.removedMembers:[])]) if(recordId(candidate))revalidatePath(`/people/${candidate}`);
+      revalidatePath('/operations'); revalidatePath('/instructor'); revalidatePath('/today'); revalidatePath('/people');
+    }
     const returnedLeadId = result.leadId;
     const returnedMemberId = result.memberId;
     let leadId: string | undefined;

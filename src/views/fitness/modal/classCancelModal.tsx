@@ -1,5 +1,6 @@
 import { Ban } from "lucide-react";
 import type { GymClass } from "../../../types/classes";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Cancel Class — ported from #modal-cancel in tailwind/src/classes.html and
@@ -29,6 +30,7 @@ const ClassCancelModal = ({ target, onClose, onConfirm }: ClassCancelModalProps)
         <div className="danger-ic warn-ic">
           <Ban className="w-6 h-6 c-orange shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Cancel Class?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Cancel <span className="font-semibold c-text">{target?.name ?? "this class"}</span>?

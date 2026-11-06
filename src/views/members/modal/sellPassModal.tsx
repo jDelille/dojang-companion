@@ -6,6 +6,7 @@ import { PASS_TYPES, PAYMENT_OPTIONS } from "../../../utils/json/dayPassesData";
 import { initials, moneyWhole } from "../../../utils/formatUtils";
 import leadAvatar from "../leadAvatar";
 import { feeOf } from "../useDayPasses";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Sell Pass — ported from #modal-sell in tailwind/src/day-passes.html and
@@ -63,6 +64,7 @@ const SellPassModal = ({ pass, onClose, onSell }: SellPassModalProps) => {
             <div className="icon-box ic-gold ic-38">
               <Ticket className="w-[17px] h-[17px] c-gold shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Sell Pass</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

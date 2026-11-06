@@ -5,6 +5,7 @@ import type { DayPass } from "../../../types/dayPasses";
 import { CONVERT_PLANS, PAYMENT_OPTIONS } from "../../../utils/json/dayPassesData";
 import { initials, moneyWhole } from "../../../utils/formatUtils";
 import leadAvatar from "../leadAvatar";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Convert to Member — ported from #modal-convert in
@@ -69,6 +70,7 @@ const ConvertPassModal = ({ pass, onClose, onConvert }: ConvertPassModalProps) =
             <div className="icon-box ic-gold ic-38">
               <UserPlus className="w-[17px] h-[17px] c-gold shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Convert to Member</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

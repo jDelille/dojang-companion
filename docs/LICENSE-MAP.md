@@ -37,7 +37,7 @@ and `/roster` host are DreamOS integration code. No new template backend runs.
 
 | DreamOS file | Licensed source (package, path, SHA-256) | Taken | Modified |
 | --- | --- | --- | --- |
-| `src/views/inbox/inboxClient.tsx` | Roster 1.0.0, `components/inbox/inbox-client.tsx` (`bcf85495…c9945e`) | Two-pane list/detail layout (`lg:grid-cols-[330px_1fr]`, panes capped at `calc(100vh-15rem)`), filter tabs with counts, first-row auto-select, `?conversation=` deep link (here `?message=`), empty/loading/error placement | Yes: Hub `context` read via `/api/hub`, filters are Hub-state based (Needs you / Replied / All), no Prisma, auth, polling, send box or Close/Reopen, Dojang tokens |
+| `src/views/inbox/inboxClient.tsx` | Roster 1.0.0, `components/inbox/inbox-client.tsx` (`bcf85495…c9945e`) | Two-pane list/detail layout (`lg:grid-cols-[330px_1fr]`, panes capped at `calc(100vh-15rem)`), filter tabs with counts, first-row auto-select, `?conversation=` deep link (here `?message=`), empty/loading/error placement | Yes: Hub `context` read via `/api/hub`, filters are Hub-state based (Needs review / Drafts / In progress / Delivery issues / Delivered / All), with loaded-window search/channel filtering and focused phone views, no Prisma, auth, polling, send box or Close/Reopen, Dojang tokens |
 | `src/views/inbox/inboxList.tsx` | Roster 1.0.0, `components/inbox/inbox-client.tsx` (`bcf85495…c9945e`) | Conversation-row pattern (name, channel, Needs-you badge, one-line preview via `truncate`, `aria-current`), channel icon map | Yes: each row is one Hub message work item (no conversation model), distinct SMS/WhatsApp icons and labels, Hub state/delivery badges, no time (the Hub read has none) |
 | `src/views/inbox/messageView.tsx` | Roster 1.0.0, `components/inbox/inbox-client.tsx` (`bcf85495…c9945e`) | Detail header (name, link to record, channel line) and inbound message bubble | Yes: one inbound message (no thread); actions are Companion's Hub workflow, not Roster's direct send |
 | `src/views/inbox/inboxStates.tsx` | Roster 1.0.0, `components/ui/layout.tsx` (`d9fdb45b…8a4635`) `Tabs`, `LoadingBlock`, `ErrorBlock`; `components/ui/data.tsx` (`0e5aa179…f224`) `Badge`, `EmptyState` | Tab bar semantics (tablist, arrow keys, counts), loading/empty/retryable-error blocks, badge shape | Yes: Dojang tokens, no `cn`/`Button` dependencies |
@@ -76,3 +76,17 @@ Ported by meaning from Dojang's Companion repository (`jDelille/companion` @ 1ca
 not a licensed template: Member 360, kiosk, Do For Me rail, follow-up/inbox workflow
 (`app/(companion)/hub/page.tsx` MessageCard). Hub contracts follow Jodi's
 `dojo_companion_hub` (dojo-odoo19, 16 Oct 2026). Each file names its source in a comment.
+
+
+Inbox mobile adaptation (2026-11-04): rechecked Roster 1.0.0
+`components/inbox/inbox-client.tsx` against the existing extracted Inbox.
+`src/views/inbox/inbox.css` provides Dojang-specific responsive list/detail sizing,
+focused mobile navigation, composer sizing and student-context toggle. Existing
+source-derived row/bubble/composer patterns retain the attribution above. No
+additional vendor backend, authentication, polling or direct send code imported.
+
+Companion operations migration (2026-11-05): `src/views/operations` adapts Dojang's own
+`app/(companion)/hub/{InstructorWorkspace,CommunicationsWorkspace,SetupChecklist,TestingWorkspace,CourseAssignments,AttendanceWorkspace,AiSettings,OperationsWorkspace,TrialPanel}.tsx`.
+Local styles, primitives, orchestration and validators are Dojang adaptations. No Roster
+backend/auth/provider implementation was imported. See `audits/companion-migration-coverage.txt`
+for contracts, writeup mapping and intentional limitations. Source repository was read only.

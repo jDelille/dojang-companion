@@ -7,6 +7,8 @@ import "@/style/icons/@fortawesome/fontawesome-free/css/fontawesome.min.css";
 import "@/style/icons/@fortawesome/fontawesome-free/css/all.min.css";
 import "@/style/css/style.css";
 import "./globals.css";
+// One look for every modal on the site (after style.css so it wins)
+import "@/style/css/dialogs.css";
 import ReduxProvider from "@/providers/ReduxProvider";
 import LayoutSync from "@/providers/LayoutSync";
 import PrelineInit from "@/providers/PrelineInit";

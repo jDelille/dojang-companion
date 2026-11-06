@@ -51,11 +51,13 @@ export default function InboxList({
   messages,
   selectedId,
   onSelect,
+  locked,
 }: {
   context: HubContext;
   messages: HubMessage[];
   selectedId: string | null;
   onSelect: (messageId: string) => void;
+  locked: boolean;
 }) {
   return (
     <ul className="scrollbar-thin divide-y divide-[color:var(--color-border)] overflow-y-auto">
@@ -63,11 +65,12 @@ export default function InboxList({
         const Icon = CHANNEL_ICONS[message.channel] ?? MessageCircle;
         const selected = message.id === selectedId;
         const delivery = deliveryOf(context, message.id);
-        const failed = delivery !== null && (delivery.state === "failed" || delivery.state === "uncertain");
+        const failed = delivery !== null && (delivery.state === "failed" || delivery.state === "uncertain" || delivery.state === "cancelled");
         return (
           <li key={message.id}>
             <button
               type="button"
+              disabled={locked}
               onClick={() => onSelect(message.id)}
               aria-current={selected ? "true" : undefined}
               className={cn(
@@ -79,10 +82,10 @@ export default function InboxList({
               <div className="flex items-center gap-2">
                 <Icon className="h-3.5 w-3.5 shrink-0 muted" strokeWidth={1.75} aria-hidden="true" />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{senderName(message)}</span>
-                {needsStaff(context, message) && <Badge tone="warning">Needs you</Badge>}
-                {delivery && failed && <Badge tone="alert">{DELIVERY_LABELS[delivery.state]}</Badge>}
+                {needsStaff(context, message) && message.state !== "unmatched" && <Badge tone="warning">Needs you</Badge>}
+                {delivery && failed && <Badge tone="alert">{delivery.state === "failed" ? "Failed" : delivery.state === "cancelled" ? "Cancelled" : "Uncertain"}</Badge>}
                 {!delivery && message.state === "unmatched" && (
-                  <Badge tone={STATE_TONES[message.state]}>{MESSAGE_STATE_LABELS[message.state]}</Badge>
+                  <Badge tone={STATE_TONES[message.state]}>Verify sender</Badge>
                 )}
               </div>
               <p className="mt-1 truncate text-xs muted">{preview(message.text)}</p>

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import type { Member } from "../../../types/members";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete Member — ported from #modal-delete in tailwind/src/members.html and
@@ -48,6 +49,7 @@ const DeleteMemberModal = ({ member, onClose, onConfirm }: DeleteMemberModalProp
           <div className="danger-ic">
             <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
           </div>
+          <DialogEyebrow />
           <h3 className="text-base font-black c-text mb-1">Delete Member?</h3>
           <p className="text-sm c-dim mb-5">
             This permanently removes{" "}

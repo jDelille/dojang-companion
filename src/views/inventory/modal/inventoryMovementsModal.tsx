@@ -2,6 +2,7 @@ import { Download, X } from "lucide-react";
 import type { StockMovement } from "../../../types/inventory";
 import { MV_META } from "../../../utils/json/inventoryData";
 import { MOVE_ICON } from "../inventoryIcons";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Stock Movements log — ported from #modal-movements in
@@ -60,7 +61,10 @@ const InventoryMovementsModal = ({
   >
     <div className="modal-box glass modal-w-540">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-black c-text">Stock Movements</h3>
+        <div className="min-w-0">
+          <DialogEyebrow />
+          <h3 className="text-base font-black c-text">Stock Movements</h3>
+        </div>
         <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
           <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
         </button>

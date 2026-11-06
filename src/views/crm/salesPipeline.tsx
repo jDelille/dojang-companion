@@ -14,7 +14,6 @@ import { LeadList, LostLeads } from "./leadViews";
 import LeadTray from "./leadTray";
 import { PipelineBoard } from "@/templates/roster/components/pipeline/kanban";
 import { PageHeader } from "@/templates/roster/components/ui/layout";
-import { Switch } from "@/templates/roster/components/ui/form";
 import { Button } from "@/templates/roster/components/ui/button";
 import { Plus } from "lucide-react";
 import NewLeadForm from "./newLeadForm";
@@ -84,8 +83,6 @@ export default function SalesPipeline({
   const [sort, setSort] = useState<LeadSort>("received");
   const [creating, setCreating] = useState(false);
   const [createdLeadId, setCreatedLeadId] = useState<string | null>(null);
-  // The lead details panel beside the board, off by default (a switch in the header, for demos)
-  const [showDetails, setShowDetails] = useState(false);
   // New leads are created only in real Odoo, never in the sample data
   const canCreate = fromOdoo && !showsSampleData;
   const shown = organizeLeads(context.leads, { owner: ownerFilter, tag: tagFilter, stage: stageFilter, source: sourceFilter, attention, sort });
@@ -129,7 +126,8 @@ export default function SalesPipeline({
         </div>
       )}
 
-      <div className={`grid gap-6 ${showDetails ? "2xl:grid-cols-[minmax(0,1fr)_18rem]" : ""}`}>
+      {/* The board, with the lead details panel beside it (always shown) */}
+      <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_18rem]">
         <section aria-label="Lead pipeline" className="min-w-0">
           {SHOW_TOOLBAR ? (
           <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
@@ -149,7 +147,6 @@ export default function SalesPipeline({
               description={`${context.moreLeads ? "At least " : ""}${openLeads.length} ${openLeads.length === 1 ? "lead" : "leads"} across ${boardData.stages.length} ${boardData.stages.length === 1 ? "stage" : "stages"}${fromOdoo ? " · from Odoo" : ` · ${lostLeads.length} lost`}`}
               actions={
                 <>
-                  <Switch checked={showDetails} onChange={setShowDetails} label="Lead details" />
                   <Button
                     variant="primary"
                     size="sm"
@@ -293,7 +290,7 @@ export default function SalesPipeline({
           )}
         </section>
 
-        {showDetails && <LeadTray lead={selected} allowTrialBooking={fromOdoo && !showsSampleData} onClose={() => setSelectedId(null)} />}
+        <LeadTray lead={selected} allowTrialBooking={fromOdoo && !showsSampleData} onClose={() => setSelectedId(null)} />
       </div>
     </div>
   );

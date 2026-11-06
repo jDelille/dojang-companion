@@ -5,6 +5,7 @@ import CommonDatePicker from "../../../components/common-date-picker/commonDateP
 import type { Member, MemberStatus, PlanLabel } from "../../../types/members";
 import { PLAN_OPTIONS, TRAINER_OPTIONS } from "../../../utils/json/membersData";
 import type { EditMemberInput } from "../useMembers";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Edit Member — ported from #modal-edit-member in tailwind/src/members.html
@@ -95,6 +96,7 @@ const EditMemberModal = ({ member, onClose, onSave }: EditMemberModalProps) => {
               {member?.ini ?? "EM"}
             </div>
             <div>
+              <DialogEyebrow />
               <h3 className="font-black c-text text-lg leading-none">Edit Member</h3>
               <div className="text-[11px] mt-1 c-dim">ID: {member?.id ?? "M-0000"}</div>
             </div>

@@ -3,6 +3,7 @@ import { AlertCircle, Check, X } from "lucide-react";
 import type { CardDetails } from "../../../types/settings";
 import { TODAY } from "../../../utils/json/settingsData";
 import CommonSelect from "../../../components/common-select/commonSelect";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Update Payment Method — ported from #modal-payment in tailwind/src/settings.html
@@ -109,7 +110,10 @@ const SettingsPaymentModal = ({ open, card, onClose, onConfirm }: SettingsPaymen
     >
       <div className="modal-box glass modal-w-460">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-black c-text">Update Payment Method</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Update Payment Method</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

@@ -22,6 +22,7 @@ import {
 } from "../../../utils/json/announcementsData";
 import { AUD_FALLBACK, AUD_ICON_CMP, CHANNEL_ICON, TYPE_ICON } from "../announcementsIcons";
 import CommonDatePicker from "../../../components/common-date-picker/commonDatePicker";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Add / Edit Announcement — ported from #modal-ann-form in
@@ -160,9 +161,12 @@ const AnnouncementFormModal = ({
     >
       <div className="modal-box glass modal-w-560">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-black c-text">
-            {target ? "Edit Announcement" : "New Announcement"}
-          </h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">
+              {target ? "Edit Announcement" : "New Announcement"}
+            </h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

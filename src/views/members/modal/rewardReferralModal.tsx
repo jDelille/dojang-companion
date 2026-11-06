@@ -4,6 +4,7 @@ import CommonSelect from "../../../components/common-select/commonSelect";
 import type { Referral } from "../../../types/referrals";
 import { PAYOUT_OPTIONS, REFERRAL_REWARD } from "../../../utils/json/referralsData";
 import { moneyWhole } from "../../../utils/formatUtils";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Reward Referral — ported from #modal-reward in tailwind/src/referrals.html
@@ -59,6 +60,7 @@ const RewardReferralModal = ({ referral, onClose, onPay }: RewardReferralModalPr
             <div className="icon-box grad-gold ic-38">
               <Gift className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Reward Referral</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

@@ -43,7 +43,10 @@ export const Select = forwardRef<
     <div className="relative">
       <select
         ref={ref}
-        className={cn(CONTROL_BASE, 'h-9 cursor-pointer appearance-none pe-9', className)}
+        // Draws the ChevronDown below; data-own-arrow removes the browser's and
+        // @tailwindcss/forms' arrows (app/globals.css)
+        data-own-arrow=""
+        className={cn(CONTROL_BASE, 'h-9 cursor-pointer appearance-none bg-none pe-9', className)}
         {...props}
       >
         {children}

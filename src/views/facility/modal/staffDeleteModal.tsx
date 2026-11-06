@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import type { StaffMember } from "../../../types/staff";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Remove Staff Member — ported from #modal-delete in tailwind/src/staff.html
@@ -32,6 +33,7 @@ const StaffDeleteModal = ({ staff, onClose, onConfirm }: StaffDeleteModalProps) 
         <div className="confirm-ic danger">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Remove Staff Member?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Permanently remove{" "}

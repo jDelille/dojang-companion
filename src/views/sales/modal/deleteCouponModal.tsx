@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Trash2 } from "lucide-react";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete confirm — ported from #modal-del in tailwind/src/offers.html and
@@ -47,6 +48,7 @@ const DeleteCouponModal = ({ code, onClose, onConfirm }: DeleteCouponModalProps)
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 badge-red-custom">
             <Trash2 className="w-[24px] h-[24px] c-red shrink-0" aria-hidden="true" />
           </div>
+          <DialogEyebrow />
           <h3 className="text-lg font-black c-text mb-1">Delete Coupon?</h3>
           <p className="text-sm c-dim mb-5">
             Delete <span className="c-gold font-bold font-mono">{code ?? "—"}</span> permanently?

@@ -1,10 +1,14 @@
 import { useEffect, useId, type ReactNode } from "react";
 import { X } from "lucide-react";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
+// Looks: style/css/dialogs.css (.modal-box)
 type ModalProps = {
   open: boolean;
   onClose: () => void;
   title: ReactNode;
+  // The small label above the title; defaults to the site section
+  eyebrow?: string;
   children: ReactNode;
   boxClassName?: string;
   closeClassName?: string;
@@ -17,6 +21,7 @@ const Modal = ({
   open,
   onClose,
   title,
+  eyebrow,
   children,
   boxClassName = "glass",
   closeClassName = "hbtn",
@@ -59,9 +64,12 @@ const Modal = ({
     >
       <div className={`modal-box ${boxClassName}`}>
         <div className={`flex items-center justify-between ${headerClassName}`}>
-          <h3 id={titleId} className={`font-black c-text ${titleClassName}`}>
-            {title}
-          </h3>
+          <div className="min-w-0">
+            <DialogEyebrow label={eyebrow} />
+            <h3 id={titleId} className={`font-black c-text ${titleClassName}`}>
+              {title}
+            </h3>
+          </div>
           <button type="button" className={closeClassName} onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px]" aria-hidden="true" />
           </button>

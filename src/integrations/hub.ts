@@ -1,3 +1,6 @@
+import { isResolvePayload, isDraftPayload, isApproveReplyPayload } from "@/domain/inbox";
+import { isRequestKey } from "@/domain/hubAction";
+import { isInboxContext } from '@/domain/inboxWorkspace';
 import type { RosterMember, SessionRoster } from "@/domain/arrivals";
 import {
   explainHubError,
@@ -99,7 +102,6 @@ export type InboxContextAnswer =
 // Codes that mean "sign in first" (the real Hub only)
 export const SIGN_IN_CODES = ["SIGN_IN_REQUIRED", "UNAUTHENTICATED"];
 
-const isList = (value: unknown) => Array.isArray(value);
 
 // Hub operation "context" (a read: no request key)
 export async function getInboxContext(): Promise<InboxContextAnswer> {
@@ -118,23 +120,13 @@ export async function getInboxContext(): Promise<InboxContextAnswer> {
     return { outcome: "unavailable", code: null, text: "Odoo isn't reachable right now." };
   }
 
-  const context = body as HubContext;
-  if (
-    !response.ok ||
-    !context ||
-    !isList(context.messages) ||
-    !isList(context.deliveries) ||
-    !isList(context.members) ||
-    !isList(context.sessions) ||
-    !isList(context.timeline) ||
-    !context.capabilities
-  ) {
+  if (!response.ok || !isInboxContext(body)) {
     const code = errorCode(body);
     return { outcome: "unavailable", code, text: code ? explainHubError(code) : "The inbox couldn't be loaded." };
   }
   return {
     outcome: "loaded",
-    context,
+    context: body,
     simulatedOutbound: response.headers.get(SIMULATED_OUTBOUND_HEADER) === "1",
   };
 }
@@ -275,10 +267,17 @@ function isResultFor(operation: keyof InboxWrites, body: unknown, payload: { mes
   if (!body || typeof body !== "object") return false;
   const result = body as Record<string, unknown>;
   if (typeof result.replayed !== "boolean") return false;
+  const id = (value: unknown) => typeof value === 'string' && /^[1-9][0-9]{0,9}$/.test(value) && Number(value) <= 2147483647;
+  if (!id(result.memberId) || !id(result.sessionId)) return false;
   if (operation === "approve_reply") {
-    return typeof result.deliveryId === "string" && typeof result.state === "string";
+    return id(result.deliveryId) && ['queued', 'dispatching', 'accepted', 'delivered', 'failed', 'uncertain', 'cancelled'].includes(String(result.state));
   }
-  return result.messageId === payload.messageId && typeof result.revision === "number";
+  if (result.messageId !== payload.messageId || !Number.isSafeInteger(result.revision) || result.revision !== (payload as DraftPayload).expectedRevision + 1) return false;
+  if (operation === 'resolve') {
+    const target = payload as ResolvePayload;
+    return result.memberId === target.memberId && result.sessionId === target.sessionId;
+  }
+  return ['summary', 'reply', 'mode'].every(key => typeof result[key] === 'string');
 }
 
 // Hub operations resolve / draft / approve_reply
@@ -287,6 +286,8 @@ export async function runInboxAction<K extends keyof InboxWrites>(
   payload: InboxWrites[K]["payload"],
   requestKey: string,
 ): Promise<HubAnswer<InboxWrites[K]["result"]>> {
+  const validate = { resolve: isResolvePayload, draft: isDraftPayload, approve_reply: isApproveReplyPayload }[operation];
+  if (!validate || !validate(payload) || !isRequestKey(requestKey)) return { outcome: 'failed', code: 'INVALID_COMMAND' };
   let response: Response;
   let body: unknown;
   try {

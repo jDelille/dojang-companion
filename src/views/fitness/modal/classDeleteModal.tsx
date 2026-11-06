@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import type { GymClass } from "../../../types/classes";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete Class — ported from #modal-delete in tailwind/src/classes.html and
@@ -29,6 +30,7 @@ const ClassDeleteModal = ({ target, onClose, onConfirm }: ClassDeleteModalProps)
         <div className="danger-ic">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Delete Class?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Permanently remove{" "}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Copy, X } from "lucide-react";
 import type { Role } from "../../../types/accessControl";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Clone Role — ported from #modal-clone in tailwind/src/access-control.html and
@@ -29,7 +30,10 @@ const RoleCloneModal = ({ role, onClose, onConfirm }: RoleCloneModalProps) => {
     >
       <div className="modal-box glass modal-w-460">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">Clone Role</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Clone Role</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

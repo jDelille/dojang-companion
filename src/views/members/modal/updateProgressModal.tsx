@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Check, TrendingUp, X } from "lucide-react";
 import CommonSelect from "../../../components/common-select/commonSelect";
 import type { Challenge } from "../../../types/challenges";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Update Progress — ported from #modal-progress in
@@ -77,6 +78,7 @@ const UpdateProgressModal = ({
             <div className="icon-box ic-gold ic-38">
               <TrendingUp className="w-[17px] h-[17px] c-gold shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Update Progress</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

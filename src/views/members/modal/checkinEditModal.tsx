@@ -7,6 +7,7 @@ import {
   LOG_STATUS_OPTIONS,
 } from "../../../utils/json/checkinData";
 import type { EditEntryInput } from "../useCheckin";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Edit Entry — ported from #modal-edit in tailwind/src/checkin.html and
@@ -65,6 +66,7 @@ const CheckinEditModal = ({ entry, onClose, onSave }: CheckinEditModalProps) => 
             <div className="icon-box grad-gold ic-38">
               <Edit2 className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Edit Entry</h3>
           </div>
           <button type="button" className="modal-x" onClick={onClose} aria-label="Close">

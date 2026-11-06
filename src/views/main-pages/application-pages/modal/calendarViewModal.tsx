@@ -3,6 +3,7 @@ import type { CalendarEvent } from "../../../../types/calendarApp";
 import { fmtDateLong, fmtDateShort, fmtDur, fmtTime, remindLabel } from "../../../../utils/json/calendarAppData";
 import { TYPE_META } from "../../../../utils/json/calendarAppData";
 import { TYPE_ICON } from "../calendarAppIcons";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    View Event — ported from #modal-view in tailwind/src/calendar-app.html and
@@ -50,7 +51,10 @@ const CalendarViewModal = ({
     >
       <div className="modal-box glass modal-w-460">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">Event Details</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Event Details</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

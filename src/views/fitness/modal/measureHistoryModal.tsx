@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp, Download, Minus, X } from "lucide-react";
 import type { MeasureLog } from "../../../types/bodyMeasurements";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Progress History — ported from #modal-history in
@@ -34,7 +35,10 @@ const MeasureHistoryModal = ({
   >
     <div className="modal-box glass modal-w-540">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-black c-text">Progress History</h3>
+        <div className="min-w-0">
+          <DialogEyebrow />
+          <h3 className="text-base font-black c-text">Progress History</h3>
+        </div>
         <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
           <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
         </button>

@@ -5,12 +5,17 @@ import { Ellipsis, Pencil, Sparkles } from "lucide-react";
 import type { Member, MemberAttendance } from "@/domain/member";
 import { membershipLabel } from "@/domain/member-presentation";
 import { useDoForMe } from "@/views/doForMe/doForMeProvider";
+import "./member360.css";
 import MemberAvatar from "./memberAvatar";
 import MemberOverview from "./memberOverview";
 import { MemberRankHistory, MemberCourses, MemberBilling } from './memberRecords';
 import MemberMessages from './memberMessages';
+import MemberMessageDialog from './memberMessageDialog';
+import MemberBookDialog from './memberBookDialog';
+import MemberPaymentDialog from './memberPaymentDialog';
+import MemberEditDialog from './memberEditDialog';
 import HubUnavailable from '@/views/shell/hubUnavailable';
-import MemberTools, { TOOL_LABELS, type MemberTool } from './memberTools';
+import MemberTools, { type MemberTool } from './memberTools';
 import MemberWorkspace from './memberWorkspace';
 import TestingEligibility from './testingEligibility';
 import MemberTasks from './memberTasks';
@@ -18,7 +23,8 @@ import MemberOnboarding from './memberOnboarding';
 import MemberSettlement from './memberSettlement';
 import MemberTesting from './memberTesting';
 import { useRouter } from 'next/navigation';
-import { MemberAttendanceHistory, MemberBookings, MemberContact, MemberMembership, MemberTraining } from "./memberSections";
+import MemberMoreDialog from './memberMoreDialog';
+import { MemberAttendanceHistory, MemberBookings, MemberMembership, MemberTraining } from "./memberSections";
 
 /*
    Member 360 (CRM screen C02), the centre column. Layout from Jodi's mockup
@@ -27,13 +33,13 @@ import { MemberAttendanceHistory, MemberBookings, MemberContact, MemberMembershi
    and the dark frame come from app/(main)/people/layout.tsx.
 
    "Do For Me" aims the shared staff rail at this member (views/doForMe). The
-   other action buttons are disabled until they're connected (read-only).
+   action buttons open the existing governed Hub workflows.
 */
 
+// The tab strip shows the mockup's ten sections. Training, Bookings, Notes and
+// Student setup stay reachable from the "More" menu.
 const TAB_NAMES = [
   "Overview",
-  "Training",
-  "Bookings",
   "Timeline",
   "Attendance",
   "Progress",
@@ -42,17 +48,22 @@ const TAB_NAMES = [
   "Messages",
   "Documents",
   "Family",
-  "Notes",
   "Safety",
+  "Training",
+  "Bookings",
+  "Notes",
+  "Student setup",
 ] as const;
 
 type TabName = (typeof TAB_NAMES)[number];
+
+const STRIP_TABS: readonly TabName[] = TAB_NAMES.slice(0, 10);
 
 const tabId = (tab: TabName) => `member-tab-${tab.toLowerCase()}`;
 
 // The header's outline buttons
 const actionButton =
-  "inline-flex h-8 items-center gap-1.5 rounded-lg border border-(--crm-line) bg-(--crm-interactive) px-3 text-[12px] font-bold text-(--crm-text) transition-colors hover:border-(--crm-muted)";
+  "inline-flex h-9 items-center gap-1.5 rounded-lg border border-(--crm-line) bg-(--crm-interactive) px-3.5 text-[13px] font-bold text-(--crm-text) transition-colors hover:border-(--crm-muted)";
 
 type Props = {
   hubMode?: boolean;
@@ -64,6 +75,8 @@ export default function Member360({ member, attendance, hubMode = false }: Props
   const [activeTab, setActiveTab] = useState<TabName>("Overview");
   const [authenticationLost, setAuthenticationLost] = useState(false);
   const [tool, setTool] = useState<MemberTool | null>(null), [moreOpen, setMoreOpen] = useState(false);
+  const [messagesOpen, setMessagesOpen] = useState(false), [bookOpen, setBookOpen] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false), [editOpen, setEditOpen] = useState(false);
   const router = useRouter();
   const clearRecord = useCallback(() => setAuthenticationLost(true), []);
   const doForMe = useDoForMe();
@@ -77,12 +90,12 @@ export default function Member360({ member, attendance, hubMode = false }: Props
 
   // Arrow keys, Home and End move between tabs
   function moveBetweenTabs(event: KeyboardEvent<HTMLDivElement>) {
-    const current = TAB_NAMES.indexOf(activeTab);
+    const current = Math.max(STRIP_TABS.indexOf(activeTab), 0);
     let next: TabName | undefined;
-    if (event.key === "ArrowRight") next = TAB_NAMES[(current + 1) % TAB_NAMES.length];
-    if (event.key === "ArrowLeft") next = TAB_NAMES[(current - 1 + TAB_NAMES.length) % TAB_NAMES.length];
-    if (event.key === "Home") next = TAB_NAMES[0];
-    if (event.key === "End") next = TAB_NAMES[TAB_NAMES.length - 1];
+    if (event.key === "ArrowRight") next = STRIP_TABS[(current + 1) % STRIP_TABS.length];
+    if (event.key === "ArrowLeft") next = STRIP_TABS[(current - 1 + STRIP_TABS.length) % STRIP_TABS.length];
+    if (event.key === "Home") next = STRIP_TABS[0];
+    if (event.key === "End") next = STRIP_TABS[STRIP_TABS.length - 1];
     if (!next) return;
 
     event.preventDefault();
@@ -90,18 +103,23 @@ export default function Member360({ member, attendance, hubMode = false }: Props
     document.getElementById(tabId(next))?.focus();
   }
 
+  // Overview links can open any section, including the menu-only ones
+  function openTab(tab: string) {
+    if ((TAB_NAMES as readonly string[]).includes(tab)) setActiveTab(tab as TabName);
+  }
+
   return (
-    <article className="min-w-0" data-member-id={member.id}>
+    <article className="member-profile min-w-0" data-member-id={member.id}>
       {tool && <MemberTools key={`${member.id}:${tool}`} memberId={member.id} tool={tool} onClose={() => { setTool(null); router.refresh(); }} onAuthenticationLost={clearRecord} />}
       {/* Identity: avatar, name, program · family, status pill */}
-      <header>
-        <div className="flex flex-wrap items-start gap-4">
+      <header className="member-profile-header">
+        <div className="member-profile-identity">
           <MemberAvatar member={member} />
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold leading-tight text-(--crm-text)">
+            <h1 className="text-[20px] font-bold leading-tight text-(--crm-text)">
               {member.name}
             </h1>
-            {subtitle && <p className="mt-1 text-sm text-(--crm-text-secondary)">{subtitle}</p>}
+            {subtitle && <p className="mt-1 text-[14px] text-(--crm-text-secondary)">{subtitle}</p>}
           </div>
           {/* Gold: the pill carries the rank (mastery) */}
           <span className="rounded-full border border-(--crm-mastery) px-3 py-1 font-(family-name:--crm-font-label) text-[10px] font-bold uppercase tracking-[0.12em] text-(--crm-mastery)">
@@ -109,36 +127,34 @@ export default function Member360({ member, attendance, hubMode = false }: Props
           </span>
         </div>
 
-        {/* Actions, in the mockup's order. None are connected yet. */}
-        <div className="mt-4 flex flex-wrap gap-2 pb-4">
+        {/* Actions, in the mockup's order. Use existing reviewed Hub actions. */}
+        <div className="mt-3 flex flex-wrap gap-2 pb-4">
           <button
             type="button"
             disabled={!hubMode}
             title="Review a staff attendance record for a registered class"
             onClick={() => setTool('attendance')}
-            className="inline-flex h-8 items-center rounded-lg bg-(--crm-brand) px-4 text-[12px] font-bold text-white"
+            className="inline-flex h-9 items-center rounded-lg bg-(--crm-brand) px-4 text-[13px] font-bold text-white"
           >
-            Record attendance
+            Check in
           </button>
-          <button type="button" disabled={!hubMode} title="View messages explicitly linked to this student" onClick={() => setActiveTab('Messages')} className={actionButton}>
-            Messages
+          <button type="button" disabled={!hubMode} title="Write to this student or their household" onClick={() => setMessagesOpen(true)} className={actionButton}>
+            Message
           </button>
-          <button type="button" disabled={!hubMode} title="Reserve a regular class through Odoo eligibility checks" onClick={() => setTool('book')} className={actionButton}>
+          <button type="button" disabled={!hubMode} title="Reserve a regular class through Odoo eligibility checks" onClick={() => setBookOpen(true)} className={actionButton}>
             Book
           </button>
-          <button type="button" onClick={() => setActiveTab('Billing')} className={actionButton}>
-            Billing
+          <button type="button" title="Billing summary for this student's household" onClick={() => setPaymentOpen(true)} className={actionButton}>
+            Payment
           </button>
-          <button type="button" disabled={!hubMode} onClick={() => setTool('edit')} className={actionButton}>
+          <button type="button" disabled={!hubMode} onClick={() => setEditOpen(true)} className={actionButton}>
             <Pencil size={12} aria-hidden="true" />
             Edit
           </button>
           <button
             type="button"
-            disabled={!hubMode}
-            aria-expanded={moreOpen}
-            aria-controls="member-more-actions"
-            onClick={() => setMoreOpen(open => !open)}
+            aria-haspopup="dialog"
+            onClick={() => setMoreOpen(true)}
             aria-label="More actions"
             className={actionButton}
           >
@@ -153,17 +169,62 @@ export default function Member360({ member, attendance, hubMode = false }: Props
             Do For Me
           </button>
         </div>
-        {moreOpen && hubMode && <div id="member-more-actions" className="mb-4 flex flex-wrap gap-2 rounded-xl border border-(--crm-line) bg-(--crm-panel) p-3" aria-label="Additional member actions">{(Object.keys(TOOL_LABELS) as MemberTool[]).map(key => <button key={key} type="button" onClick={() => { setMoreOpen(false); setTool(key); }} className={actionButton}>{TOOL_LABELS[key]}</button>)}</div>}
       </header>
+
+      {/* Message: write to the household (msg.png) */}
+      {messagesOpen && (
+        <MemberMessageDialog key={member.id} member={member} onClose={() => setMessagesOpen(false)} onAuthenticationLost={clearRecord} />
+      )}
+
+      {/* Book: pick an upcoming class, then review and confirm (book.png) */}
+      {bookOpen && (
+        <MemberBookDialog key={member.id} member={member} onClose={() => setBookOpen(false)} onAuthenticationLost={clearRecord} />
+      )}
+
+      {/* Payment: billing summary; "Pay" opens the invoice checkout step (payment.png) */}
+      {paymentOpen && (
+        <MemberPaymentDialog
+          member={member}
+          hubMode={hubMode}
+          onClose={() => setPaymentOpen(false)}
+          onPay={() => { setPaymentOpen(false); setTool('payment'); }}
+        />
+      )}
+
+      {/* Edit: profile & training (edit-modal.png) */}
+      {editOpen && (
+        <MemberEditDialog
+          key={member.id}
+          member={member}
+          onClose={() => setEditOpen(false)}
+          onAskAI={() => { setEditOpen(false); doForMe.aim(`member:${member.id}`); }}
+          onAuthenticationLost={clearRecord}
+        />
+      )}
+
+      {/* •••: "Work with <name>" menu (dots-1.png, dot-2.png) */}
+      {moreOpen && (
+        <MemberMoreDialog
+          member={member}
+          hubMode={hubMode}
+          onClose={() => setMoreOpen(false)}
+          onTab={tab => { setMoreOpen(false); openTab(tab); }}
+          onTool={key => { setMoreOpen(false); setTool(key); }}
+          onEdit={() => { setMoreOpen(false); setEditOpen(true); }}
+          onPayment={() => { setMoreOpen(false); setPaymentOpen(true); }}
+          onMessage={() => { setMoreOpen(false); setMessagesOpen(true); }}
+          onDoForMe={() => { setMoreOpen(false); doForMe.aim(`member:${member.id}`); }}
+        />
+      )}
 
       {/* Tab strip: scrolls sideways when it doesn't fit (member360.png) */}
       <div
         role="tablist"
         aria-label="Member sections"
         onKeyDown={moveBetweenTabs}
-        className="flex gap-1 overflow-x-auto border-y border-(--crm-line)"
+        className="member-profile-tabs flex gap-1 overflow-x-auto border-y border-(--crm-line)"
       >
-        {TAB_NAMES.map((tab) => {
+        {STRIP_TABS.map((tab) => {
           const isActive = tab === activeTab;
           return (
             <button
@@ -173,9 +234,9 @@ export default function Member360({ member, attendance, hubMode = false }: Props
               role="tab"
               aria-selected={isActive}
               aria-controls="member-tab-panel"
-              tabIndex={isActive ? 0 : -1}
+              tabIndex={isActive || (!STRIP_TABS.includes(activeTab) && tab === "Overview") ? 0 : -1}
               onClick={() => setActiveTab(tab)}
-              className={`shrink-0 whitespace-nowrap border-b-2 px-2.5 py-3 text-[12px] font-semibold transition-colors ${
+              className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-2.5 py-3 text-[13px] font-semibold transition-colors ${
                 isActive
                   ? "border-(--crm-brand) text-(--crm-text)"
                   : "border-transparent text-(--crm-text-secondary) hover:text-(--crm-text)"
@@ -190,15 +251,18 @@ export default function Member360({ member, attendance, hubMode = false }: Props
       <div
         id="member-tab-panel"
         role="tabpanel"
-        aria-labelledby={tabId(activeTab)}
-        className="pt-5 sm:pt-6"
+        aria-labelledby={STRIP_TABS.includes(activeTab) ? tabId(activeTab) : undefined}
+        aria-label={STRIP_TABS.includes(activeTab) ? undefined : activeTab}
+        className="pt-5"
       >
         {activeTab === "Overview" ? (
-          <div className="space-y-4"><MemberContact member={member} /><MemberOverview member={member} attendance={attendance} onTab={tab => { if ((TAB_NAMES as readonly string[]).includes(tab)) setActiveTab(tab as TabName); }} />{hubMode && <MemberOnboarding key={member.id} memberId={member.id} onAction={setTool} onTab={tab => { if ((TAB_NAMES as readonly string[]).includes(tab)) setActiveTab(tab as TabName); }} onAuthenticationLost={clearRecord} />}</div>
+          <MemberOverview member={member} attendance={attendance} onTab={openTab} />
+        ) : activeTab === "Student setup" ? (
+          hubMode ? <MemberOnboarding key={member.id} memberId={member.id} onAction={setTool} onTab={openTab} onAuthenticationLost={clearRecord} /> : <p className="rounded-xl border border-dashed border-(--crm-line) px-5 py-8 text-center text-sm text-(--crm-text-secondary)">Student setup needs the Odoo connection.</p>
         ) : activeTab === "Training" ? (
           <div className="space-y-4"><MemberTraining member={member} /><MemberCourses member={member} />{hubMode && <button type="button" className={actionButton} onClick={() => setTool('course')}>Manage course roster</button>}</div>
         ) : activeTab === "Bookings" ? (
-          <div className="space-y-4"><MemberBookings member={member} />{hubMode && <div className="flex flex-wrap gap-2"><button type="button" className={actionButton} onClick={() => setTool('book')}>Book class</button><button type="button" className={actionButton} onClick={() => setTool('change')}>Change booking</button></div>}</div>
+          <div className="space-y-4"><MemberBookings member={member} />{hubMode && <div className="flex flex-wrap gap-2"><button type="button" className={actionButton} onClick={() => setBookOpen(true)}>Book class</button><button type="button" className={actionButton} onClick={() => setTool('change')}>Change booking</button></div>}</div>
         ) : activeTab === "Attendance" ? (
           <div className="space-y-4"><MemberAttendanceHistory attendance={attendance} />{hubMode && <div className="flex flex-wrap gap-2"><button type="button" className={actionButton} onClick={() => setTool('attendance')}>Record / correct staff attendance</button><button type="button" className={actionButton} onClick={() => setTool('checkout')}>Check out of class</button></div>}</div>
         ) : activeTab === 'Timeline' && hubMode ? (

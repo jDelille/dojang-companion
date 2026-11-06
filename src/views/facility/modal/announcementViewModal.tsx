@@ -3,6 +3,7 @@ import type { Announcement } from "../../../types/announcements";
 import { PRIO_CLASS, STATUS_BADGE, estReach, meta } from "../../../utils/json/announcementsData";
 import { TYPE_ICON } from "../announcementsIcons";
 import { fmtDate, fmtDateTime } from "../useAnnouncements";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    View Announcement — ported from #modal-view in tailwind/src/announcements.html
@@ -55,7 +56,10 @@ const AnnouncementViewModal = ({
     >
       <div className="modal-box glass modal-w-520">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">Announcement</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Announcement</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

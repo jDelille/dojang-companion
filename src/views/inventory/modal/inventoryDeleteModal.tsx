@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import type { InventoryItem } from "../../../types/inventory";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete Item — ported from #modal-delete in tailwind/src/inventory.html and
@@ -29,6 +30,7 @@ const InventoryDeleteModal = ({ item, onClose, onConfirm }: InventoryDeleteModal
         <div className="confirm-ic danger">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Delete Item?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Permanently remove{" "}

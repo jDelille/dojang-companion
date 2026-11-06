@@ -9,6 +9,7 @@ import {
   nameOf,
   roleOf,
 } from "../useChat";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    View Profile / Group Info — ported from #modal-profile in tailwind/src/chat.html
@@ -64,7 +65,10 @@ const ChatProfileModal = ({
     >
       <div className="modal-box glass modal-w-460">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">{group ? "Group Info" : "Profile"}</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">{group ? "Group Info" : "Profile"}</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

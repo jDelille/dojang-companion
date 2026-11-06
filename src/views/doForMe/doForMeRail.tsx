@@ -330,7 +330,8 @@ export default function DoForMeRail({ context, tab, picked, onTab, onDoForMe, on
       id="do-for-me-rail"
       aria-label="Do For Me"
       tabIndex={-1}
-      className="crm-scope flex min-h-0 min-w-0 flex-col border-t border-(--crm-line) bg-(--crm-canvas) lg:h-full lg:w-[17rem] lg:border-t-0 lg:border-l"
+      // Fills the shell's Do For Me column; its width is set there (--ds-companion-width in dojang-shell.css)
+      className="crm-scope flex h-full min-h-0 w-full min-w-0 flex-col border-l border-(--crm-line) bg-(--crm-canvas)"
     >
       <header className="flex items-center justify-between gap-2 px-5 pt-5">
         <h2 className="flex items-center gap-2 text-[15px] font-bold text-(--crm-text)">

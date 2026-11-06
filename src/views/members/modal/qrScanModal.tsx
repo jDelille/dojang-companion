@@ -5,6 +5,7 @@ import {
   MEMBER_STATE_BADGE,
   MEMBER_STATE_LABEL,
 } from "../../../utils/json/checkinData";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    QR Scan Result — ported from #modal-qr in tailwind/src/checkin.html and
@@ -59,6 +60,7 @@ const QrScanModal = ({ member, onClose, onConfirm }: QrScanModalProps) => {
         <div className="danger-ic ic-green-soft">
           <ScanLine className="w-6 h-6 c-green shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text mb-1">Code Scanned</h3>
         <p className="text-sm c-dim mb-4">Member identified from QR / barcode</p>
         <div className="gold-border-card p-3 mb-4 flex items-center gap-3 text-left">

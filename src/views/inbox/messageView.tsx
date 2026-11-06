@@ -16,7 +16,7 @@ import {
   type ResolvePayload,
 } from "@/domain/inbox";
 import type { Suggestion } from "@/domain/companion";
-import { runInboxAction } from "@/integrations/hub";
+import { SIGN_IN_CODES, runInboxAction } from "@/integrations/hub";
 import {
   PREPARE_REPLY_CAPABILITY,
   REVIEW_REPLY_CAPABILITY,
@@ -26,6 +26,7 @@ import {
   senderName,
   sessionOf,
 } from "./inboxCompanion";
+import { TimeLabel } from "@/views/crm/localTime";
 import { Badge } from "@/templates/roster/components/ui/data";
 import { Button } from "@/templates/roster/components/ui/button";
 import { Select, Textarea } from "@/templates/roster/components/ui/form";
@@ -93,7 +94,6 @@ function draftLabel(mode: string) {
 function successText(command: Command, state: string | undefined, simulated: boolean, replayed: boolean) {
   const again = replayed ? " (the original result; nothing was done twice)" : "";
   if (command.operation === "resolve") return `Student and class confirmed${again}.`;
-  if (command.operation === "draft") return `Reply drafted. Review it below${again}.`;
   const where = simulated ? "the simulated outbox (no provider contacted)" : "the outbox";
   return `Reply approved and ${state ?? "queued"} in ${where}${again}.`;
 }
@@ -105,14 +105,25 @@ export default function MessageView({
   picked,
   onChanged,
   onSettled,
+  onLockChange,
+  onReceipt,
+  onDirtyChange,
+  externalLocked,
+  onAuthenticationLost,
 }: {
   context: HubContext;
   message: HubMessage;
   simulated: boolean;
   picked: Suggestion | null; // a Do For Me suggestion for this message, if picked in the rail
   onChanged: () => Promise<void>; // read the inbox again
+  onLockChange: (locked: boolean) => void;
+  onReceipt: (text: string) => void;
+  onDirtyChange: (dirty: boolean) => void;
+  externalLocked: boolean;
+  onAuthenticationLost: () => void;
   onSettled: () => void; // the picked suggestion has been dealt with
 }) {
+  const inFlight = useRef(false);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [unconfirmed, setUnconfirmed] = useState<Command | null>(null);
@@ -129,14 +140,15 @@ export default function MessageView({
   const student = memberName(context, message.memberId);
   const session = sessionOf(context, message.sessionId);
   const channel = CHANNEL_LABELS[message.channel] ?? message.channel;
-  const locked = busy || unconfirmed !== null;
+  const locked = busy || unconfirmed !== null || externalLocked;
+  const dirty = !delivery && replyText.length > 0;
   const prepareHighlighted = picked?.capability === PREPARE_REPLY_CAPABILITY;
   const reviewHighlighted = picked?.capability === REVIEW_REPLY_CAPABILITY;
   const outboundReady = context.capabilities.outbound !== "not_configured";
-  const canSend = outboundReady && !locked;
-  const sendNote = outboundReady
-    ? "Sending approves the reply. Odoo checks the approval again, then WhatsMax sends it."
-    : "Outbound messaging isn't set up for this school yet, so replies can't be sent. The suggestion is saved.";
+  const canAct = ["owner", "manager", "instructor"].includes(context.principal.role);
+  const canSend = canAct && outboundReady && !locked;
+  useEffect(() => { onLockChange(busy || unconfirmed !== null || confirmText !== null); }, [busy, unconfirmed, confirmText, onLockChange]);
+  useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
 
   function setReplyText(text: string) {
     setWritten({ revision: message.revision, text });
@@ -157,12 +169,16 @@ export default function MessageView({
       : null;
 
   async function execute(command: Command) {
+    if (inFlight.current || externalLocked || !canAct || (unconfirmed && command !== unconfirmed)) return;
+    inFlight.current = true;
+    onLockChange(true);
     setBusy(true);
     setFeedback(null);
     let answer;
     if (command.operation === "resolve") answer = await runInboxAction("resolve", command.payload, command.key);
     else if (command.operation === "draft") answer = await runInboxAction("draft", command.payload, command.key);
     else answer = await runInboxAction("approve_reply", command.payload, command.key);
+    inFlight.current = false;
     setBusy(false);
 
     if (answer.outcome === "notConfirmed") {
@@ -171,7 +187,9 @@ export default function MessageView({
       return;
     }
     setUnconfirmed(null);
+    onLockChange(false);
     if (answer.outcome === "failed") {
+      if (SIGN_IN_CODES.includes(answer.code)) { onAuthenticationLost(); return; }
       const conflict = answer.code === "VERSION_CONFLICT";
       setFeedback({
         kind: conflict ? "conflict" : "error",
@@ -181,8 +199,20 @@ export default function MessageView({
       });
       return;
     }
+    if (command.operation !== 'resolve' && (answer.result.memberId !== message.memberId || answer.result.sessionId !== message.sessionId)) {
+      setUnconfirmed(command); onLockChange(true);
+      setFeedback({ kind: 'notConfirmed', text: NOT_CONFIRMED_TEXT }); return;
+    }
+    setWritten({ revision: message.revision, text: "" });
+    onDirtyChange(false);
     const result = answer.result as { state?: string; replayed: boolean };
-    setFeedback({ kind: "success", text: successText(command, result.state, simulated, result.replayed) });
+    // A new draft speaks for itself (it appears in the suggestion bubble), so no
+    // "Reply drafted" note. Confirming a student and approving a reply still say so.
+    if (command.operation !== "draft") {
+      const receiptText = successText(command, result.state, simulated, result.replayed);
+      setFeedback({ kind: "success", text: receiptText });
+      onReceipt(`Message #${message.id}: ${receiptText}${'deliveryId' in answer.result ? ` Delivery #${answer.result.deliveryId}.` : ''}`);
+    }
     onSettled();
     await onChanged();
   }
@@ -207,12 +237,12 @@ export default function MessageView({
     });
 
   return (
-    <article className="flex min-h-0 flex-1 flex-col" data-message-id={message.id}>
+    <article className="inbox-message flex min-h-0 flex-1 flex-col" data-message-id={message.id}>
       {/* Header (Roster): who, link to the record, one line of context */}
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--color-border)] px-5 py-3">
+      <header className="inbox-message-header flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--color-border)] px-5 py-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="truncate text-sm font-medium">{senderName(message)}</h2>
+            <h2 tabIndex={-1} className="truncate text-sm font-medium">{senderName(message)}</h2>
             {message.memberId && (
               <Link
                 href={`/people/${message.memberId}`}
@@ -236,7 +266,7 @@ export default function MessageView({
       </header>
 
       {/* The conversation: messages only */}
-      <div className="scrollbar-thin flex-1 space-y-3 overflow-y-auto px-5 py-4">
+      <div className="inbox-message-scroll scrollbar-thin flex-1 space-y-3 overflow-y-auto px-5 py-4">
         <div className="flex gap-2.5">
           <span
             aria-hidden="true"
@@ -244,7 +274,7 @@ export default function MessageView({
           >
             <User className="h-3 w-3" strokeWidth={1.75} />
           </span>
-          <div className="max-w-[75%]">
+          <div className="inbox-bubble-wrap max-w-[75%]">
             <div className="inline-block whitespace-pre-wrap rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-bg)] px-3 py-2 text-start text-sm leading-relaxed">
               {message.text}
             </div>
@@ -264,17 +294,17 @@ export default function MessageView({
             >
               <Sparkles className="h-3 w-3" strokeWidth={1.75} />
             </span>
-            <div className="max-w-[75%] text-end">
+            <div className="inbox-bubble-wrap max-w-[75%] text-end">
               <div className="inline-block rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-bg)] px-3 py-2 text-start text-sm leading-relaxed">
                 <p className="mb-1 text-[11px] font-medium muted">Companion suggestion</p>
                 <p className="whitespace-pre-wrap">{message.reply}</p>
               </div>
               <div className="mt-1.5 flex flex-wrap items-center justify-end gap-1.5">
-                <Button variant="primary" size="sm" disabled={!canSend} onClick={() => setConfirmText(message.reply)}>
+                <Button variant="primary" size="sm" disabled={!canSend || (dirty && !replyText.trim())} onClick={() => setConfirmText(dirty ? replyText.trim() : message.reply)}>
                   <Send className="h-3.5 w-3.5" strokeWidth={1.75} />
-                  Send
+                  {dirty ? "Review edited reply" : "Review reply"}
                 </Button>
-                <Button size="sm" disabled={locked} onClick={editSuggestion}>
+                <Button size="sm" disabled={locked || !canAct || dirty} onClick={editSuggestion}>
                   Edit
                 </Button>
               </div>
@@ -293,7 +323,7 @@ export default function MessageView({
             >
               <Check className="h-3 w-3" strokeWidth={1.75} />
             </span>
-            <div className="max-w-[75%] text-end">
+            <div className="inbox-bubble-wrap max-w-[75%] text-end">
               <div
                 className={cn(
                   "inline-block rounded-lg border px-3 py-2 text-start text-sm leading-relaxed",
@@ -303,6 +333,8 @@ export default function MessageView({
                 )}
               >
                 Reply approved by {delivery.approvedBy}
+                {delivery.approvedAt && <span className="mt-1 block text-xs muted"><TimeLabel iso={delivery.approvedAt} /></span>}
+                <span className="mt-1 block text-xs muted">Delivery #{delivery.id}{delivery.providerRef ? ` / Provider reference ${delivery.providerRef}` : ""}</span>
               </div>
               <p className="mt-1 text-[11px] muted">
                 {DELIVERY_LABELS[delivery.state]}
@@ -314,7 +346,7 @@ export default function MessageView({
       </div>
 
       {/* Composer area: the one next step, then the reply box */}
-      <div className="border-t border-[color:var(--color-border)] p-3">
+      <div className="inbox-composer border-t border-[color:var(--color-border)] p-3">
         <div role="status" aria-live="polite">
           {busy && <p className="mb-2 text-[11px] muted">Saving…</p>}
           {feedback && (
@@ -345,20 +377,17 @@ export default function MessageView({
         </div>
 
         {delivery ? (
-          <p className="text-[11px] muted">This message has been replied to.</p>
-        ) : message.state === "unmatched" ? (
-          <p className="text-[11px] muted">
-            This sender isn&apos;t a verified guardian, so it can&apos;t be replied to yet. A manager verifies guardian
-            channels in Odoo.
-          </p>
-        ) : message.state === "received" ? (
+          <p className="text-[11px] muted">Reply approval recorded. Delivery status is shown above.</p>
+        ) : !canAct ? (
+          <p className="text-xs muted">Your current role can view this message. Reply actions require an authorized staff grant.</p>
+        ) : message.state === "unmatched" || message.state === "received" ? (
           // Step 1: which student and class the message is about
           <div className="flex flex-wrap items-end gap-2" aria-label="Confirm student and class" role="group">
             <Select
               aria-label="Student"
               value={memberId}
               onChange={(event) => setMemberId(event.target.value)}
-              disabled={locked}
+              disabled={locked || !canAct}
               className="h-8 min-w-40 text-xs"
             >
               <option value="">Which student?</option>
@@ -372,7 +401,7 @@ export default function MessageView({
               aria-label="Class"
               value={sessionId}
               onChange={(event) => setSessionId(event.target.value)}
-              disabled={locked}
+              disabled={locked || !canAct}
               className="h-8 min-w-48 text-xs"
             >
               <option value="">Which class?</option>
@@ -385,7 +414,8 @@ export default function MessageView({
             <Button variant="primary" size="sm" onClick={resolve} disabled={locked || !memberId || !sessionId}>
               Confirm
             </Button>
-            <p className="w-full text-[11px] muted">Confirm who and which class this is about before replying.</p>
+            <p className="w-full text-[11px] muted">{message.state === 'unmatched' ? "A manager must first verify this sender's channel on the correct student profile. Selecting a student here does not verify the sender. Odoo checks the verified guardian binding and existing class registration before confirming." : "Confirm who and which class this is about before replying. Odoo checks guardian authority and the student's registration."}</p>
+            {memberId && <Link className="text-xs underline" href={`/people/${memberId}`}>Review selected student profile</Link>}
           </div>
         ) : !message.reply ? (
           // Step 2: the Hub drafts the reply
@@ -394,7 +424,7 @@ export default function MessageView({
               variant="primary"
               size="sm"
               onClick={draft}
-              disabled={locked}
+              disabled={locked || !canAct}
               className={prepareHighlighted ? "ring-2 ring-[color:var(--color-accent)]" : undefined}
             >
               <Sparkles className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -408,6 +438,12 @@ export default function MessageView({
         ) : (
           // Step 3: send the suggestion above, or write / edit a reply here
           <>
+            {/* Only after typing: throw the local edit away */}
+            {dirty && (
+              <div className="mb-2 flex justify-end">
+                <Button size="sm" disabled={locked} onClick={() => setReplyText('')}>Discard local edit</Button>
+              </div>
+            )}
             <div className="flex items-end gap-2">
               <Textarea
                 ref={composerRef}
@@ -415,28 +451,32 @@ export default function MessageView({
                 onChange={(event) => setReplyText(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && canSend && replyText.trim()) {
+                    event.preventDefault();
                     setConfirmText(replyText.trim());
                   }
                 }}
                 maxLength={1500}
-                disabled={locked}
+                disabled={locked || !canAct}
                 aria-label={`Reply via ${channel}`}
-                aria-describedby={`composer-note-${message.id}`}
+                aria-describedby={outboundReady ? undefined : `composer-note-${message.id}`}
                 placeholder={`Write a reply via ${channel}, or Edit the suggestion…`}
                 className="min-h-[60px]"
               />
               <Button
                 variant="primary"
                 disabled={!canSend || !replyText.trim()}
-                aria-label="Approve and send reply"
+                aria-label="Review reply for approval"
                 onClick={() => setConfirmText(replyText.trim())}
               >
                 <Send className="h-4 w-4" strokeWidth={1.75} />
               </Button>
             </div>
-            <p id={`composer-note-${message.id}`} className="mt-2 text-[11px] muted">
-              {sendNote}
-            </p>
+            {/* Only when sending is off: says why the send button is disabled */}
+            {!outboundReady && (
+              <p id={`composer-note-${message.id}`} className="mt-2 text-[11px] muted">
+                Outbound messaging isn&apos;t set up for this school yet, so replies can&apos;t be sent. The suggestion is saved.
+              </p>
+            )}
           </>
         )}
       </div>
@@ -445,7 +485,7 @@ export default function MessageView({
       <Modal
         open={confirmText !== null}
         onClose={() => setConfirmText(null)}
-        title="Approve and send this reply?"
+        title="Approve and queue this reply?"
         boxClassName="glass crm-scope"
         titleClassName="text-base"
         footer={
@@ -458,11 +498,12 @@ export default function MessageView({
               onClick={() => {
                 const text = confirmText;
                 setConfirmText(null);
-                if (text) approve(text);
+                if (text && canSend) approve(text);
               }}
+              disabled={!canSend}
               className={primaryButton}
             >
-              Approve and send
+              Approve and queue
             </button>
           </>
         }

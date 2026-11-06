@@ -1,0 +1,53 @@
+Companion migration coverage - 2026-11-05
+Target: nextjs; source: C:/Users/justi/Desktop/dojang/companion/app/(companion)/hub
+Native contracts: dojo-odoo-monday/addons/dojo_companion_hub/models
+
+References checked:
+A New_Kiosk_Martial_Dream_Eb_Gym_Whats_Max (6).pdf
+B Kiosk_Core_Ui_Designs_Unity_Map_Cards (1).pdf
+C Dojang_CRM_Kiosk_Roster_Implementation_Template.pdf
+D Dojang_Justin_Kiosk_UI_Reference_v2.pdf
+E Odoo_Kiosk_React_Companion_Update_Saas.pdf
+
+Added workspace /operations, accessible from primary navigation and Today:
+- InstructorWorkspace: instructor_context/instructor_clock/correct_timesheet.
+  A13 perspectives; B25-26 staff HR. Own rotating PIN; reviewed corrections; native permission rules.
+- AttendanceWorkspace: attendance_sessions/attendance_sheet/mark_attendance.
+  B18 class operations; D staff/public separation. Staff correction sheet, not replacement kiosk.
+- OperationsWorkspace: operations_report/session_roster, printable report and roster.
+  A operations; B staff operations. Bounded native report, explicit timezone and limits.
+- CourseAssignments: course_roster/course_assignment_preview/assign_course_members.
+  B18 bookings. Explicit add/remove preview, capacity conflicts, native tokens, max50 per selection.
+- TestingWorkspace: testing_eligibility/testing_roster/save_testing_roster/record_test_results/
+  promotion_preview/promote_test_results/promotion_history/reverse_promotion.
+  A17 progression and B20 belt mission. Attendance eligibility is not full testing readiness;
+  human assessment separate from promotion, invoice side effect disclosed, reversal reason required.
+- CommunicationsWorkspace: broadcast_context/broadcast_preview/create_broadcast/approve_broadcast/
+  cancel_broadcast/automation_overview/set_automation_active; existing consent tooling reused.
+  B24 communications; B37 policy. Approval queues delivery, does not confirm delivered;
+  provider state explicit; resume may trigger native business actions and messaging.
+- SetupChecklist: setup_checklist. A7-8 onboarding; B38 settings.
+  Read-only native checklist, no invented connector configuration.
+- AiSettings: ai_settings/enable_ai. A28 action cards; B37 agent policy.
+  Existing synthetic native check; human review mode; no frontend provider credential store.
+- TrialPanel: trial_context/reserve_trial/cancel_trial/record_trial_outcome/
+  conversion_preview/convert_trial. C CRM trial journey; B18 booking; A28 reviewed action.
+  Native cancellation and no-show; paid conversion displays payer/billing/plan effects,
+  separate reservation/attendance/conversion; no implied payment or CRM stage change.
+  Preview invalidated when plan/date changes; late responses ignored.
+- Student administration reuses existing reviewed intake/archive/restore UI, moved here
+  rather than reintroducing controls removed from the People pane.
+- Lead Detail exposes optional validated native weighted evidence with rule explanations.
+  C CRM evidence; not an AI probability or invented score.
+
+Shared protections: exact named payloads; server-derived session/site; no generic ORM;
+read snapshot validation; no fixture fallback; authoritative receipt validation;
+frozen idempotency key for uncertain result, explicit original-request retry only;
+session loss clears workspace; no changes to reference Companion repository.
+
+Limits: this ports existing Companion Hub workflows, not all product specifications.
+Detailed curriculum assessments, facilities integrations, new backend capabilities and
+provider configuration still depend on their actual contracts and deployment setup.
+Kiosk flow and Beta0.3 are outside this pass. No live business actions run during tests.
+
+Validation: 142 CRM/domain tests and 61 gateway tests pass (mock backend; no live sends).

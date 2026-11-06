@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import type { Supplier } from "../../../types/suppliers";
 import { SUPPLIER_PAY_METHODS } from "../../../utils/json/suppliersData";
 import CommonSelect from "../../../components/common-select/commonSelect";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Record Payment — ported from #modal-payment in tailwind/src/suppliers.html and
@@ -42,7 +43,10 @@ const SupplierPaymentModal = ({
     >
       <div className="modal-box glass modal-w-460">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">Record Payment</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Record Payment</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

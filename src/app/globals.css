@@ -304,3 +304,14 @@
        .hs-tooltip-content {
     z-index: 60 !important;
   }
+
+/* Dojang <Select> (templates/roster/components/ui/form.tsx) draws its own
+   chevron icon. Remove the other two arrows a <select> can get: the browser's
+   native one and the background arrow from @tailwindcss/forms (style.css).
+   Unlayered, so it wins over both. */
+select[data-own-arrow] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: none;
+}

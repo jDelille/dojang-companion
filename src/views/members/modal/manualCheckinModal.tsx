@@ -6,6 +6,7 @@ import {
   TRAINER_OPTIONS,
 } from "../../../utils/json/checkinData";
 import type { CheckInOptions } from "../useCheckin";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Manual Check-In — ported from #modal-manual in tailwind/src/checkin.html
@@ -64,6 +65,7 @@ const ManualCheckinModal = ({ open, onClose, onConfirm }: ManualCheckinModalProp
             <div className="icon-box grad-gold ic-38">
               <UserPlus className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Manual Check-In</h3>
           </div>
           <button type="button" className="modal-x" onClick={onClose} aria-label="Close">

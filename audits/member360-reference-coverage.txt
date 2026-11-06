@@ -96,3 +96,28 @@ REMAINING ACCEPTANCE / BACKEND WORK
 3. Extend approved scoped backend contracts for the explicitly listed unsupported
    profile, notes, clinical, attachment and complete curriculum/readiness fields.
 4. Keep the separate CRM trial-conversion and public-kiosk integrations distinct.
+
+
+VISUAL ALIGNMENT PASS - 2026-11-04
+Reference: user-supplied section 6 Member 360 and
+C:/Users/justi/Desktop/do-for-me-2.png (visually inspected).
+- Compact identity/action header; Check in, Message, Book, Payment, Edit,
+  additional actions and Do For Me retain existing reviewed workflows.
+- Requested ten primary tabs first; Training, Bookings and Notes retained after
+  those tabs to preserve all existing functionality.
+- Overview now leads with paired Member Story and Training/Progression cards.
+  Contact/setup moved into a collapsible section below; all other workflows
+  remain available through their tabs.
+- Profile-only column widths, charcoal panels, compact typography, divider rows,
+  red tab underline and responsive card stacking follow the screenshot.
+- Program/instructor/team/location shown explicitly but locked where no editing
+  contract exists. Course-roster pencil remains a separate supported action.
+- Current rank has Open progression, never a generic editing pencil.
+- Real recent attendance retained; no fabricated evaluation or payment events.
+  Scores, lifetime totals and join date remain unavailable unless supplied.
+- Existing Member Intelligence rail retains real facts and now explicitly marks
+  unsupported engagement/retention/readiness rather than using mockup values.
+- Modal workflows kept outside CSS containment to retain viewport positioning.
+- Existing Companion suite: 34 tests passed. No new tests added for styling.
+- No browser automation or live business writes performed; visual acceptance
+  against the rendered page remains manual.

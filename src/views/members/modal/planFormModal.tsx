@@ -7,6 +7,7 @@ import {
   PLAN_STATUS_OPTIONS,
 } from "../../../utils/json/membershipPlansData";
 import type { PlanFormInput } from "../useMembershipPlans";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Add / Edit Plan — ported from #modal-add-plan in
@@ -88,6 +89,7 @@ const PlanFormModal = ({ open, plan, onClose, onSave, onInvalid }: PlanFormModal
             <div className="icon-box w-9! h-9! grad-gold">
               <Star className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">
               {plan ? "Edit Plan" : "Add New Plan"}
             </h3>

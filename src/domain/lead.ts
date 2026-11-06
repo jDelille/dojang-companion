@@ -16,6 +16,7 @@ export type LeadTag = { id: string; name: string };
 // record completeness, never a conversion probability. Only the fields the
 // Companion screens use; the Hub also sends score, scoreKind, method and reasons.
 export type LeadEvidence = {
+  detail?: { score: number; scoreKind: string; method: string; reasons: { label: string; points: number; available: number; recorded: boolean }[] };
   journey: string; // "New", "Contacted", "Trial", "Stage review", "Won", "Lost"…
   priority: "Low" | "Normal" | "High" | "Now";
   priorityReason: string; // "No open next action is recorded."

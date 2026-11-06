@@ -4,6 +4,7 @@ import type { Conversation, ExportFormat } from "../../../../types/chat";
 import { EX_FORMATS, TODAY } from "../../../../utils/json/chatData";
 import { CHAT_ICON, CHAT_ICON_FALLBACK } from "../chatIcons";
 import { nameOf } from "../useChat";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Export Chat — ported from #modal-export in tailwind/src/chat.html and
@@ -50,7 +51,10 @@ const ChatExportModal = ({ conversation: c, onClose, onConfirm }: ChatExportModa
     >
       <div className="modal-box glass modal-w-420">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">Export Chat</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Export Chat</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

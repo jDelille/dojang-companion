@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Archive } from "lucide-react";
 import type { Conversation } from "../../../../types/chat";
 import { nameOf } from "../useChat";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Archive Chat — ported from #modal-archive in tailwind/src/chat.html and
@@ -32,6 +33,7 @@ const ChatArchiveModal = ({ conversation: c, onClose, onConfirm }: ChatArchiveMo
         <div className="confirm-ic warn">
           <Archive className="w-6 h-6 c-orange shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Archive Chat?</h3>
         <p className="text-sm text-center mb-4 c-dim">
           <span className="font-semibold c-text">{c ? nameOf(c) : "This chat"}</span> moves to the

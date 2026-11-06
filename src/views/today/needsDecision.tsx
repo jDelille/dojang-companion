@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { DELIVERY_LABELS, MESSAGE_STATE_LABELS, type MessageState } from "@/domain/inbox";
+import type { FollowUp } from '@/domain/followUp';
 import { recordHref } from "@/domain/followUp";
 import { countText, type TodayCrmRead, type TodayWork } from "@/domain/today";
 import { deliveryMeaning, senderName } from "@/views/inbox/inboxCompanion";
@@ -34,11 +35,15 @@ function DecisionRow({
   title,
   detail,
   href,
+  onAction,
+  actionLabel,
 }: {
   tone: "warning" | "info";
   title: ReactNode;
   detail?: ReactNode;
   href?: string;
+  onAction?: () => void;
+  actionLabel?: string;
 }) {
   const body = (
     <>
@@ -66,6 +71,7 @@ function DecisionRow({
       ) : (
         <div className="flex items-start gap-3 py-3">{body}</div>
       )}
+      {onAction && <button type="button" className="mb-3 ml-8 text-xs font-semibold underline" onClick={onAction}>{actionLabel ?? 'Review'}</button>}
     </li>
   );
 }
@@ -80,11 +86,15 @@ export default function NeedsDecision({
   crm,
   contextFailure,
   onRetry,
+  onCompleteTask,
+  onOpenClass,
 }: {
   work: TodayWork;
   crm: TodayCrmRead;
   contextFailure: string | null; // why the Hub's context read failed, if it did
   onRetry: () => void;
+  onCompleteTask?: (task: FollowUp) => void;
+  onOpenClass?: (id: string) => void;
 }) {
   const { coverage, deliveries, messages, due, noNextAction } = work;
   const rows: ReactNode[] = [];
@@ -99,7 +109,9 @@ export default function NeedsDecision({
         key={`coverage-${session.id}`}
         tone="warning"
         title={`${time} ${session.title} has no instructor assigned in Odoo`.trim()}
-        detail="Assign one in Odoo. DreamOS can't assign instructors."
+        detail="Instructor assignment is managed in Odoo. Review the class roster here."
+        onAction={onOpenClass ? () => onOpenClass(session.id) : undefined}
+        actionLabel="Review class roster"
       />,
     );
   }
@@ -144,6 +156,8 @@ export default function NeedsDecision({
           title={task.summary}
           detail={`CRM follow-up · ${task.relatedName} · ${task.state === "overdue" ? "Overdue" : "Due today"}`}
           href={recordHref(task)}
+          onAction={task.canComplete && onCompleteTask ? () => onCompleteTask(task) : undefined}
+          actionLabel="Record task outcome"
         />,
       );
     }
@@ -175,6 +189,7 @@ export default function NeedsDecision({
 
   // What couldn't be checked, source by source
   const notes: ReactNode[] = [];
+  if (messages?.partial || deliveries?.partial) notes.push(<SourceNote key="message-window">The message read reached its limit. Older message work or delivery issues may be omitted.</SourceNote>);
   if (contextFailure) {
     notes.push(
       <SourceNote key="context">

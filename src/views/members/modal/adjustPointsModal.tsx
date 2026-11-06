@@ -3,6 +3,7 @@ import { Check, SlidersHorizontal, X } from "lucide-react";
 import CommonSelect from "../../../components/common-select/commonSelect";
 import type { LoyaltyMember } from "../../../types/rewards";
 import { number } from "../../../utils/formatUtils";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Adjust Points — ported from #modal-adjust in tailwind/src/rewards.html and
@@ -78,6 +79,7 @@ const AdjustPointsModal = ({
                 aria-hidden="true"
               />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Adjust Points</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

@@ -311,6 +311,7 @@ export default function InstructorWorkspace({ source }: { source: "hub" | "fixtu
 
   return (
     <div className="crm-scope">
+      {source === "hub" && <Link href="/operations?section=shifts" className="mb-4 inline-block text-sm underline">Instructor shifts and timesheets</Link>}
       {context && <DoForMeFocus focusKey="instructor" context={instructorRailContext(focus, focusRoster)} />}
 
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">

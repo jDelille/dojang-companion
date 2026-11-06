@@ -1,0 +1,68 @@
+TODAY / OPERATIONS COVERAGE - 2026-11-04
+
+References
+- New_Kiosk_Martial_Dream_Eb_Gym_Whats_Max (6).pdf pp12-13: decision-led Today,
+  permission-aware perspectives and class-first instructor experience; Beta0.3 excluded.
+- Kiosk_Core_Ui_Designs_Unity_Map_Cards (1).pdf pp4-6: executive Today brief,
+  needs-you, class list, front-desk arrivals/context; shared operational-state rules.
+- Dojang_CRM_Kiosk_Roster_Implementation_Template.pdf p2 C01: attention queue,
+  classes/tasks/approvals/selected location, record drilldowns and scoped counts.
+- Odoo_Kiosk_React_Companion_Update_Saas.pdf and
+  Dojang_Justin_Kiosk_UI_Reference_v2.pdf remain the shared domain/action and
+  public-kiosk/staff boundary references. Public kiosk behavior is unchanged.
+- Companion OperationsWorkspace.tsx / InstructorWorkspace.tsx and native
+  operations.py operations_report/session_roster; existing attendance admin,
+  MemberTools and task completion contracts.
+- Roster components/tasks/tasks-client.tsx and dashboard/shell.tsx inspected:
+  useful task/date/status and compact shell patterns. No vendor auth, database,
+  task CRUD, arbitrary mutations or new licensed source copied. Existing adapted
+  Roster controls are reused.
+
+Connected in this pass
+- Existing Today attention queue and class counts retained; cancelled deliveries
+  now join failed/uncertain exceptions. Missing sources qualify summary counts.
+- Native operations_report read with exact fromDate/toDate only, up to 31 inclusive
+  calendar days. Actor/company/site come from the sealed session and native grant.
+- Management report: class/attendance totals, recorded daily outcomes, instructor
+  scheduled/closed-shift hours and open shifts, unassigned classes, current rank
+  distribution and household snapshot. No revenue/retention/readiness invented.
+- Report parser validates date identity, timezone, record IDs, duplicates, bounds,
+  numeric data and aggregate consistency. Empty reports differ from failed reads.
+- Current rank/household data labeled current unarchived member snapshot, not
+  date-range membership history. Scheduled time is not payroll approval.
+- Report class list includes past classes; current scoped context supplies other
+  available classes. Class rows/coverage issues open the roster workspace.
+- Registered roster search/state filters, not-arrived-first order, exact member
+  links and existing reviewed staff attendance tool. No attendance is inferred.
+- Permitted due tasks can be completed on Today with native version checks and
+  an explicit completion receipt. Uncertain completion cannot be closed/refreshed
+  into a new request. No outbound messages are created by task completion.
+- Independent report/roster errors and retries, authentication-loss suppression,
+  old CRM context suppression during account refresh and request sequencing.
+- Navigation to existing Front Desk, Instructor, Follow-ups and Inbox surfaces.
+
+Remaining gaps / explicit limits
+- No school-wide billing exceptions, expiring memberships, revenue/MRR, retention,
+  trial-conversion trends, complete readiness, generic approval inbox or facility
+  inspection/work-order feed is exposed through the inspected operations report.
+- No instructor-assignment action found in the reviewed scoped contracts;
+  coverage gaps link to review, while assignment remains in Odoo.
+- Existing Front Desk/Instructor routes still need their own implementation and
+  acceptance passes (lesson plans, evaluations, shift workflows and quick actions).
+- Today context lists open classes that have not ended, capped at 100; report
+  date ranges expose open/done classes including past ones. Neither substitutes
+  for an invented historical roster or full daily scheduling contract.
+- Existing upper Today class/greeting date uses the device timezone; roster/report
+  details explicitly display the native school timezone. Full school-timezone
+  Today filtering needs a trusted timezone available before selecting sessions.
+- No printable/export roster, school-wide financial writes, broad approvals,
+  autonomous safe-work executor or facility actions added in this pass.
+- Site ID is displayed from the authenticated principal. No invented site name
+  or unauthorized location switching.
+
+Validation
+- 118 CRM/domain/integration tests and 57 gateway tests passed (175 total).
+- Scoped ESLint and typecheck passed; production build checked separately.
+- No browser automation, live Odoo mutations or provider sends executed.
+- Manual owner/manager/instructor, mobile/keyboard, session-loss and live contract
+  acceptance remains required.

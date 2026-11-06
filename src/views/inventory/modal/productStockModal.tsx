@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import type { Product } from "../../../types/products";
 import { STOCK_REASONS } from "../../../utils/json/productsData";
 import CommonSelect from "../../../components/common-select/commonSelect";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Stock Update — ported from #modal-stock in tailwind/src/products.html and
@@ -38,7 +39,10 @@ const ProductStockModal = ({ product, onClose, onConfirm }: ProductStockModalPro
     >
       <div className="modal-box glass modal-w-380">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">Stock Update</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Stock Update</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

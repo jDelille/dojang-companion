@@ -7,6 +7,7 @@ import {
   CAMPAIGN_OFFERS,
   DEFAULT_RENEWAL_MESSAGE,
 } from "../../../utils/json/renewalsData";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Renewal Campaign — ported from #modal-campaign in tailwind/src/renewals.html
@@ -70,6 +71,7 @@ const RenewalCampaignModal = ({
             <div className="icon-box ic-gold ic-38">
               <Send className="w-[17px] h-[17px] c-gold shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Renewal Campaign</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import type { Equipment } from "../../../types/equipment";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Retire Equipment — ported from #modal-delete in tailwind/src/equipment.html
@@ -33,6 +34,7 @@ const EquipmentDeleteModal = ({
         <div className="confirm-ic danger">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Retire Equipment?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Permanently remove{" "}

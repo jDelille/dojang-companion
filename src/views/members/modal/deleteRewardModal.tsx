@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import type { Reward } from "../../../types/rewards";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete Reward — ported from #modal-delete in tailwind/src/rewards.html and
@@ -44,6 +45,7 @@ const DeleteRewardModal = ({ reward, onClose, onConfirm }: DeleteRewardModalProp
         <div className="danger-ic">
           <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Delete Reward?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Remove <span className="font-semibold c-text">{reward?.name ?? "this reward"}</span>{" "}

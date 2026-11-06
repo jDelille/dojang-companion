@@ -20,11 +20,11 @@ export const TOOL_LABELS: Record<MemberTool, string> = { edit: 'Edit student', p
 const rows = (v: unknown): Record<string, unknown>[] | null => Array.isArray(v) && v.every(object) ? v : null;
 const options = (v: unknown, idKey = 'id') => rows(v)?.filter(r => recordId(r[idKey]) && string(r.name)) ?? [];
 const when = (v: unknown) => typeof v === 'string' && Number.isFinite(Date.parse(v)) ? new Date(v).toLocaleString() : 'Time unavailable';
-export default function MemberTools({ memberId, tool, onClose, onAuthenticationLost }: { memberId: string; tool: MemberTool; onClose: () => void; onAuthenticationLost: () => void }) {
+export default function MemberTools({ memberId, tool, initialSessionId = '', onClose, onAuthenticationLost }: { memberId: string; tool: MemberTool; initialSessionId?: string; onClose: () => void; onAuthenticationLost: () => void }) {
   const router = useRouter();
   const [data, setData] = useState<MemberToolContext | null>(null), [extra, setExtra] = useState<Record<string, unknown> | null>(null);
   const [sessions, setSessions] = useState<BookableSession[]>([]), [error, setError] = useState(''), [reload, setReload] = useState(0);
-  const [targetId, setTargetId] = useState(''), [sheet, setSheet] = useState<Record<string, unknown> | null>(null), [sheetBusy, setSheetBusy] = useState(false);
+  const [targetId, setTargetId] = useState(initialSessionId), [sheet, setSheet] = useState<Record<string, unknown> | null>(null), [sheetBusy, setSheetBusy] = useState(false);
   const [prepared, setPrepared] = useState<PreparedMemberAction | null>(null), [busy, setBusy] = useState(false), [signature, setSignature] = useState('');
   const alive = useRef(true), photo = useRef<string | null>(null), inFlight = useRef(false);
   const targetRequest = useRef(0);
@@ -47,7 +47,7 @@ export default function MemberTools({ memberId, tool, onClose, onAuthenticationL
       if (manage && !parsed.canEdit) throw Error('FORBIDDEN');
       if (['edit', 'photo'].includes(tool) && !parsed.canEditContact) throw Error('SHARED_CONTACT_REVIEW_REQUIRED');
       let aux: Record<string, unknown> | null = null, available: BookableSession[] = [];
-      if (tool === 'book' || tool === 'change') { const parsedSessions = bookableSessionsFrom(await read('context', {}), memberId); if (!parsedSessions) throw Error('HUB_RESPONSE_UNREADABLE'); available = parsedSessions; }
+      if (tool === 'book' || tool === 'change') { const parsedSessions = bookableSessionsFrom(await read('context', {}), memberId); if (!parsedSessions) throw Error('HUB_RESPONSE_UNREADABLE'); available = parsedSessions; if (initialSessionId && !available.some(s => s.id === initialSessionId)) setTargetId(''); }
       const reads: Partial<Record<MemberTool, string>> = { attendance: 'attendance_sessions', archive: 'archive_review', pin: 'guardian_kiosk_access', consent: 'consent_overview', waiver: 'waiver_context', guardian: 'member_workspace', course: 'course_roster' };
       const op = reads[tool];
       if (op) aux = await read(op, tool === 'attendance' ? {} : tool === 'course' ? { templateId: null } : tool === 'guardian' ? { memberId, section: 'family' } : { memberId });
@@ -55,7 +55,7 @@ export default function MemberTools({ memberId, tool, onClose, onAuthenticationL
       if (!cancelled) { setData(parsed); setExtra(aux); setSessions(available); }
     })().catch(e => { if (!cancelled) setError(e instanceof Error ? e.message : 'BACKEND_UNAVAILABLE'); });
     return () => { cancelled = true; controller.abort(); };
-  }, [memberId, tool, reload]);
+  }, [memberId, tool, initialSessionId, reload]);
   function refresh() { targetRequest.current += 1; setSheetBusy(false); setData(null); setExtra(null); setError(''); setSheet(null); setTargetId(''); setSignature(''); setReload(n => n + 1); }
   const selected = sessions.find(s => s.id === targetId);
   const attendanceRow = rows(sheet?.rows)?.find(r => r.memberId === memberId);

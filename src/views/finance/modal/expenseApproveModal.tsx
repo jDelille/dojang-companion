@@ -1,6 +1,7 @@
 import { CircleCheck } from "lucide-react";
 import type { Expense } from "../../../types/expenses";
 import { moneyWhole } from "../../../utils/formatUtils";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Approve Expense — ported from #modal-approve in tailwind/src/expenses.html and
@@ -30,6 +31,7 @@ const ExpenseApproveModal = ({ expense, onClose, onConfirm }: ExpenseApproveModa
         <div className="confirm-ic ok">
           <CircleCheck className="w-6 h-6 c-green shrink-0" aria-hidden="true" />
         </div>
+        <DialogEyebrow />
         <h3 className="text-base font-black c-text text-center mb-1">Approve Expense?</h3>
         <p className="text-sm text-center mb-5 c-dim">
           Approve{" "}

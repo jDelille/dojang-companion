@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { CheckCircle, ScanLine } from "lucide-react";
 import type { Member } from "../../../types/members";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Check In Member — ported from #modal-checkin in tailwind/src/members.html
@@ -48,6 +49,7 @@ const CheckinMemberModal = ({ member, onClose, onConfirm }: CheckinMemberModalPr
           <div className="gold-ic">
             <ScanLine className="w-6 h-6 c-gold shrink-0" aria-hidden="true" />
           </div>
+          <DialogEyebrow />
           <h3 className="text-base font-black c-text mb-1">Check In Member</h3>
           <div className="text-sm font-bold c-text">
             {member ? `${member.first} ${member.last}` : "—"}

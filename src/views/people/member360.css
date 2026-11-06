@@ -1,0 +1,47 @@
+/* Member 360 layout, matched to do-for-me-2.png */
+.member-profile {
+  --crm-panel: #17171d;
+  --crm-interactive: #17171d;
+}
+.member-profile-overview { container-type: inline-size; }
+.member-profile-header { padding: 4px 0 0; }
+.member-profile-identity { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.member-profile-identity > [aria-hidden="true"] { border-color: transparent; }
+.member-profile-tabs { margin-inline: -1rem; padding-inline: 1rem; }
+
+/* Two equal-height cards */
+.member-profile-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 10px; align-items: stretch; }
+.member-profile-card { min-width: 0; border: 1px solid var(--crm-line); border-radius: 12px; background: var(--crm-panel); padding: 24px 20px 18px; }
+.member-profile-eyebrow { color: var(--crm-muted); font-family: var(--crm-font-label); font-size: 10px; font-weight: 500; letter-spacing: .15em; text-transform: uppercase; }
+
+/* Member story */
+.member-profile-story { margin-top: 18px; color: var(--crm-text); font-size: 18px; font-weight: 700; line-height: 1.4; }
+.member-profile-facts { margin-top: 18px; }
+.member-profile-facts > div { display: flex; justify-content: space-between; gap: 16px; padding-block: 8px; font-size: 13px; }
+.member-profile-facts dt, .member-profile-training dt { color: var(--crm-text-secondary); }
+.member-profile-facts dd { text-align: right; font-weight: 600; }
+.member-profile-unavailable { color: var(--crm-muted); font-weight: 400; }
+.member-profile-source-note { margin-top: 10px; color: var(--crm-muted); font-size: 12px; line-height: 1.7; }
+.member-profile-recent { margin-top: 32px; }
+.member-profile-recent ul { margin-top: 8px; }
+.member-profile-recent li { display: grid; grid-template-columns: 72px minmax(0,1fr); align-items: center; border-bottom: 1px solid var(--crm-line); padding-block: 10px; font-size: 12px; }
+.member-profile-event-date { font-weight: 700; color: var(--crm-text); white-space: nowrap; }
+.member-profile-event-text { overflow: hidden; color: var(--crm-text-secondary); text-overflow: ellipsis; white-space: nowrap; }
+
+/* Training */
+.member-profile-training { margin-top: 6px; }
+.member-profile-training > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--crm-line); padding-block: 7px; font-size: 13px; }
+.member-profile-training dd { display: flex; min-width: 0; align-items: center; justify-content: flex-end; gap: 8px; text-align: right; font-weight: 700; }
+.member-profile-field-lock { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 28px; height: 28px; border: 1px solid var(--crm-line); border-radius: 6px; color: var(--crm-muted); }
+
+/* Progression */
+.member-profile-progression { margin-top: 26px; }
+.member-profile-rank-row { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--crm-line); padding-block: 7px; font-size: 13px; }
+.member-profile-rank-row > span { flex: 1; color: var(--crm-text-secondary); }
+.member-profile-rank-row strong { font-weight: 700; }
+.member-profile-small-action { display: inline-flex; align-items: center; height: 28px; border: 1px solid var(--crm-line); border-radius: 6px; background: var(--crm-canvas); padding: 0 10px; font-size: 12px; font-weight: 600; }
+
+.member-profile button:focus-visible { outline: 2px solid var(--crm-text-secondary); outline-offset: 3px; }
+.member-profile button:disabled { cursor: not-allowed; opacity: .45; }
+@container (min-width: 540px) { .member-profile-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (min-width: 640px) { .member-profile-tabs { margin-inline: -1.5rem; padding-inline: 1.5rem; } }

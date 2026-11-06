@@ -3,6 +3,7 @@ import { Check, X } from "lucide-react";
 import type { AccessLevel, Role, RoleFormValues } from "../../../types/accessControl";
 import { LEVELS } from "../../../utils/json/accessControlData";
 import CommonSelect from "../../../components/common-select/commonSelect";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Add / Edit Role — ported from #modal-role-form in
@@ -41,7 +42,10 @@ const RoleFormModal = ({ open, target, onClose, onSubmit }: RoleFormModalProps) 
     >
       <div className="modal-box glass modal-w-460">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-black c-text">{target ? "Edit Role" : "Add Role"}</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">{target ? "Edit Role" : "Add Role"}</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

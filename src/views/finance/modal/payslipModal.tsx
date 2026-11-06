@@ -3,6 +3,7 @@ import type { StaffPay } from "../../../types/payroll";
 import { PAYROLL_STATUS_BADGE } from "../../../utils/json/payrollData";
 import { avatarFor, initials, moneyWhole } from "../../../utils/formatUtils";
 import { grossOf, netOf, withholdingOf } from "../usePayroll";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Payslip — ported from #modal-slip in tailwind/src/payroll.html and openSlip()
@@ -34,7 +35,10 @@ const PayslipModal = ({ employee, onClose, onDownload }: PayslipModalProps) => {
     >
       <div className="modal-box glass modal-w-460">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">Payslip · July 2026</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Payslip · July 2026</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

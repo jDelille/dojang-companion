@@ -3,6 +3,7 @@ import { AlertCircle, AlertTriangle, ArrowLeftRight, ArrowRight, X } from "lucid
 import type { Branch, BranchTransferErrors } from "../../../types/branches";
 import { TRANSFER_REASONS } from "../../../utils/json/branchesData";
 import CommonSelect from "../../../components/common-select/commonSelect";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Transfer Members — ported from #modal-transfer in tailwind/src/branches.html
@@ -120,9 +121,12 @@ const BranchTransferModal = ({
     >
       <div className="modal-box glass modal-w-500">
         <div className="flex items-center justify-between mb-4">
-          <h3 id="tr-title" className="text-base font-black c-text">
-            Transfer Members
-          </h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 id="tr-title" className="text-base font-black c-text">
+              Transfer Members
+            </h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

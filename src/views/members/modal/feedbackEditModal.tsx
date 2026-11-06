@@ -4,6 +4,7 @@ import CommonSelect from "../../../components/common-select/commonSelect";
 import type { FeedbackEntry, FeedbackType } from "../../../types/feedback";
 import { FEEDBACK_TYPE_OPTIONS } from "../../../utils/json/feedbackData";
 import type { FeedbackFormInput } from "../useFeedback";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Add / Edit Feedback — ported from #modal-edit in tailwind/src/feedback.html
@@ -85,6 +86,7 @@ const FeedbackEditModal = ({
                 aria-hidden="true"
               />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">
               {entry ? "Edit Feedback" : "Add Feedback"}
             </h3>

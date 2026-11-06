@@ -5,6 +5,7 @@ import type { DayPass, PassStatus, PassTypeName } from "../../../types/dayPasses
 import { PASS_STATUS_OPTIONS, PASS_TYPES } from "../../../utils/json/dayPassesData";
 import { moneyWhole } from "../../../utils/formatUtils";
 import type { EditPassInput } from "../useDayPasses";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Edit Pass — ported from #modal-edit in tailwind/src/day-passes.html and
@@ -65,6 +66,7 @@ const EditPassModal = ({ pass, onClose, onSave }: EditPassModalProps) => {
             <div className="icon-box ic-gold ic-38">
               <Edit2 className="w-[17px] h-[17px] c-gold shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Edit Pass</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

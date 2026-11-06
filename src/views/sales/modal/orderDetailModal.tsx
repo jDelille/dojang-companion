@@ -11,6 +11,7 @@ import {
   taxOf,
   totalOf,
 } from "../../../utils/salesUtils";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Order Details — ported from #modal-order in tailwind/src/orders.html and
@@ -56,6 +57,7 @@ const OrderDetailModal = ({ order, onClose, onViewInvoice }: OrderDetailModalPro
       <div className="modal-box glass modal-w-520">
         <div className="flex items-center justify-between mb-5">
           <div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">{order?.id ?? "Order"}</h3>
             <div className="text-[11px] c-dim mt-0.5">{order?.date ?? "—"}</div>
           </div>

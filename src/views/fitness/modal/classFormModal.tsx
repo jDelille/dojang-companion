@@ -7,6 +7,7 @@ import {
   DAY_OPTIONS,
 } from "../../../utils/json/classesData";
 import CommonSelect from "../../../components/common-select/commonSelect";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Add / Edit Class — ported from #modal-edit in tailwind/src/classes.html and
@@ -58,6 +59,7 @@ const ClassFormModal = ({ open, target, onClose, onSubmit }: ClassFormModalProps
             <div className="icon-box grad-gold ic-38">
               <CalendarPlus className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">
               {target ? "Edit Class" : "Add Class"}
             </h3>

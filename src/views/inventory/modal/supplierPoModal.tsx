@@ -4,6 +4,7 @@ import type { Supplier } from "../../../types/suppliers";
 import { SUPPLIER_CATS } from "../../../utils/json/suppliersData";
 import CommonSelect from "../../../components/common-select/commonSelect";
 import CommonDatePicker from "../../../components/common-date-picker/commonDatePicker";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    New Purchase Order — ported from #modal-po in tailwind/src/suppliers.html and
@@ -40,7 +41,10 @@ const SupplierPoModal = ({ supplier, poSeq, onClose, onConfirm }: SupplierPoModa
     >
       <div className="modal-box glass modal-w-540">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">New Purchase Order</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">New Purchase Order</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

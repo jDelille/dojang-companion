@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Crown, Megaphone, X } from "lucide-react";
 import type { Challenge, Participant } from "../../../types/challenges";
 import { avatarFor, initials, number } from "../../../utils/formatUtils";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Announce Winner — ported from #modal-winner in
@@ -61,6 +62,7 @@ const AnnounceWinnerModal = ({
             <div className="icon-box grad-gold ic-38">
               <Crown className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Announce Winner</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

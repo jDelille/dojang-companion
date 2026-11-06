@@ -3,6 +3,7 @@ import { CalendarCheck, CalendarClock, X } from "lucide-react";
 import CommonDatePicker from "../../../components/common-date-picker/commonDatePicker";
 import type { Campaign } from "../../../types/campaigns";
 import { formatSeedDate } from "../../../utils/formatUtils";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Schedule Campaign — ported from #modal-schedule in
@@ -70,6 +71,7 @@ const CampaignScheduleModal = ({
                 aria-hidden="true"
               />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Schedule Campaign</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

@@ -3,6 +3,7 @@ import type { Supplier } from "../../../types/suppliers";
 import { SUPPLIER_STATUS_BADGE } from "../../../utils/json/suppliersData";
 import { initials, moneyWhole } from "../../../utils/formatUtils";
 import SupplierStars from "../supplierStars";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Supplier Details — ported from #modal-view in tailwind/src/suppliers.html and
@@ -38,7 +39,10 @@ const SupplierViewModal = ({
     >
       <div className="modal-box glass modal-w-460">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-black c-text">Supplier Details</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Supplier Details</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

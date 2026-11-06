@@ -18,7 +18,7 @@ const GUIDANCE = "From Odoo records and fixed rules. Nothing here is AI.";
 export function todayRailContext(work: TodayWork, settled: boolean): CompanionContext {
   const { count, partial } = decisionCount(work);
   let intelTitle = "Checking what needs a decision…";
-  if (settled) intelTitle = count === 0 ? "Nothing needs a decision" : `${countText(count, partial)} need a decision`;
+  if (settled) intelTitle = count === 0 ? (partial ? "No decisions in the available records" : "Nothing needs a decision") : `${countText(count, partial)} need a decision`;
 
   const intel: { label: string; value: string }[] = [];
   if (work.coverage) intel.push({ label: "Classes with no instructor", value: String(work.coverage.gaps.length) });
@@ -40,7 +40,7 @@ export function todayRailContext(work: TodayWork, settled: boolean): CompanionCo
     links.push({
       id: `delivery-${delivery.id}`,
       title: `Reply to ${senderName(message)}`,
-      detail: delivery.state === "failed" ? "Failed" : "Uncertain",
+      detail: delivery.state === "failed" ? "Failed" : delivery.state === "cancelled" ? "Cancelled" : "Uncertain",
       href: `/inbox?message=${message.id}`,
     });
   }

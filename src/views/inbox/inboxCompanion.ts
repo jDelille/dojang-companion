@@ -149,7 +149,7 @@ export function messageRailContext(
     return {
       ...base,
       guidance:
-        "Guardian verification is required. This sender isn't linked to a verified guardian, so the message can't be resolved, drafted or replied to here. A manager verifies guardian channels in Odoo.",
+        "Guardian verification is required. A manager can verify the channel on the correct student profile. Then confirm the student and registered class here; Odoo rechecks the verified binding before resolving. Selecting a student alone does not verify the sender.",
     };
   }
   if (message.state === "received") {

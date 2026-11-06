@@ -6,6 +6,7 @@ import {
   INVITE_CHANNELS,
   REFERRING_MEMBERS,
 } from "../../../utils/json/referralsData";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Send Invitation — ported from #modal-invite in tailwind/src/referrals.html
@@ -59,6 +60,7 @@ const SendInvitationModal = ({ open, onClose, onSend }: SendInvitationModalProps
             <div className="icon-box grad-gold ic-38">
               <Send className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Send Invitation</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

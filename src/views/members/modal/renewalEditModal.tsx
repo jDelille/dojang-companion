@@ -5,6 +5,7 @@ import CommonDatePicker from "../../../components/common-date-picker/commonDateP
 import type { RenewalMember, RenewalStage } from "../../../types/renewals";
 import { RENEWAL_PLAN_OPTIONS, RENEWAL_STAGES } from "../../../utils/json/renewalsData";
 import type { RenewalFormInput } from "../useRenewals";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Add / Edit Renewal — ported from #modal-edit in tailwind/src/renewals.html
@@ -105,6 +106,7 @@ const RenewalEditModal = ({
                 aria-hidden="true"
               />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">
               {member ? "Edit Renewal" : "Add Renewal"}
             </h3>

@@ -4,6 +4,7 @@ import CommonSelect from "../../../components/common-select/commonSelect";
 import type { Reward, RewardCategory } from "../../../types/rewards";
 import { CATEGORY_OPTIONS } from "../../../utils/json/rewardsData";
 import type { RewardFormInput } from "../useRewards";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Add / Edit Reward — ported from #modal-edit in tailwind/src/rewards.html
@@ -85,6 +86,7 @@ const RewardFormModal = ({
             <div className="icon-box grad-gold ic-38">
               <Gift className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">
               {reward ? "Edit Reward" : "Add Reward"}
             </h3>

@@ -27,13 +27,22 @@ export function memberToolContextFrom(raw: unknown, memberId: string): MemberToo
   }
   return result;
 }
-export type BookableSession = { id: string; title: string; startsAt: string; version: number };
+// registered / capacity are kept only when the Hub sends both as whole numbers
+// (the trial read does; the staff schedule read may not)
+export type BookableSession = { id: string; title: string; startsAt: string; version: number; registered?: number; capacity?: number };
+const count = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0;
 export function bookableSessionsFrom(raw: unknown, memberId: string): BookableSession[] | null {
   if (!object(raw) || !Array.isArray(raw.members) || !raw.members.some(m => object(m) && m.id === memberId) || !Array.isArray(raw.sessions) || raw.sessions.length > 100) return null;
   const result: BookableSession[] = [];
   for (const s of raw.sessions) {
     if (!object(s) || !recordId(s.id) || !string(s.title) || !(s.startsAt === null || stamp(s.startsAt)) || !nonnegative(s.version) || typeof s.future !== 'boolean') return null;
-    if (s.future && s.startsAt) result.push({ id: s.id, title: s.title, startsAt: s.startsAt, version: s.version });
+    if (!s.future || !s.startsAt) continue;
+    const session: BookableSession = { id: s.id, title: s.title, startsAt: s.startsAt, version: s.version };
+    if (count(s.registered) && count(s.capacity)) {
+      session.registered = s.registered;
+      session.capacity = s.capacity;
+    }
+    result.push(session);
   }
   return result;
 }

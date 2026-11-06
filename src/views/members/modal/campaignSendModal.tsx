@@ -3,6 +3,7 @@ import { Send, X } from "lucide-react";
 import type { Campaign } from "../../../types/campaigns";
 import { number } from "../../../utils/formatUtils";
 import { audienceSize } from "../useCampaigns";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Send Campaign — ported from #modal-send in tailwind/src/campaigns.html and
@@ -49,6 +50,7 @@ const CampaignSendModal = ({ campaign, onClose, onSend }: CampaignSendModalProps
             <div className="icon-box grad-gold ic-38">
               <Send className="w-[17px] h-[17px] t-ink shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Send Campaign</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">

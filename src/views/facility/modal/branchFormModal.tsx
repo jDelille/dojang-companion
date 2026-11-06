@@ -8,6 +8,7 @@ import type {
 } from "../../../types/branches";
 import { BRANCH_STATUSES, MANAGERS } from "../../../utils/json/branchesData";
 import CommonSelect from "../../../components/common-select/commonSelect";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Add / Edit Branch — ported from #modal-branch-form in
@@ -121,9 +122,12 @@ const BranchFormModal = ({
     >
       <div className="modal-box glass modal-w-560">
         <div className="flex items-center justify-between mb-5">
-          <h3 id="bf-title" className="text-base font-black c-text">
-            {target ? "Edit Branch" : "Add Branch"}
-          </h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 id="bf-title" className="text-base font-black c-text">
+              {target ? "Edit Branch" : "Add Branch"}
+            </h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

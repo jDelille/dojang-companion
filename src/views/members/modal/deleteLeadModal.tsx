@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import type { Lead } from "../../../types/leads";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Delete Lead — ported from #modal-delete in tailwind/src/leads.html and
@@ -48,6 +49,7 @@ const DeleteLeadModal = ({ lead, onClose, onConfirm }: DeleteLeadModalProps) => 
           <div className="danger-ic">
             <Trash2 className="w-6 h-6 c-red shrink-0" aria-hidden="true" />
           </div>
+          <DialogEyebrow />
           <h3 className="text-base font-black c-text mb-1">Delete Lead?</h3>
           <p className="text-sm c-dim mb-5">
             This permanently removes{" "}

@@ -3,6 +3,7 @@ import type { PtSession } from "../../../types/ptSessions";
 import { PT_TRAINERS, ptAvatarFor } from "../../../utils/json/ptSessionsData";
 import { initials, moneyWhole } from "../../../utils/formatUtils";
 import { STATUS_BADGE, STATUS_LABEL, feeOf, slotLabel } from "../usePtSessions";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Session Details — ported from #modal-view in tailwind/src/pt-sessions.html and
@@ -40,7 +41,10 @@ const PtSessionViewModal = ({
     >
       <div className="modal-box glass">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-black c-text">Session Details</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="text-base font-black c-text">Session Details</h3>
+          </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

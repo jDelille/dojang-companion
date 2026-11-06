@@ -4,6 +4,7 @@ import type { Trainer } from "../../../types/trainers";
 import { SCHEDULE_REPEATS } from "../../../utils/json/trainersData";
 import CommonSelect from "../../../components/common-select/commonSelect";
 import { fullName } from "../useTrainers";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Schedule Session — ported from #modal-schedule in tailwind/src/trainers.html
@@ -47,7 +48,10 @@ const TrainerScheduleModal = ({ trainer, onClose, onConfirm }: TrainerScheduleMo
     >
       <div className="modal-box">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-black c-text text-lg">Schedule Session</h3>
+          <div className="min-w-0">
+            <DialogEyebrow />
+            <h3 className="font-black c-text text-lg">Schedule Session</h3>
+          </div>
           <button type="button" className="modal-x" onClick={onClose} aria-label="Close">
             <X className="w-[15px] h-[15px] shrink-0" aria-hidden="true" />
           </button>

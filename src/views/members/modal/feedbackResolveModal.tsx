@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, CheckCircle2, X } from "lucide-react";
 import type { FeedbackEntry } from "../../../types/feedback";
+import DialogEyebrow from "@/components/common/DialogEyebrow";
 
 /*
    Resolve Feedback — ported from #modal-resolve in tailwind/src/feedback.html
@@ -47,6 +48,7 @@ const FeedbackResolveModal = ({ entry, onClose, onResolve }: FeedbackResolveModa
             <div className="icon-box ic-green ic-38">
               <CheckCircle2 className="w-[17px] h-[17px] c-green shrink-0" aria-hidden="true" />
             </div>
+            <DialogEyebrow />
             <h3 className="text-base font-black c-text">Resolve Feedback</h3>
           </div>
           <button type="button" className="hbtn" onClick={onClose} aria-label="Close">
