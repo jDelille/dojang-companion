@@ -16,6 +16,7 @@ import { searchRoster } from "@/domain/kiosk/rosterSearch";
 import { checkIn, getRoster, getSessions } from "@/integrations/kiosk";
 import {startAttendanceRecovery} from '@/integrations/attendanceRecovery';
 import GuardianCheckIn from './guardianCheckIn';
+import guardianStyles from './guardianCheckIn.module.css';
 import ConfirmScreen from "./confirmScreen";
 import IdentifyScreen from "./identifyScreen";
 import { idleTimerShouldRun } from "./idleTimer";
@@ -185,7 +186,6 @@ const KioskJourney = ({ source = 'fixture' }: { source?: KioskDataMode }) => {
     }
 
     if (flow.step === "identify") {
-      if(guardian&&source==='odoo-test')return <GuardianCheckIn session={flow.session} onCancel={()=>setGuardian(false)} onFinished={()=>{setGuardian(false);dispatch({type:'reset'});}}/>;
       const search =
         flow.roster.status === "ready"
           ? searchRoster(flow.roster.list, flow.query)
@@ -193,6 +193,7 @@ const KioskJourney = ({ source = 'fixture' }: { source?: KioskDataMode }) => {
 
       return (
         <>
+        <div inert={guardian}>
         <IdentifyScreen
           session={flow.session}
           rosterStatus={flow.roster.status}
@@ -206,7 +207,8 @@ const KioskJourney = ({ source = 'fixture' }: { source?: KioskDataMode }) => {
           onBack={() => dispatch({ type: "back" })}
           roster={ROSTER_GRID ? (flow.roster.status === "ready" ? flow.roster.list : []) : undefined}
         />
-        {source==='odoo-test'&&<button type="button" className="my-5 min-h-12 rounded-full border border-(--kiosk-line) px-5 py-3 text-base" onClick={()=>setGuardian(true)}>Parent check-in with phone and PIN</button>}
+        </div>
+        {source==='odoo-test'&&(guardian?<GuardianCheckIn key={flow.session.sessionId} session={flow.session} onCancel={()=>setGuardian(false)} onFinished={()=>{setGuardian(false);dispatch({type:'reset'});}}/>:<div className={guardianStyles.start}><button type="button" onClick={()=>setGuardian(true)}>Parent check-in with phone and PIN</button></div>)}
         </>
       );
     }
@@ -253,13 +255,9 @@ const KioskJourney = ({ source = 'fixture' }: { source?: KioskDataMode }) => {
   return (
     <>
       <KioskHeader label={staffHelp?'Help':flow.step==='welcome'?'Arrival':flow.step==='session'?'Check in':flow.step==='identify'?'Identify':flow.step==='result'?'Complete':'Review'} disabled={flow.step==='sending'||guardian} onReset={()=>{setStaffHelp(false);setGuardian(false);setFamilyArrival(false);dispatch({type:'reset'});}}/>
-      <p className="py-2 text-center text-xs text-(--kiosk-muted)">
-        {source === 'fixture' ? 'Development preview · Sample classes and attendance' : source === 'odoo-test'
-          ? 'Odoo test connection' : 'Kiosk connection unavailable'}
-        {source === 'odoo-test' && <> · <Link href="/integration/pair" className="underline underline-offset-4">Device setup</Link></>}
-      </p>
-      {recovery&&<p role="status" className="py-3 text-sm text-(--kiosk-text-secondary)">{recovery}</p>}
       {renderScreen()}
+      {source!=='odoo-test'&&<p role="status" className="py-2 text-center text-xs text-(--kiosk-muted)">{source==='fixture'?'Development preview / Sample classes and attendance':'Kiosk connection unavailable'} <Link href="/integration/pair" className="underline underline-offset-4">Device setup</Link></p>}
+      {recovery&&<p role="status" className="py-3 text-sm text-(--kiosk-text-secondary)">{recovery}</p>}
       <IdleWarning secondsLeft={idle.secondsLeft} onStillHere={idle.stillHere} />
     </>
   );

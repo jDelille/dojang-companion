@@ -1,0 +1,33 @@
+/* Companion daniel/kiosk-design @445212cf, scoped for Dojang kiosk. */
+.button {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: var(--touch-height);
+  padding: 0 var(--button-inset);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-base);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.button:hover, .button:active {
+  background: var(--glass-fill-hover);
+  border-color: var(--glass-edge);
+}
+.button:disabled {
+  color: var(--muted);
+  cursor: default;
+  background: none;
+}
+.button:focus-visible {
+  outline: 2px solid var(--text-secondary);
+  outline-offset: 2px;
+}
+
+.flush {
+  margin-inline-start: calc(-1 * var(--button-inset));
+}

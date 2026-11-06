@@ -1,0 +1,51 @@
+/* Companion daniel/kiosk-design @445212cf, scoped for Dojang kiosk. */
+.kiosk-shell {
+  --canvas: #08080a;
+  --workspace-background: var(--canvas);
+  --panel: #101014;
+  --raised: #17171d;
+  --interactive: #1e1e26;
+  --line: #2a2a35;
+  --dark-border: var(--line);
+  --text: #f6f6f8;
+  --text-secondary: #a8a8b8;
+  --muted: #717184;
+  --font-display:
+    var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --font-label: var(--font-dm-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --brand: #e8192c;
+  --brand-bright: color-mix(in srgb, var(--brand) 88%, var(--text));
+  --brand-soft: color-mix(in srgb, var(--brand) 14%, transparent);
+  --mastery: #d7b75c;
+  --agent: #8a7cf6;
+  --success: #26c76f;
+  --warning: #f6a63b;
+  --danger: #ef4053;
+  --info: #4c8dff;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --input-text: 13px;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --control-height: 40px;
+  --touch-height: 48px;
+  --radius-control: 10px;
+  --radius-card: 16px;
+  --radius-leaf: 18px;
+  --radius-tray: 22px;
+  --radius-circle: 50%;
+  --radius-pill: 999px;
+  --button-inset: 1.25rem;
+  --glass-fill: var(--panel);
+  --glass-fill-hover: var(--raised);
+  --glass-edge: var(--line);
+  --glass-edge-strong: var(--text-secondary);
+  --glass-blur: 18px;
+  --glass-shadow: 0 10px 40px color-mix(in srgb, var(--canvas) 50%, transparent);
+  --glow-brand: color-mix(in srgb, var(--brand) 14%, transparent);
+  --glow-agent: color-mix(in srgb, var(--agent) 12%, transparent);
+  --companion-width: 325px;
+}

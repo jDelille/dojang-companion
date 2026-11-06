@@ -1,0 +1,55 @@
+/* Companion daniel/kiosk-design @445212cf, scoped for Dojang kiosk. */
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  container-type: inline-size;
+  container-name: kiosk;
+  overflow-x: clip;
+}
+
+.main {
+  --panel-pad-x: 3.5rem;
+  --panel-pad-y: 2.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(100% - 2rem, var(--kiosk-column-width));
+  margin: 2rem auto;
+  padding: var(--panel-pad-y) var(--panel-pad-x);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+@container kiosk (width < 540px) {
+  .main {
+    --button-inset: 0.75rem;
+    --kiosk-title-welcome: 2.25rem;
+    --kiosk-title-large: 2rem;
+    --kiosk-title: 1.75rem;
+  }
+}
+.previewNotice {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--line);
+}
+.previewNotice a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+@container kiosk (width < 540px) {
+  .main {
+    --panel-pad-x: 1.25rem;
+    --panel-pad-y: 1.25rem;
+    margin: 1rem auto;
+  }
+}

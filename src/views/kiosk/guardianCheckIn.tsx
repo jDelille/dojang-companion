@@ -5,6 +5,7 @@ import type {SessionOption} from '@/contracts/kiosk-attendance';
 import type {CheckInCommand} from '@/domain/kiosk/checkInCommand';
 import {guardianCheckIn,verifyGuardian,type GuardianVerified} from '@/integrations/guardian';
 import styles from './guardianCheckIn.module.css';
+import Avatar from './guardianAvatar';
 type Result={text:string;retry?:CheckInCommand};
 export default function GuardianCheckIn({session,onFinished,onCancel}:{session:SessionOption;onFinished:()=>void;onCancel:()=>void}){
  const [phone,setPhone]=useState(''),[pin,setPin]=useState(''),[verified,setVerified]=useState<GuardianVerified|null>(null);
@@ -30,10 +31,10 @@ export default function GuardianCheckIn({session,onFinished,onCancel}:{session:S
   }finally{inFlight.current=false;if(alive.current)setBusy(false);}
  }
  return <section className={styles.panel} aria-label={receipt?'Family check-in receipt':'Parent check-in'}>
-  <h1>{receipt?'Check-in receipt':'Parent check-in'}</h1><p>{session.title}</p>
-  {!verified?<form onSubmit={e=>{e.preventDefault();void verify();}}><p>Use the phone number held by the school and your six-digit kiosk PIN. Only your linked children are shown.</p><label>Phone number<input inputMode="tel" autoComplete="off" value={phone} maxLength={32} disabled={busy} onChange={e=>setPhone(e.target.value)}/></label><label>Kiosk PIN<input type="password" inputMode="numeric" autoComplete="off" maxLength={6} value={pin} disabled={busy} onChange={e=>setPin(e.target.value.replace(/[^0-9]/g,''))}/></label><button disabled={busy||pin.length!==6||phone.replace(/[^0-9]/g,'').length<7}>Verify parent</button></form>:<>
-   {!receipt&&<p>Hello {verified.guardian}. Choose who is here.</p>}
-   {verified.students.map(s=><div key={s.memberId} className={styles.student}><strong>{s.displayName}</strong><span role="status">{results[s.memberId]?.text??(!s.onRoster?'Not booked in this class. Please see staff.':s.attendanceState!=='pending'?'Attendance already recorded.':receipt?'No check-in submitted.':'Ready for check-in.')}</span>{!receipt&&s.onRoster&&s.attendanceState==='pending'&&(!results[s.memberId]||results[s.memberId].retry)&&<button disabled={busy} onClick={()=>void check(s.memberId,results[s.memberId]?.retry)}>{results[s.memberId]?.retry?'Retry original request':'Check in'}</button>}</div>)}
+  {receipt&&<><h2 className={styles.receiptTitle}>Check-in receipt</h2><p>{session.title}</p></>}
+  {!verified?<><p>Enter the phone number the school has for you and your 6-digit kiosk PIN. Only your own children are shown.</p><form className={styles.fields} onSubmit={e=>{e.preventDefault();void verify();}}><label>Phone number<input inputMode="tel" autoComplete="off" value={phone} maxLength={32} disabled={busy} onChange={e=>setPhone(e.target.value)}/></label><label>Kiosk PIN<input type="password" inputMode="numeric" autoComplete="off" maxLength={6} value={pin} disabled={busy} onChange={e=>setPin(e.target.value.replace(/[^0-9]/g,''))}/></label><button disabled={busy||pin.length!==6||phone.replace(/[^0-9]/g,'').length<7}>Verify parent</button></form></>:<>
+   {!receipt&&<p>Hello {verified.guardian}. Choose who is here for {session.title}.</p>}
+   {verified.students.map(s=><div key={s.memberId} className={styles.student}><span className={styles.who}><Avatar name={s.displayName}/><strong>{s.displayName}</strong></span>{(results[s.memberId]||!s.onRoster||s.attendanceState!=='pending'||receipt)&&<span role="status">{results[s.memberId]?.text??(!s.onRoster?'Not booked in this class. Please see staff.':s.attendanceState!=='pending'?'Attendance already recorded.':receipt?'No check-in submitted.':'Ready for check-in.')}</span>}{!receipt&&s.onRoster&&s.attendanceState==='pending'&&(!results[s.memberId]||results[s.memberId].retry)&&<button disabled={busy} onClick={()=>void check(s.memberId,results[s.memberId]?.retry)}>{results[s.memberId]?.retry?'Retry original request':'Check in'}</button>}</div>)}
    {!verified.students.length&&<p>No children returned for this verified guardian. Please see staff.</p>}
   </>}
   {message&&<p role="alert">{message}</p>}

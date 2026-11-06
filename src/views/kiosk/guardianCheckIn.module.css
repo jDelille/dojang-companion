@@ -1,10 +1,195 @@
-.panel { display:grid; gap:20px; padding-block:28px; color:var(--kiosk-text); }
-.panel h1 { font-size:1.75rem; font-weight:700; }
-.panel p,.student span { color:var(--kiosk-text-secondary); font-size:1rem; line-height:1.6; }
-.panel form,.panel label { display:grid; gap:12px; }
-.panel form { gap:20px; }
-.panel input { min-height:48px; border:1px solid var(--kiosk-line); border-radius:10px; background:var(--kiosk-raised); padding:12px; font-size:16px; color:var(--kiosk-text); }
-.panel button { min-height:48px; padding:12px 20px; border:1px solid var(--kiosk-line); border-radius:999px; background:var(--kiosk-raised); color:var(--kiosk-text); }
-.panel button:disabled { opacity:.5; }
-.panel button:focus-visible,.panel input:focus-visible { outline:2px solid var(--kiosk-text-secondary); outline-offset:3px; }
-.student { display:grid; gap:12px; border:1px solid var(--kiosk-line); border-radius:18px; padding:20px; }
+/* Companion daniel/kiosk-design @445212cf, scoped for Dojang kiosk. */
+@charset "UTF-8";
+.start {
+  margin-top: 12px;
+}
+.start button {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 72px;
+  padding: 14px 18px 14px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--panel);
+  color: var(--text);
+  font-size: var(--text-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.start button::after {
+  content: "→";
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--text-secondary);
+}
+.start button:hover, .start button:active {
+  border-color: var(--text-secondary);
+  background: var(--raised);
+}
+.start button:focus-visible {
+  outline: 2px solid var(--text-secondary);
+  outline-offset: 2px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--panel);
+}
+.panel > p {
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  line-height: 1.5;
+}
+.panel > p[role=alert] {
+  color: var(--warning);
+}
+.panel button {
+  min-height: var(--touch-height);
+  padding: 0 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.panel button:hover:not(:disabled), .panel button:active:not(:disabled) {
+  border-color: var(--text-secondary);
+  background: var(--interactive);
+}
+.panel button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+.panel button:focus-visible {
+  outline: 2px solid var(--text-secondary);
+  outline-offset: 2px;
+}
+.panel > button:last-child {
+  width: 100%;
+}
+
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+.fields label {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.fields input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 500;
+}
+.fields input:focus-visible {
+  outline: 2px solid var(--text-secondary);
+  outline-offset: 1px;
+}
+.fields input:disabled {
+  color: var(--muted);
+}
+.fields button {
+  min-height: 56px;
+}
+.fields button:not(:disabled) {
+  border-color: var(--brand);
+  background: var(--brand);
+}
+.fields button:hover:not(:disabled), .fields button:active:not(:disabled) {
+  border-color: var(--brand-bright);
+  background: var(--brand-bright);
+}
+
+.student {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  min-height: 72px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+}
+.student > span:not(.who) {
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+}
+.student > button:not(:disabled) {
+  border-color: var(--brand);
+  background: var(--brand);
+}
+.student > button:hover:not(:disabled),
+.student > button:active:not(:disabled) {
+  border-color: var(--brand-bright);
+  background: var(--brand-bright);
+}
+
+.panel > :not(.student) + .student {
+  border-radius: 12px 12px 0 0;
+}
+
+.student + .student {
+  margin-top: -16px;
+  border-top: 0;
+}
+
+.panel > .student:not(:has(+ .student)) {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.panel > :not(.student) + .student:not(:has(+ .student)) {
+  border-radius: 12px;
+}
+
+.who {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.who strong {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.receiptTitle {
+  color: var(--text);
+  font-size: var(--text-lg);
+  font-weight: 600;
+}

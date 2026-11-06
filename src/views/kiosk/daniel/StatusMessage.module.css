@@ -1,0 +1,54 @@
+/* Companion daniel/kiosk-design @445212cf, scoped for Dojang kiosk. */
+.status {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 1.5rem;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--canvas);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.message {
+  color: var(--text);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.detail {
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.actions .action {
+  display: inline-flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+  padding: 0 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--raised);
+  color: var(--text);
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+.actions .action:hover, .actions .action:active {
+  border-color: var(--text-secondary);
+  background: var(--interactive);
+}

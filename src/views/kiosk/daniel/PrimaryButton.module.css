@@ -1,0 +1,48 @@
+/* Companion daniel/kiosk-design @445212cf source parity. */
+.button {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 80px;
+  padding: 0 2rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-card);
+  font-size: 1.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, opacity 150ms ease;
+}
+.button:focus-visible {
+  outline: 2px solid var(--text-secondary);
+  outline-offset: 3px;
+}
+.button:disabled {
+  cursor: default;
+}
+
+.brand {
+  background: var(--brand);
+  color: var(--text);
+}
+.brand:hover:not(:disabled), .brand:active:not(:disabled) {
+  background: color-mix(in srgb, var(--brand) 88%, white);
+}
+.brand:disabled {
+  opacity: 0.6;
+}
+
+.glass {
+  background: var(--raised);
+  border: 1px solid var(--glass-edge);
+  color: var(--text);
+}
+.glass:hover:not(:disabled), .glass:active:not(:disabled) {
+  background: var(--glass-fill-hover);
+  border-color: var(--glass-edge-strong);
+}
+.glass:disabled {
+  color: var(--muted);
+}

@@ -1,0 +1,18 @@
+/* Scoped equivalent of Daniel's app/(kiosk)/kiosk.scss @445212cf. */
+.kiosk-shell {
+  --kiosk-column-width: 73.75rem;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
+  --font-dm-mono: ui-monospace;
+  --kiosk-title-welcome: 3.5rem;
+  --kiosk-title-large: 3rem;
+  --kiosk-title: 2.25rem;
+  background: var(--workspace-background);
+  background-attachment: fixed;
+  font-family: var(--font-display);
+}
+.kiosk-shell :where(h1) { font-family:var(--font-display); font-weight:700; letter-spacing:-.04em; }
+.kiosk-shell :where(*) { box-sizing:border-box; }
+::view-transition-group(.morph) { animation-duration:350ms; }
+@media(prefers-reduced-motion:reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation:none !important; }
+}
