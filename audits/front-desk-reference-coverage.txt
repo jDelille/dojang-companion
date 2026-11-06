@@ -1,0 +1,35 @@
+Front Desk functional completion - 2026-11-05
+
+References rechecked:
+- Kiosk_Core_Ui_Designs_Unity_Map_Cards (1).pdf page6, Front Desk Mode:
+  arrivals, selected human record, Check In / Book / Take Payment / Message / Edit.
+- New_Kiosk_Martial_Dream_Eb_Gym_Whats_Max (6).pdf pages12-13:
+  not-arrived-first, contextual quick actions, perspective never broadens permission.
+- Roster components/contacts/contacts-client.tsx inspected as interaction reference.
+  Existing extracted Roster controls in MemberTools/MemberActionDialog reused;
+  no additional licensed source, vendor database, provider sends or auth copied.
+
+Implemented:
+- Active member Check in opens existing attendance sheet and reviewed command,
+  with selected class as initial context. Native authorization and rules unchanged.
+- Book reuses MemberBookDialog and its native booking review/receipt.
+- Payment reuses invoice checkout. This is not cash capture or a new refund flow.
+- Edit reuses native contact edit review, not generic rank or training edits.
+- Message opens exact linked inbound request when available, otherwise Inbox.
+  It does not create a new outbound communication.
+- Real action controls disabled in explicit fixture mode.
+- Next class ignores past bookings; incomplete booking reads remain qualified.
+- Service queue uses existing Inbox Needs-you rules: unhandled messages and
+  failed/uncertain/cancelled deliveries. No automatic outbound retry.
+- Authentication loss in selected member/tools/roster suppresses desk context,
+  resets session and clears rosters/selection. CRM snapshot suppressed until refreshed.
+- Sequenced context reload prevents earlier response restoring stale context.
+
+Limits:
+- Readiness, payment-update service requests, complete family context and arbitrary
+  task types require authoritative capabilities, not template demo records.
+- Arrivals still use device-local today; native school timezone remains a separate gap.
+- Public kiosk is unchanged. No live business writes or provider sends executed.
+- Manual browser/mobile/role acceptance remains required.
+
+Validation: production build (including TypeScript), scoped ESLint, diff whitespace check and 12 existing Inbox queue tests passed. No browser automation or live writes run.

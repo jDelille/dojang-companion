@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useStaffSessionReset } from '@/views/shell/staffSession';
+import { useMarkSignedOut } from '@/views/shell/staffConnection';
 import { Search } from "lucide-react";
 import { OPEN_COMMAND_EVENT } from "@/domain/commands";
 import {
@@ -39,7 +41,7 @@ import Link from "next/link";
    - the Hub's session_roster per class (getSessionRoster): booked and arrived
    - member_details for the active member (the Inbox panel's read)
    - crm_context, read on the server by the page: the rail's tasks due
-   Read-only. The active member is the one tapped here, otherwise the newest
+   Existing reviewed member actions reuse the Member 360 tools. The active member is the one tapped here, otherwise the newest
    member tab (like Companion's front desk).
 */
 
@@ -56,6 +58,10 @@ const MEMBER_TAB = /^\/people\/([^/]+)$/;
 
 export default function FrontDesk({ crm, source }: { crm: CrmRead; source: "hub" | "fixture" }) {
   const router = useRouter();
+  const resetSession=useStaffSessionReset(),markSignedOut=useMarkSignedOut();
+  const requestSequence=useRef(0);
+  const [suppressedCrm,setSuppressedCrm]=useState<CrmRead|null>(null);
+  const safeCrm:CrmRead=suppressedCrm!==crm?crm:{outcome:"unavailable",text:"Refresh CRM context for the current staff session."};
   const tabs = useWorkspaceTabs();
   const [answer, setAnswer] = useState<InboxContextAnswer | null>(null); // null while loading
   const [rosters, setRosters] = useState<Record<string, SessionRosterAnswer | undefined>>({});
@@ -66,8 +72,9 @@ export default function FrontDesk({ crm, source }: { crm: CrmRead; source: "hub"
   // The first read, when the page opens
   useEffect(() => {
     let cancelled = false;
+    const sequence=++requestSequence.current;
     getInboxContext().then((next) => {
-      if (!cancelled) setAnswer(next);
+      if (!cancelled&&sequence===requestSequence.current) setAnswer(next);
     });
     return () => {
       cancelled = true;
@@ -76,12 +83,18 @@ export default function FrontDesk({ crm, source }: { crm: CrmRead; source: "hub"
 
   // Read everything again (Refresh, after sign-in or sign-out)
   const reload = useCallback(async () => {
+    const sequence=++requestSequence.current;
+    setSuppressedCrm(crm);
     setAnswer(null);
     setRosters({});
     setChosen(undefined);
     setReads((count) => count + 1);
-    setAnswer(await getInboxContext());
-  }, []);
+    const next=await getInboxContext();
+    if(sequence===requestSequence.current)setAnswer(next);
+    router.refresh();
+  }, [router,crm]);
+
+  const authenticationLost=useCallback(()=>{++requestSequence.current;resetSession();markSignedOut();setSuppressedCrm(crm);setChosen(undefined);setSessionId(null);setRosters({});setAnswer({outcome:"unavailable",code:"SIGN_IN_REQUIRED",text:"Sign in again to view Front Desk."});},[resetSession,markSignedOut,crm]);
 
   const context = answer?.outcome === "loaded" ? answer.context : null;
   const needsSignIn = answer?.outcome === "unavailable" && SIGN_IN_CODES.includes(answer.code ?? "");
@@ -97,13 +110,16 @@ export default function FrontDesk({ crm, source }: { crm: CrmRead; source: "hub"
     let cancelled = false;
     for (const id of rosterIds.split(",")) {
       getSessionRoster(id).then((next) => {
-        if (!cancelled) setRosters((current) => ({ ...current, [id]: next }));
+        if (!cancelled) {
+          if(next.outcome === "unavailable" && SIGN_IN_CODES.includes(next.code ?? "")){authenticationLost();return;}
+          setRosters((current) => ({ ...current, [id]: next }));
+        }
       });
     }
     return () => {
       cancelled = true;
     };
-  }, [rosterIds, reads]);
+  }, [rosterIds, reads,authenticationLost]);
 
   // The active context: what was tapped here, otherwise the newest member tab
   const newestMemberTab = [...tabs].reverse().find((tab) => MEMBER_TAB.test(tab.href));
@@ -115,12 +131,11 @@ export default function FrontDesk({ crm, source }: { crm: CrmRead; source: "hub"
 
   function refresh() {
     void reload();
-    router.refresh(); // the server's CRM read too
   }
 
   return (
     <div className="crm-scope">
-      {context && !activeMemberId && <DoForMeFocus focusKey="front-desk" context={deskRailContext(crm)} />}
+      {context && !activeMemberId && <DoForMeFocus focusKey="front-desk" context={deskRailContext(safeCrm)} />}
 
       {context && (
         <ContextPane>
@@ -189,7 +204,7 @@ export default function FrontDesk({ crm, source }: { crm: CrmRead; source: "hub"
         <div className="space-y-4">
           <nav aria-label="Front desk quick actions" className="flex flex-wrap gap-2">{[["/people", "Find a member"], ["/crm", "Find a lead"], ["/crm/follow-ups", "Review follow-ups"], ["/inbox", "Open communications"]].map(([href, label]) => <Link key={href} href={href} className="rounded-lg border border-(--crm-line) bg-(--crm-panel) px-4 py-2 text-[12px] font-semibold text-(--crm-text) hover:border-(--crm-muted)">{label}</Link>)}</nav>
           <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
-          <ActiveContext item={active} />
+          <ActiveContext item={active} hubMode={source==="hub"} sessionId={sessionId} onAuthenticationLost={authenticationLost} onRefresh={refresh} />
           <ServiceQueue
             context={answer.context}
             selectedId={activeMessageId}
@@ -200,7 +215,7 @@ export default function FrontDesk({ crm, source }: { crm: CrmRead; source: "hub"
             }
           />
           </div>
-          <CrmAttention crm={crm} />
+          <CrmAttention crm={safeCrm} />
         </div>
       )}
     </div>

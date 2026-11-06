@@ -33,6 +33,7 @@
     "../../src/domain/operations.ts",
     "../../src/domain/today.ts",
     "../../src/domain/companionMigration.ts",
-    "../../src/integrations/companionMigration.ts"
+    "../../src/integrations/companionMigration.ts",
+    "../../src/domain/actionContract.ts"
   ]
 }

@@ -1,0 +1,40 @@
+Daniel kiosk design adaptation - 2026-11-05
+
+Reference https://github.com/jDelille/companion/tree/daniel/kiosk-design
+Remote tip verified read-only with git ls-remote:
+445212cf124660918e98067baa79d0af1174a55d
+Companion checkout/branch were not changed.
+
+Adapted real kiosk presentation:
+- Arrival header, current step label, reset action.
+- Four welcome intent cards: Check in, I am new here, Family arrival, Find a class.
+- Native session rows, instructor/location metadata, start/end times, booking counts.
+- Identification/search and configured tap-your-name tiles.
+- Review layout and explicit native check-in confirmation.
+- Native receipt/success/already-recorded and refusal screens.
+- Shared screen headings, button styles, class header and search-result presentation.
+- Responsive native SCSS compiled into standalone CSS modules under
+  src/views/kiosk/daniel. Runtime has no new Sass dependency.
+- Kiosk-only token aliases connect Daniel's CSS to existing Dojang kiosk tokens.
+- 18px panel corners, source spacing, typography and responsive card stacking.
+- Reduced-motion override retained for animated/transformed source styles.
+
+Target-specific behavior:
+- Existing staging endpoints, guardian proof, recovery, idempotency and authoritative
+  receipts preserved; no source demo backend or synthetic receipt generator copied.
+- Family arrival chooses a real class first, then existing verified phone/PIN flow.
+- New-here remains disabled: no authorized live public intake action exists here.
+- Ask/events not shown without native connected workflows. Language/accessibility
+  and Business Companion demo links not imported as fake live capabilities.
+- Need staff help is an honest nearby-staff handoff, not a claim staff were notified.
+- Header reset locked while recording attendance or inside guardian flow.
+- Class display respects school timezone; confirm fixed to preserve target timezone.
+- Unspecified/zero capacity shown as a returned booked count, not 0/0 capacity.
+- Idle and browser-history reset clear new family/help presentation state.
+- Pairing still has its separately requested Companion-style form and clock header.
+
+Validation:
+- 85 existing kiosk/transport/recovery tests pass; scoped ESLint and typecheck pass.
+- Production build passed; final reset-state adjustment checked again separately.
+- No browser automation or live attendance writes run. Visual browser acceptance
+  remains manual; staging currently returns zero available kiosk sessions.

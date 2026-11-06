@@ -1,0 +1,10 @@
+.panel { display:grid; gap:20px; padding-block:28px; color:var(--kiosk-text); }
+.panel h1 { font-size:1.75rem; font-weight:700; }
+.panel p,.student span { color:var(--kiosk-text-secondary); font-size:1rem; line-height:1.6; }
+.panel form,.panel label { display:grid; gap:12px; }
+.panel form { gap:20px; }
+.panel input { min-height:48px; border:1px solid var(--kiosk-line); border-radius:10px; background:var(--kiosk-raised); padding:12px; font-size:16px; color:var(--kiosk-text); }
+.panel button { min-height:48px; padding:12px 20px; border:1px solid var(--kiosk-line); border-radius:999px; background:var(--kiosk-raised); color:var(--kiosk-text); }
+.panel button:disabled { opacity:.5; }
+.panel button:focus-visible,.panel input:focus-visible { outline:2px solid var(--kiosk-text-secondary); outline-offset:3px; }
+.student { display:grid; gap:12px; border:1px solid var(--kiosk-line); border-radius:18px; padding:20px; }

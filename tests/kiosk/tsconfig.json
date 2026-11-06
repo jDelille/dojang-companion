@@ -5,11 +5,20 @@
     "target": "ES2022",
     "module": "commonjs",
     "moduleResolution": "node",
-    "lib": ["ES2022", "DOM"],
-    "types": ["node"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "types": [
+      "node"
+    ],
     "skipLibCheck": true,
     "baseUrl": "../..",
-    "paths": { "@/*": ["src/*"] },
+    "paths": {
+      "@/*": [
+        "src/*"
+      ]
+    },
     "rootDir": "../../src"
   },
   "files": [
@@ -26,6 +35,8 @@
     "../../src/app/api/v2/sessions/route.ts",
     "../../src/app/api/v2/sessions/[sessionId]/roster/route.ts",
     "../../src/app/api/integration/pair/route.ts",
-    "../../src/app/api/v2/attendance/check-ins/route.ts"
+    "../../src/app/api/v2/attendance/check-ins/route.ts",
+    "../../src/server/kiosk-recovery.ts",
+    "../../src/integrations/guardian.ts"
   ]
 }

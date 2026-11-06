@@ -23,3 +23,12 @@ env:
 
   - variable: DOJANG_COOKIE_SECRET
     secret: dojang-cookie-secret
+  # Existing staging kiosk credentials; values remain in Secret Manager.
+  - variable: DOJANG_INTEGRATION_MODE
+    value: odoo-test
+  - variable: DOJANG_KIOSK_TOKEN
+    secret: dojang-kiosk-token
+  - variable: DOJANG_KIOSK_GATEWAY_KEY
+    secret: dojang-kiosk-gateway-key
+  - variable: DOJANG_KIOSK_PAIR_KEY
+    secret: dojang-kiosk-pair-key

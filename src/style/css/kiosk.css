@@ -7,6 +7,23 @@
    use these variables, so the palette can be swapped here in one place.
 */
 .kiosk-shell {
+  /* Daniel's native-screen CSS, scoped aliases to the existing kiosk palette. */
+  container-name: kiosk;
+  --panel: var(--kiosk-panel);
+  --raised: var(--kiosk-raised);
+  --interactive: var(--kiosk-interactive);
+  --line: var(--kiosk-line);
+  --text: var(--kiosk-text);
+  --text-secondary: var(--kiosk-text-secondary);
+  --muted: var(--kiosk-muted);
+  --brand: var(--kiosk-brand);
+  --brand-bright: var(--kiosk-brand-bright);
+  --success: var(--kiosk-success);
+  --warning: var(--kiosk-warning);
+  --font-label: var(--kiosk-font-label);
+  --ease-out: cubic-bezier(.22,1,.36,1);
+  --panel-pad-x: 3.5rem;
+  --panel-pad-y: 2.5rem;
   --kiosk-canvas: #08080a;
   --kiosk-panel: #101014;
   --kiosk-raised: #17171d;
@@ -26,6 +43,16 @@
   color: var(--kiosk-text);
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+@container kiosk (width < 540px) {
+  .kiosk-design-panel { --panel-pad-x:1.25rem; --panel-pad-y:1.25rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kiosk-shell *, .kiosk-shell *::before, .kiosk-shell *::after {
+    animation: none !important;
+    transition: none !important;
+    view-transition-name: none !important;
+  }
 }
 
 /*

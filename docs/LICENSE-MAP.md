@@ -90,3 +90,23 @@ Companion operations migration (2026-11-05): `src/views/operations` adapts Dojan
 Local styles, primitives, orchestration and validators are Dojang adaptations. No Roster
 backend/auth/provider implementation was imported. See `audits/companion-migration-coverage.txt`
 for contracts, writeup mapping and intentional limitations. Source repository was read only.
+
+Action Contract (2026-11-05): `src/domain/actionContract.ts` and
+`src/views/operations/ActionContract.tsx` adapt Dojang Companion's own
+`src/components/workbench/{contractRules,useInvitationRun,ActionContract}` by meaning.
+Existing extracted Roster form/button controls are reused; no additional licensed
+backend, provider or authentication source copied. Source-specific adjustments are
+in `audits/action-contract-reference-coverage.txt`.
+
+Kiosk staging restoration (2026-11-05): adapted Dojang Companion's own
+`src/server/odoo-gateway.ts`, `src/server/kiosk-recovery.ts`,
+`src/integrations/{guardian,attendanceRecovery}.ts`, GuardianCheckIn and
+PublicModeGate into the existing target kiosk/staff boundaries. No vendor backend
+or alternate staff authentication imported. See kiosk-staging-connection-coverage.txt.
+
+Daniel kiosk design (2026-11-05): adapted Dojang Companion branch
+`daniel/kiosk-design` at `445212cf124660918e98067baa79d0af1174a55d`, verified
+against the remote. `src/views/kiosk/daniel/*.module.css` derives from that branch's
+kiosk screen/component SCSS; corresponding target TSX files name their source.
+Dojang-owned source; no new Roster/Dreams backend or vendor source copied.
+See `audits/daniel-kiosk-design-coverage.txt` for live/demo boundaries.

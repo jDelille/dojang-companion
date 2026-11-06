@@ -1,0 +1,25 @@
+/* Dojang Companion integration/pair/page.module.scss, _glass.scss and header.
+   Adapted to the target kiosk tokens; no shared kiosk journey styles changed. */
+.header { display:flex; align-items:center; justify-content:space-between; margin:-1.25rem -1.25rem 0; padding:1.25rem; border-bottom:1px solid var(--kiosk-line); min-height:66px; }
+.logo { font-family:var(--kiosk-font-label); font-size:14px; letter-spacing:.25em; }
+.clock { color:var(--kiosk-text-secondary); font-size:1rem; font-variant-numeric:tabular-nums; }
+.page { flex:1; display:flex; flex-direction:column; justify-content:center; padding:2rem 0; }
+.card { display:flex; flex-direction:column; gap:1.5rem; padding:2rem; background:var(--kiosk-panel); border:1px solid var(--kiosk-line); border-radius:18px; }
+.titles { display:flex; flex-direction:column; gap:.625rem; }
+.titles h1 { font-size:1.75rem; font-weight:700; line-height:1.2; color:var(--kiosk-text); }
+.titles p { font-size:1rem; line-height:1.6; color:var(--kiosk-text-secondary); }
+.form { display:flex; flex-direction:column; gap:1.125rem; }
+.field { display:flex; flex-direction:column; gap:.5rem; font-size:.875rem; font-weight:600; color:var(--kiosk-text-secondary); }
+.input { box-sizing:border-box; width:100%; min-height:48px; padding:0 1rem; border:1px solid var(--kiosk-line); border-radius:10px; background:var(--kiosk-panel); color:var(--kiosk-text); font:inherit; font-size:1rem; font-weight:400; }
+.selectWrap { position:relative; display:block; }
+.selectWrap select { appearance:none; background-image:none; padding-right:2.75rem; cursor:pointer; }
+.chevron { position:absolute; right:1rem; top:50%; transform:translateY(-50%); pointer-events:none; color:var(--kiosk-text-secondary); }
+.submit { all:unset; box-sizing:border-box; display:flex; align-items:center; justify-content:center; width:100%; min-height:60px; margin-top:.5rem; background:var(--kiosk-raised); border:1px solid var(--kiosk-line); border-radius:999px; color:var(--kiosk-text); font-size:1rem; font-weight:600; cursor:pointer; transition:background 150ms ease,border-color 150ms ease; }
+.submit:hover:not(:disabled),.submit:active:not(:disabled) { background:var(--kiosk-raised); border-color:var(--kiosk-text-secondary); }
+.submit:disabled,.input:disabled { opacity:.5; cursor:not-allowed; }
+.input:focus-visible,.submit:focus-visible { outline:2px solid var(--kiosk-text-secondary); outline-offset:3px; }
+.notice { font-size:.875rem; line-height:1.6; color:var(--kiosk-text-secondary); }
+.back { align-self:flex-start; display:inline-flex; align-items:center; min-height:44px; font-size:.875rem; color:var(--kiosk-text-secondary); text-decoration:underline; text-underline-offset:4px; }
+@container (min-width:540px) { .header { margin:-2.5rem -3.5rem 0; padding:1.25rem 3.5rem; } }
+@container (width < 540px) { .card { padding:1.5rem; } .titles h1 { font-size:1.5rem; } }
+@media(prefers-reduced-motion:reduce) { .submit { transition:none; } }

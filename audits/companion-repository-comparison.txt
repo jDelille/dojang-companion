@@ -1,0 +1,197 @@
+COMPANION -> DOJANG NEXTJS REPOSITORY COMPARISON
+Date: 2026-11-05 (America/Phoenix)
+Source: C:/Users/justi/Desktop/dojang/companion
+Target: C:/Users/justi/Desktop/nextjs
+
+RESULT
+The Hub workspace migration is substantially present. The whole Companion
+repository is NOT fully migrated. Several working interaction and test-integration
+paths outside /hub are absent or only partially represented.
+
+METHOD / CONFIDENCE
+Inventoried 207 source TS/TSX files under app and src, 12 page entrypoints,
+21 API routes, and the source gateway's 33 reads + 48 writes (81 names).
+Traced source entrypoints/imports for the gaps below and searched target callers,
+integration/domain modules and gateway registrations. Inspected actual source
+for voice, workbench, proposed edits, kiosk, recovery, workflow and readiness.
+Not a line-by-line review of all 207 files and not a claim of runtime equivalence.
+No environments/secrets read, reference repo modified, browser automation,
+live mutations, provider sends or deployment changes performed.
+
+80/81 source Hub operation names have target counterparts. This is a contract-
+coverage finding, NOT 98.8% product completion. Some counterpart controls are in
+Operations rather than at the original source location. Native failures,
+deployment versions, roles and provider configuration still need live acceptance.
+The remaining name 'provision' occurs only in source hub-gateway.ts's allowlist:
+no source app/src UI caller found. It is NOT evidence of a completed portal-invite
+feature to copy, and must not be enabled based on this allowlist alone.
+See companion-operation-comparison.csv for all 81 names and target evidence.
+
+PRESENT / ADAPTED (code present, live acceptance still required)
+1 People and Member 360: directory, identity/contact/photo, bookings/checkout,
+  attendance, rank/history, household/guardian/consent/PIN/waiver tools,
+  onboarding reads, billing ledger, reviewed refund workflow, tasks and workspace.
+  Source: app/(companion)/hub/MemberManagement.tsx, MemberBooking.tsx.
+  Target: src/views/people/{member360,memberTools,memberWorkspace,
+  memberSettlement,memberTasks,memberOnboarding}.tsx plus member dialogs.
+  Unsupported profile fields remain unsupported rather than copied as demo facts.
+2 CRM: pipeline/list/detail, intake, lead editing/owner assignment, notes/tasks,
+  stage proposal, evidence, trial reservation/outcomes/cancellation/conversion.
+  Source: hub/{CrmWorkspace,CrmIntelligence,StudentIntake,TrialPanel}.tsx.
+  Target: src/views/crm and Operations TrialPanel/TrialsWorkspace.
+  Lead owner assignment had a real backend denial in earlier manual testing;
+  present UI/contract does not mean that permission problem is resolved.
+3 Inbox: verified context, resolve/draft/review/approve and delivery status,
+  member relationship, tasks and governed booking tools. No direct provider path.
+  Target: src/views/inbox and src/domain/inboxWorkspace.ts.
+4 Instructor clock/timesheet corrections; attendance administration; school
+  testing/results/promotions/reversals; course assignments; operational report/
+  roster print; broadcasts/automation; setup checklist and AI activation check.
+  Source: app/(companion)/hub workspaces.
+  Target: src/views/operations; 80 names are not 80 independent screens.
+5 Adaptive staff shell, perspective selection, tabs, command search, context pane,
+  Front Desk, Today, Instructor, contextual AI text questions/review/evidence/history.
+  Adapted rather than identical to Companion. Front Desk action wiring currently
+  remains an uncommitted change from the preceding user-authorized pass.
+
+MISSING / PARTIAL: CONCRETE SOURCE DIFFERENCES
+A. Voice input -- MISSING
+  Source: src/components/ai/voice/useVoice.tsx, imported by
+  src/components/shell/rail/companion-rail/AgentComposer.tsx.
+  Browser SpeechRecognition converts speech into a request. Target has typed
+  agent questions but no corresponding speech input. Dreams voice-call demo is
+  not this capability. Can adapt using existing agent path; review text before
+  submission would improve source behavior (source submits speech immediately).
+
+B. Action Contract / live multi-step run presentation -- PARTIAL
+  Source route: /intel?goal=...; workbench/ActionContract.tsx,
+  useInvitationRun.ts, contractRules.ts; shell rail RunView/pageRun.
+  Source handles one bounded keyword-recognized testing-invitation goal, not a
+  universal autonomous agent: read eligibility/test/audience, collect staff inputs,
+  show will/will-not/approval, preview, save one broadcast awaiting approval,
+  show run steps and receipt. Separate broadcast approval handles delivery.
+  Target has testing and broadcasts individually plus contextual review/history;
+  it lacks this connected goal -> run -> pause/input -> approval experience.
+  Can largely reuse existing native reads/create_broadcast. Must check selected
+  audience really matches the reviewed scope; do not infer recipient identity.
+
+C. Proposed multi-field member edit -- PARTIAL
+  Source route: /people/[id]/proposed-edit; member-360/proposed-edit/ProposedEdit.tsx;
+  edit-leaf/{proposeEdit,memberEdits}.ts. Keyword/regex proposal, not general AI.
+  Target has contact edit and course assignment separately, but no comparable
+  proposed changes page and step-by-step apply across them.
+  Source uses course membership as 'program' and shows instructor proposal it
+  cannot apply. Adapt those semantics explicitly; course != authoritative program.
+  Multiple native commits are not one atomic transaction. Must preserve partial
+  completion/uncertain results; never describe entire sequence as rolled back.
+
+D. Dedicated schedule and session workflow page -- PARTIAL / REPLACED
+  Source: /ops ClassSchedule.tsx, /ops/sessions/[id] ConnectedWorkflowView.
+  Target: Today/Instructor class lists, roster panels and Operations reports.
+  No corresponding dedicated full schedule/session-route experience. Source
+  connected session page actually renders the legacy workflow view, not a full
+  class-management backend. Reuse target reads/UI rather than copy old routing.
+
+E. Legacy connected follow-up agent workflow -- PARTIAL / DIFFERENT BOUNDARY
+  Source: /api/v2/companion/{context,requests,approvals};
+  server/{companion-live,companion-workflow}.ts; ConnectedWorkflowView.tsx.
+  Includes scoped attendance lookup, prepared follow-up/review and native workflow
+  receipts via /kiosk/v2/staff/companion-workflow in odoo-test mode.
+  Target has Hub companion_ask, tasks/follow-ups and its own review receipts;
+  source's workflow API/history is not directly migrated. This is not missing
+  general AI chat. Do not import the old paired staff/bearer identity system;
+  decide whether any unique workflow behavior should use the current Hub account.
+
+F. Real public kiosk attendance + guardian multi-child check-in -- PARTIAL
+  Source: api/v2/attendance/check-ins, api/v2/guardian/{verify,check-ins};
+  integrations/guardian.ts; kiosk/guardian/GuardianCheckIn.tsx.
+  Target has session-first kiosk, pairing and real session/roster reads, plus
+  staff guardian PIN management. Target attendance API remains fixture-only;
+  no public guardian verification/multi-child path. PIN administration is not
+  guardian check-in. Source implementation uses odoo-test capabilities; that is
+  not proof of production readiness. Parked per user's existing kiosk decision.
+
+G. Kiosk concierge/help -- MISSING end-to-end
+  Source: kiosk/screens/concierge-screen, domain/kiosk/conciergeFlow.ts,
+  api/v1/kiosk/concierge and actions, server/kiosk-concierge.ts.
+  Target retains some flow/config vocabulary but lacks the connected concierge
+  screens/API. Source connected mode is bounded read-only help/private handoff;
+  demo actions must not become live CRM, billing or arbitrary assistant writes.
+  Parked with kiosk.
+
+H. Durable encrypted attendance recovery -- PARTIAL foundation, integration missing
+  Source: integrations/attendanceRecovery.ts, server/kiosk-recovery.ts,
+  /api/v2/kiosk/recovery, kiosk/recovery/RecoveryStatus.tsx.
+  Target has domain/kiosk/attendanceOutbox.ts but no recovery endpoint/key binding,
+  recovery runner/status integration. Source retries pending attendance with the
+  original identity and bounded device credentials; not outbound messaging retries.
+  Parked with kiosk; needs separate integration review, not just copy storage UI.
+
+I. Public kiosk entry privacy gate -- MISSING counterpart
+  Source: kiosk/PublicModeGate.tsx + /api/integration/public-mode and
+  enterPublicMode; clears staff context and notifies other tabs before public use.
+  Target has staff logout/reset and a separate kiosk layout, but no corresponding
+  enforced kiosk-entry handshake/cross-tab public-mode gate found.
+  Distinct from kiosk idle reset. Review before using one device for staff/public.
+  Reported only; kiosk behavior not changed during this comparison.
+
+J. Integration health/readiness diagnostics -- MISSING
+  Source: /api/health, /api/integration/readiness, server/readiness.ts.
+  Distinguishes public liveness, configured mode/release and authenticated probes.
+  Target shows connection/errors and setup checklist, but no equivalent diagnostic
+  endpoints found. Reuse current staff auth/scope, not legacy source credentials.
+
+SOURCE CODE THAT IS NOT A FINISHED MISSING PRODUCT FEATURE
+- ExecutiveToday/OwnerHome/OwnerToday/SchoolDashboard exist as source components.
+  TodayByRole explicitly says Owner/Executive is parked; no owner page exists
+  among the 12 source pages. Source-only components can be useful design input,
+  not proof of an already-wired executive product to migrate.
+- Mock members/requests/approvals/scenarios and demo modals are test infrastructure.
+  They are not a second live backend to adopt.
+- /api/hub/photo absent in target is not by itself a missing photo/signature feature:
+  target handles these operations through its validated /api/hub path.
+- /integration/members is a paired test-directory surface; target /people replaces
+  its staff directory purpose through real account authentication.
+- Exact API path parity is not required: only 6/21 identical paths exist, but many
+  source endpoints were intentionally replaced by current Hub/domain boundaries.
+
+WRITEUP CHECK
+Rechecked source responsibilities and current mapping alongside:
+- Kiosk_Core_Ui_Designs_Unity_Map_Cards (1).pdf p6 Front Desk, p29 Action Contract;
+  voice appears in its interaction/AI sections. Source labels doc45/46 run/receipt
+  refer to source design sections, not physical PDF page numbers.
+- New_Kiosk_Martial_Dream_Eb_Gym_Whats_Max (6).pdf pp12-13 perspectives/Today,
+  and supplied AI/voice/communications concepts. Beta0.3 remains excluded.
+A source feature is not automatically product authority. Keep program/course,
+permission, real/fixture and proposal/commit distinctions when adapting it.
+
+RECOMMENDED ORDER (no implementation performed in this comparison)
+1 Voice input into existing composer, with editable transcript before submission.
+2 Action Contract/run experience over existing testing/broadcast capabilities.
+3 Proposed member edits over explicitly named fields/course actions.
+4 Dedicated class schedule and session workflow presentation, if needed beyond
+  existing Today/Instructor/Operations tools.
+5 Diagnostics through current authenticated integration boundary.
+6 Separately revisit parked kiosk: privacy gate, real attendance/guardian proof,
+  concierge and encrypted recovery as a reviewed integration pass.
+
+ARTIFACTS / VALIDATION
+companion-operation-comparison.csv: all 81 source operation names, target evidence.
+companion-route-comparison.csv: 21 source API + 12 page entrypoints.
+companion-source-inventory.json: exact source paths and SHA256 baseline for 207 files.
+Counts/JSON/CSV checked for consistent unique rows. No application source changed
+for this audit; app tests/build not rerun because only audit artifacts were added.
+Prior Front Desk modifications were preserved.
+
+FOLLOW-UP IMPLEMENTATION - 2026-11-05
+Item B now has a bounded testing-invitation Action Contract in Operations, plus
+Do For Me entry/evidence/history. See action-contract-reference-coverage.txt for
+implemented scope, native actions and intentional differences. It is not a generic
+autonomous goal engine. Voice remains deferred by the user.
+
+KIOSK FOLLOW-UP - 2026-11-05
+Items F/H/I now have connected staging code: roster/attendance, guardian PIN family
+check-in, scoped encrypted recovery and public-mode privacy reset. Pairing and session
+reads verified; no sessions currently returned, no live attendance tested. Staff
+remains on individual Hub accounts. Concierge G remains absent. See
+kiosk-staging-connection-coverage.txt.

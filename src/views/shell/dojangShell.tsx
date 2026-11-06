@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Sparkles, X } from "lucide-react";
 import { isDojangPage } from "@/config/dojang";
@@ -11,6 +11,8 @@ import { ContextPaneSlot } from "./contextPane";
 import NavRail, { BottomNav } from "./navRail";
 import { StaffConnectionProvider, useStaffConnection } from "./staffConnection";
 import StaffSignIn from "./staffSignIn";
+import {useStaffSessionReset} from './staffSession';
+import {useMarkSignedOut} from './staffConnection';
 import TopBar from "./topBar";
 import WorkspaceTabs from "./workspaceTabs";
 
@@ -36,6 +38,13 @@ import WorkspaceTabs from "./workspaceTabs";
 const WIDE = "(min-width: 1440px)";
 // Below this the context pane is a drawer
 const EXPANDED = "(min-width: 1024px)";
+// Check persistent public-mode state on client navigation too: a cached staff
+// page must not become visible through Back after its server session was cleared.
+function publicModeSnapshot(){try{return localStorage.getItem('dojang:public-mode')!==null;}catch{return false;}}
+function subscribePublicMode(listener:()=>void){
+  window.addEventListener('storage',listener);window.addEventListener('pageshow',listener);
+  return()=>{window.removeEventListener('storage',listener);window.removeEventListener('pageshow',listener);};
+}
 
 export default function StaffShell({
   connection,
@@ -54,6 +63,16 @@ export default function StaffShell({
 }
 
 function DojangShell({ children }: { children: ReactNode }) {
+  const persistedPublicMode=useSyncExternalStore(subscribePublicMode,publicModeSnapshot,()=>false);
+  const [publicMode,setPublicMode]=useState(false);
+  const resetStaff=useStaffSessionReset(),markSignedOut=useMarkSignedOut();
+  useEffect(()=>{
+    const clear=()=>{resetStaff();markSignedOut();setPublicMode(true);};
+    const storage=(event:StorageEvent)=>{if(event.key==='dojang:public-mode'&&event.newValue!==null)clear();};
+    const channel=typeof BroadcastChannel!=='undefined'?new BroadcastChannel('dojang-public-mode'):null;
+    if(channel)channel.onmessage=event=>{if(event.data==='staff-cleared')clear();};
+    window.addEventListener('storage',storage);return()=>{channel?.close();window.removeEventListener('storage',storage);};
+  },[resetStaff,markSignedOut]);
   const pathname = usePathname();
   const memberProfile = /^\/people\/[^/]+$/.test(pathname);
   const router = useRouter();
@@ -115,6 +134,7 @@ function DojangShell({ children }: { children: ReactNode }) {
     setCompanionOpen(true);
   }
 
+  if(publicMode||persistedPublicMode)return <section className="crm-scope p-8"><h1 className="text-xl font-bold">Staff session closed</h1><p>This device entered public kiosk mode. Sign in again before opening staff records.</p><StaffSignIn onSignedIn={()=>{setPublicMode(true);try{localStorage.removeItem('dojang:public-mode');}catch{}window.location.replace('/people');}}/></section>;
   return (
     <div
       ref={shell}

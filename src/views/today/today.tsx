@@ -28,7 +28,6 @@ import { DoForMeFocus } from "@/views/doForMe/doForMeProvider";
 import { ErrorBlock, LoadingBlock } from "@/views/inbox/inboxStates";
 import { HubSignOutButton } from "@/views/shell/hubUnavailable";
 import StaffSignIn from "@/views/shell/staffSignIn";
-import Link from 'next/link';
 import OperationsPanel from './operationsPanel';
 import TaskCompletion from '@/views/crm/taskCompletion';
 import type { FollowUp } from '@/domain/followUp';
@@ -222,7 +221,6 @@ export default function Today({ crm, source }: { crm: TodayCrmRead; source: "hub
         </div>
       ) : (
         <div className="grid gap-4">
-          {context && <nav aria-label="Operational workspaces" className="flex flex-wrap gap-4 text-sm"><Link href="/operations" className="underline">Staff Operations</Link><Link href="/front-desk" className="underline">Front Desk</Link><Link href="/instructor" className="underline">Instructor workspace</Link><Link href="/crm/follow-ups" className="underline">Follow-ups</Link><Link href="/inbox" className="underline">Inbox</Link><p className="text-xs muted">Site #{context.principal.siteId} / access follows your Odoo account.</p></nav>}
           {context && taskReceipt && <p role="status" className="rounded-xl border border-(--crm-line) p-3 text-xs">{taskReceipt}</p>}
           <NeedsDecision
             work={work}

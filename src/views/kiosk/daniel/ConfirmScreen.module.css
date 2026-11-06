@@ -1,0 +1,58 @@
+/* Adapted from Dojang Companion daniel/kiosk-design @445212cf. */
+.screen {
+  flex: 1;
+  margin: 0 calc(var(--panel-pad-x) * -1) calc(var(--panel-pad-y) * -1);
+  padding: clamp(34px, 6vw, 72px) clamp(24px, 7vw, 92px);
+}
+
+.reviewList {
+  margin-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.reviewRow {
+  min-height: 58px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 16px;
+  align-items: center;
+}
+.reviewRow dt {
+  color: var(--text-secondary);
+  font-family: var(--font-label);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.reviewRow dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.actions {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@container kiosk (width < 540px) {
+  .screen {
+    padding: 34px 20px;
+  }
+  .reviewRow {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+}

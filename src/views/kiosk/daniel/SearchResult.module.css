@@ -1,0 +1,45 @@
+/* Adapted from Dojang Companion daniel/kiosk-design @445212cf. */
+.result {
+  width: 100%;
+  padding: 18px 20px;
+  border: 1px solid #3a3a48;
+  border-radius: 14px;
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+}
+.result:hover {
+  background: var(--interactive);
+}
+.result:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.initials {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-label);
+  font-size: 13px;
+}
+
+.name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.select {
+  font-size: 13px;
+  font-weight: 700;
+}

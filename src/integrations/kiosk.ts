@@ -1,3 +1,4 @@
+import {saveUnconfirmedAttendance,clearConfirmedAttendance} from './attendanceRecovery';
 import type {
   CheckInResult,
   ProblemCode,
@@ -12,7 +13,7 @@ import { CHECK_IN_TIMEOUT_SECONDS } from "@/domain/kiosk/kioskConfig";
 
 // The only place kiosk screens get data from. Calls the /api/v2 routes, which
 // select explicit Odoo test session reads or development fixtures on the server.
-// Real identification and attendance remain disabled until separately connected.
+// Connected roster and attendance use the paired kiosk scope and native checks.
 // Ported from Companion 1cab554b src/integrations/kiosk.ts.
 
 // Today's sessions. The server decides what "today" means.
@@ -26,8 +27,8 @@ export async function getSessions(
   return response.json();
 }
 
-// The students registered for one session. Screens must never list this as-is:
-// it's only searched, so a public kiosk doesn't show everyone's names.
+// Only students registered for the selected, device-authorized test session.
+// Presentation follows Jodi's configured tap-your-name grid or search-only mode.
 export async function getRoster(
   sessionId: RecordId,
   signal?: AbortSignal, // aborted when the kiosk leaves the step (e.g. Change class)
@@ -48,9 +49,7 @@ export async function getRoster(
 // so a very late reply can't arrive. The server may still have saved it, which the
 // retry with the same idempotency key sorts out.
 //
-// Not ported: Companion's attendanceRecovery (an encrypted on-device queue of
-// unconfirmed attempts). It only runs with a paired device's recovery key, which
-// DreamOS doesn't have, so Companion's own demo mode behaves exactly like this.
+// Connected devices can retain encrypted unconfirmed attempts for bounded recovery.
 export async function checkIn(
   command: CheckInCommand,
   signal: AbortSignal, // aborted by the page if the kiosk leaves this step
@@ -68,17 +67,20 @@ export async function checkIn(
       signal: AbortSignal.any([signal, timeout]),
     });
   } catch {
+    if(!signal.aborted)await saveUnconfirmedAttendance(command);
     return { kind: "noAnswer" }; // offline, cancelled or timed out
   }
 
   const body = await response.json().catch(() => null);
 
   if (response.ok && isResultFor(body, command)) {
+    if(body.receipt.memberId===command.payload.memberId&&body.receipt.sessionId===command.payload.sessionId)await clearConfirmedAttendance(command);
     return { kind: "result", result: body };
   }
   if (!response.ok && isKnownProblem(body)) {
     return { kind: "problem", problem: body };
   }
+  if(!signal.aborted)await saveUnconfirmedAttendance(command);
   return { kind: "noAnswer" }; // e.g. a bare 503, or a body that isn't either shape
 }
 

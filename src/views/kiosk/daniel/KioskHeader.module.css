@@ -1,0 +1,95 @@
+/* Adapted from Dojang Companion daniel/kiosk-design @445212cf. */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 64px;
+  margin: calc(var(--panel-pad-y) * -1) calc(var(--panel-pad-x) * -1) 0;
+  padding: 0 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.brandWord {
+  font-family: var(--font-label);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+}
+
+.brandContext {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.pill {
+  padding: 7px 10px;
+  border: 1px solid #3a3a48;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-family: var(--font-label);
+  font-size: 10px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pill i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+.iconButton {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--raised);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.iconButton svg {
+  width: 19px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.iconButton:hover {
+  background: var(--interactive);
+}
+.iconButton:focus-visible,
+.iconButton .brand:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+@container kiosk (width < 540px) {
+  .pill {
+    display: none;
+  }
+}

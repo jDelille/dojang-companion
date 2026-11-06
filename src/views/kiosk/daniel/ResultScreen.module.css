@@ -1,0 +1,121 @@
+/* Adapted from Dojang Companion daniel/kiosk-design @445212cf. */
+.screen {
+  flex: 1;
+  margin: 0 calc(var(--panel-pad-x) * -1) calc(var(--panel-pad-y) * -1);
+  padding: clamp(34px, 6vw, 72px) clamp(24px, 7vw, 92px);
+}
+
+.successScreen {
+  min-height: 600px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.successContent {
+  width: min(620px, 100%);
+}
+
+.markWrap > div {
+  width: 88px;
+  height: 88px;
+  margin: 0 auto 24px;
+}
+
+.eyebrow {
+  margin-bottom: 20px;
+  color: var(--muted);
+  font-family: var(--font-label);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.headline {
+  margin: 0 auto 18px;
+  font-size: clamp(38px, 5vw, 62px);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: -0.058em;
+}
+
+.nextAction {
+  margin: 34px 0 18px;
+  padding: 22px;
+  border: 1px solid #3a3a48;
+  border-radius: 14px;
+  background: var(--raised);
+  text-align: left;
+}
+.nextAction small {
+  color: var(--text-secondary);
+  font-family: var(--font-label);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.nextAction strong {
+  display: block;
+  margin-top: 14px;
+  font-size: 20px;
+}
+.nextAction p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.tag {
+  margin-left: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.actions {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.privacyNote {
+  margin-top: 18px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .eyebrow,
+  .headline,
+  .nextAction,
+  .actions,
+  .privacyNote {
+    animation: rise 420ms var(--ease-out) 350ms both;
+  }
+  .headline {
+    animation-delay: 420ms;
+  }
+  .nextAction {
+    animation-delay: 520ms;
+  }
+  .actions,
+  .privacyNote {
+    animation-delay: 620ms;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@container kiosk (width < 540px) {
+  .screen {
+    padding: 34px 20px;
+  }
+}

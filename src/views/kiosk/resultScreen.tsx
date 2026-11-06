@@ -1,35 +1,51 @@
-import type { AttendanceReceipt, RosterMember, SessionOption } from "@/contracts/kiosk-attendance";
+// Adapted from Dojang Companion daniel/kiosk-design @445212cf: src/components/kiosk/screens/result-screen/ResultScreen.tsx
+import type {
+  AttendanceReceipt,
+  RosterMember,
+  SessionOption,
+} from "@/contracts/kiosk-attendance";
+import KioskButton from "./kioskButton";
+import ScreenHead from "./screenHead";
+import SuccessMark from "./successMark";
+import SessionHeader from "./sessionHeader";
+import StatusMessage, {
+  type StatusAction,
+} from "./statusMessage";
 import type { CheckInOutcome } from "@/domain/kiosk/checkInOutcome";
 import { formatClockTime } from "@/domain/kiosk/sessionFormat";
-import SessionHeader from "./sessionHeader";
-import StatusMessage, { type StatusAction } from "./statusMessage";
-import SuccessMark from "./successMark";
-import SummaryRow from "./summaryRow";
+import styles from "./daniel/ResultScreen.module.css";
 
-// K06 Result: only ever shown after the server answered (or clearly didn't).
-// No Back: the only ways out are Done, or the action the outcome offers.
-// Ported from Companion's components/kiosk/screens/result-screen. Not here yet:
-// "Get help from staff" with "see the front desk" (opens the Concierge in Companion).
-
-type ResultScreenProps = {
+type Props = {
   session: SessionOption;
   member: RosterMember;
   outcome: CheckInOutcome;
   onDone: () => void;
   onRetry: () => void; // only offered when not confirmed
   onChooseClass: () => void; // only offered when this class can't take check-ins
+  onStaffHelp: () => void; // offered with "see the front desk"
 };
 
-const headlineClass =
-  "text-[2rem] leading-[1.1] font-bold tracking-[-0.04em] @min-[540px]:text-[3rem]";
+// K06: only ever shown after the server answered (or clearly didn't).
+// No Back: the only ways out are Done, or the action the outcome offers.
+const ResultScreen = ({
+  session,
+  member,
+  outcome,
+  onDone,
+  onRetry,
+  onChooseClass,
+  onStaffHelp,
+}: Props) => {
+  const isReceipt =
+    outcome.kind === "success" || outcome.kind === "alreadyCheckedIn";
 
-const ResultScreen = ({ session, member, outcome, onDone, onRetry, onChooseClass }: ResultScreenProps) => {
   return (
-    <div className="flex flex-col gap-6 py-8">
-      {outcome.kind !== "success" && outcome.kind !== "alreadyCheckedIn" && (
-        <SessionHeader session={session} />
-      )}
-
+    // the receipt is centered like Jodi's "You're all set"; the rest read left to right
+    <div
+      className={[styles.screen, isReceipt && styles.successScreen]
+        .filter(Boolean)
+        .join(" ")}
+    >
       {outcome.kind === "success" && (
         <Receipt
           headline="You're checked in"
@@ -56,7 +72,11 @@ const ResultScreen = ({ session, member, outcome, onDone, onRetry, onChooseClass
         <Refusal
           headline="Please see the front desk"
           message="We couldn't finish your check-in here."
-          actions={[{ label: "Done", onClick: onDone }]}
+          session={session}
+          actions={[
+            { label: "Get help from staff", onClick: onStaffHelp },
+            { label: "Done", onClick: onDone },
+          ]}
         />
       )}
 
@@ -64,6 +84,7 @@ const ResultScreen = ({ session, member, outcome, onDone, onRetry, onChooseClass
         <Refusal
           headline="This class can't take check-ins"
           message="Please choose a class from today's list."
+          session={session}
           actions={[
             { label: "Choose a class", onClick: onChooseClass },
             { label: "Done", onClick: onDone },
@@ -76,6 +97,7 @@ const ResultScreen = ({ session, member, outcome, onDone, onRetry, onChooseClass
           headline="Check-in isn't available here"
           message="This kiosk can't check you in right now."
           detail="Please see the front desk."
+          session={session}
           actions={[{ label: "Done", onClick: onDone }]}
         />
       )}
@@ -86,6 +108,7 @@ const ResultScreen = ({ session, member, outcome, onDone, onRetry, onChooseClass
           headline="Check-in not confirmed"
           message="We couldn't confirm your check-in."
           detail="Try again, or see the front desk."
+          session={session}
           actions={[
             { label: "Try again", onClick: onRetry },
             { label: "Done", onClick: onDone },
@@ -98,48 +121,57 @@ const ResultScreen = ({ session, member, outcome, onDone, onRetry, onChooseClass
 
 type ReceiptProps = {
   headline: string;
-  animate: boolean;
+  animate: boolean; // draw the check in on a new check-in, not on "already checked in"
   session: SessionOption;
   member: RosterMember;
   receipt: AttendanceReceipt;
   onDone: () => void;
 };
 
-// Success and already-checked-in: the receipt always names the selected session
-const Receipt = ({ headline, animate, session, member, receipt, onDone }: ReceiptProps) => {
+// Success and already-checked-in: Jodi's "You're all set". The receipt always
+// names the selected session.
+const Receipt = ({
+  headline,
+  animate,
+  session,
+  member,
+  receipt,
+  onDone,
+}: ReceiptProps) => {
   return (
-    <>
-      <div className="mt-4 mb-2 flex flex-col items-start gap-2" role="status" aria-live="polite" aria-atomic="true">
+    <div
+      className={styles.successContent}
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <div className={styles.markWrap}>
         <SuccessMark animate={animate} />
-        <h1 className={`mt-2 ${headlineClass}`}>{headline}</h1>
       </div>
+      <div className={styles.eyebrow}>Complete</div>
+      <h1 className={styles.headline}>{headline}</h1>
 
-      <dl className="flex flex-col gap-3 rounded-2xl border border-(--kiosk-line) bg-(--kiosk-canvas) p-6">
-        <SummaryRow label="Student">{member.displayName}</SummaryRow>
-        <SummaryRow label="Class">{session.title}</SummaryRow>
-        <SummaryRow label="Time">{formatClockTime(session.startsAt)}</SummaryRow>
-        <SummaryRow label="Checked in at">
-          {formatClockTime(receipt.checkedInAt)}
+      <div className={styles.nextAction}>
+        <small>Checked in</small>
+        <strong>{session.title}</strong>
+        <p>
+          {member.displayName} · {formatClockTime(session.startsAt)} class ·
+          checked in at {formatClockTime(receipt.checkedInAt)}
           {/* Neutral, just information: not a warning */}
           {receipt.status === "late" && (
-            <span className="rounded-full bg-[color-mix(in_srgb,var(--kiosk-warning)_15%,transparent)] px-3 py-1 text-base font-semibold text-(--kiosk-warning)">
-              Late
-            </span>
+            <span className={styles.tag}>Late</span>
           )}
-        </SummaryRow>
-      </dl>
-
-      <div className="flex flex-col items-stretch gap-3">
-        <button
-          type="button"
-          onClick={onDone}
-          className="flex min-h-20 w-full cursor-pointer items-center justify-center rounded-2xl bg-(--kiosk-brand) px-8 text-[1.875rem] font-semibold text-(--kiosk-text) transition-colors hover:bg-(--kiosk-brand-bright) focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-(--kiosk-text-secondary) active:bg-(--kiosk-brand-bright)"
-        >
-          Done
-        </button>
-        <p className="text-center text-base text-(--kiosk-muted)">Clears the screen for the next person</p>
+        </p>
       </div>
-    </>
+
+      <div className={styles.actions}>
+        <KioskButton onClick={onDone}>Done</KioskButton>
+      </div>
+
+      <p className={styles.privacyNote}>
+        This kiosk will reset automatically for privacy.
+      </p>
+    </div>
   );
 };
 
@@ -147,17 +179,22 @@ type RefusalProps = {
   headline: string;
   message: string;
   detail?: string;
+  session: SessionOption;
   actions: StatusAction[];
 };
 
 // Everything that isn't a receipt: neutral wording, never a reason
-const Refusal = ({ headline, message, detail, actions }: RefusalProps) => {
+const Refusal = ({
+  headline,
+  message,
+  detail,
+  session,
+  actions,
+}: RefusalProps) => {
   return (
     <>
-      <div className="mt-4 flex flex-col gap-2">
-        <p className="text-xs font-semibold tracking-[0.08em] text-(--kiosk-text-secondary) uppercase">Check-in</p>
-        <h1 className={headlineClass}>{headline}</h1>
-      </div>
+      <ScreenHead eyebrow="Check-in" title={headline} />
+      <SessionHeader session={session} />
       <StatusMessage message={message} detail={detail} actions={actions} />
     </>
   );

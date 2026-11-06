@@ -1,0 +1,49 @@
+Action Contract implementation - 2026-11-05
+
+References:
+- Kiosk_Core_Ui_Designs_Unity_Map_Cards (1).pdf physical page29, section44
+  Action Contract: Goal, Scope, Will Do, approval; run/evidence/receipt concepts.
+- Dojang Companion src/components/workbench/{ActionContract,useInvitationRun,
+  contractRules}, shell/rail/companion-rail/RunView and pageRun inspected.
+- Existing migrated CommunicationsWorkspace and native communications.py checked.
+- Desktop/handoff-jodi/README-FOR-JUSTIN.md reviewed: deployment/transfer notes,
+  not an additional product workflow specification. No handoff/deployment actions run.
+- Existing licensed/adapted Roster Field/Input/Select/Textarea/Button reused.
+
+Implemented in /operations?section=action-contract (owner/manager workspace):
+- First supported goal: testing invitations; fixed workflow, not autonomous AI.
+- Read-only build: testing_eligibility and broadcast_context, validated snapshots.
+- Inspect bounded eligibility/candidate/test data and unsupported readiness gaps.
+- Exact test context selected separately from the actual native broadcast audience.
+- Native broadcast_preview displays contact count, exclusions, recipient sample,
+  provider status and quiet-hours scheduling information.
+- Edit any goal/test/audience/channel/purpose/body/reason -> invalidate review.
+- Scope checkbox explicitly acknowledges audience is not filtered by test eligibility.
+- Effects checkbox explicitly approves saving one broadcast for later approval.
+- create_broadcast is the only write; payload remains exact existing Hub contract.
+- Validated authoritative receipt includes broadcast ID, actual recipients/excluded.
+- Separate Messaging & automation link for delivery approval and broadcast history.
+- Do For Me rail has Action Contract entry for authenticated owners/managers,
+  current run evidence and honest history notice (no invented actor/timestamp).
+- Pause aborts reads, resume reloads evidence, stop cancels before write starts.
+- Pending/uncertain write uses existing frozen-payload/request-key host. No automatic
+  retry, no replacement request, no stop/new-run while unresolved. Auth loss unmounts
+  context through existing staff workspace reset. No new gateway operations enabled.
+
+Intentional adaptations:
+- No auto-match audience by label. Candidate evidence does not prove recipient scope.
+- Eligibility count is a bounded attendance check, not full curriculum readiness.
+- No generated registration links, inventory checks, instructor tasks, test enrolment,
+  rank, billing or outbound sends. Unsupported effects explicitly listed.
+- Not an arbitrary goal executor. Voice remains excluded at user request.
+- Receipt display lasts in current run; stored authoritative broadcast history is
+  read from Odoo in Messaging & automation. No parallel business/run database added.
+
+Validation:
+- 155 CRM/domain tests pass, including 13 new contract tests covering exact payload,
+  both approvals, changed-input invalidation, scope substitution, malformed/empty
+  previews, duplicate identities and honest evidence rejection.
+- Production build and scoped lint checked separately below.
+- No browser automation, live saves, approvals or provider sends executed.
+
+Final validation: production build (including TypeScript), scoped ESLint and whitespace checks passed. Manual browser/live acceptance remains.

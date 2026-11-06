@@ -1,28 +1,44 @@
-"use client";
+// Adapted from Dojang Companion daniel/kiosk-design @445212cf: src/components/kiosk/kiosk-header/KioskHeader.tsx
+import styles from "./daniel/KioskHeader.module.css";
 
-import { useEffect, useState } from "react";
-import { SCHOOL_NAME } from "@/domain/kiosk/kioskConfig";
+type Props = {
+  disabled?: boolean;
+  label: string; // small word next to the logo: Arrival, Identify, Complete...
+  onReset: () => void; // logo and the circle-arrows button go back to Welcome
+  showDemoPill?: boolean; // "Premium design pass" tag, demo mode only
+};
 
-// Name on the left, clock on the right. Sits at the top of every kiosk screen.
-// Rendered only in the browser (kioskClient loads the journey with ssr: false),
-// so the clock can start with the real time without a server/browser mismatch.
-const KioskHeader = () => {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id); // stop ticking when the page goes away
-  }, []);
-
+// Jodi's top bar: DOJANG + current screen name on the left, reset on the right.
+// Each page renders it itself so it can show the right label.
+const KioskHeader = ({ label, onReset, showDemoPill = false,disabled=false }: Props) => {
   return (
-    // Negative margins stretch the line across the whole panel, whatever its padding
-    <header className="-mx-5 -mt-5 flex items-center justify-between border-b border-(--kiosk-line) px-5 py-5 @min-[540px]:-mx-14 @min-[540px]:-mt-10 @min-[540px]:px-14">
-      <span className="font-(family-name:--kiosk-font-label) text-sm tracking-[0.25em] uppercase">
-        {SCHOOL_NAME}
-      </span>
-      <span className="text-base text-(--kiosk-text-secondary) tabular-nums">
-        {now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-      </span>
+    <header className={styles.header}>
+      <button disabled={disabled} type="button" className={styles.brand} onClick={onReset}>
+        <span className={styles.brandWord}>DOJANG</span>
+        <span className={styles.brandContext}>{label}</span>
+      </button>
+
+      <span className={styles.spacer} />
+
+      {showDemoPill && (
+        <span className={styles.pill}>
+          <i /> Premium design pass
+        </span>
+      )}
+
+      <button disabled={disabled}
+        type="button"
+        className={styles.iconButton}
+        aria-label="Reset kiosk"
+        onClick={onReset}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 7h-9a5 5 0 0 0-5 5" />
+          <path d="m16 3 4 4-4 4" />
+          <path d="M4 17h9a5 5 0 0 0 5-5" />
+          <path d="m8 21-4-4 4-4" />
+        </svg>
+      </button>
     </header>
   );
 };

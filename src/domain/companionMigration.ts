@@ -1,7 +1,7 @@
 import {trialContextFrom,isReserveTrialPayload,isReservedTrialResult} from './trial';
 // Existing Companion / dojo_companion_hub contracts, adapted for staff workspaces.
 import { object as obj, recordId as id, nonnegative as ver, string as str, memberPayloadAllowed, memberResultAllowed, MEMBER_OPERATIONS, type MemberCommand } from './memberActions';
-export type ActionFeedback = { kind: 'success' | 'error' | 'uncertain'; text: string; refreshWarning?: string; testing?: { testId: string } };
+export type ActionFeedback = { kind: 'success' | 'error' | 'uncertain'; text: string; refreshWarning?: string; testing?: { testId: string }; broadcast?: { broadcastId:string; recipients:number; excluded:number } };
 export { explainHubError } from './hubAction';
 const keys = (p: Record<string, unknown>, fields: string) => Object.keys(p).sort().join() === fields.split(' ').filter(Boolean).sort().join();
 const text = (v: unknown, max = 500) => str(v) && !!v.trim() && v.length <= max;

@@ -10,22 +10,19 @@ import type { MemberRecordAnswer } from "@/integrations/member";
 import { readMemberForInbox } from "@/integrations/memberForInbox";
 import { DoForMeFocus, useDoForMe } from "@/views/doForMe/doForMeProvider";
 import { memberCompanionContext } from "@/domain/memberCompanion";
+import MemberTools, {type MemberTool} from '@/views/people/memberTools';
+import MemberBookDialog from '@/views/people/memberBookDialog';
 import StaffSignIn from "@/views/shell/staffSignIn";
 import { SIGN_IN_CODES } from "@/integrations/hub";
 import { senderName } from "@/views/inbox/inboxCompanion";
 
-/*
-   Front Desk's ACTIVE CONTEXT card (do-for-me-1.png): the member staff are
-   dealing with, from the same member read as Member 360 and the Inbox panel
-   (member_details). Shows only what that read returns: membership, rank and
-   stripes, and the next booked class. Test readiness isn't sent, so it says
-   "Not connected" (Odoo doesn't send the household either). The actions are
-   the mockup's; only ✦ (open Do For Me) works, the rest are not connected yet.
-*/
+/* Front Desk active member follows the writeup console. Existing Member 360
+   tools provide reviewed attendance, booking, invoice checkout and contact edits.
+   Message routes to the governed Inbox; unsupported readiness is not invented. */
 
 export type ActiveContextItem = { kind: "member"; memberId: string; message?: HubMessage } | { kind: "message"; message: HubMessage } | null;
 
-const NOT_CONNECTED = "Not connected yet";
+const REAL_ACTION_REQUIRED = "This action needs the real Odoo connection";
 
 const sectionLabel =
   "mb-3 block font-(family-name:--crm-font-label) text-[10px] font-bold uppercase tracking-[0.16em] text-(--crm-muted)";
@@ -43,7 +40,7 @@ function classTime(iso: string) {
 
 function nextClass(bookings: MemberBooking[] | undefined, capped?: boolean) {
   if (!bookings) return { text: "Unavailable", title: "This read didn't include bookings" };
-  const next = [...bookings].sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))[0];
+  const next = bookings.filter(b=>Date.parse(b.startsAt)>=Date.now()).sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))[0];
   if (!next) return { text: capped ? "Unknown" : "None booked", title: capped ? "The booking list may be incomplete" : undefined };
   return { text: classTime(next.startsAt), title: next.title };
 }
@@ -59,7 +56,9 @@ function Tile({ label, value, title, muted }: { label: string; value: string; ti
   );
 }
 
-function MemberCard({ memberId }: { memberId: string }) {
+function MemberCard({ memberId, hubMode, sessionId, messageId, onAuthenticationLost, onRefresh }: { memberId: string; hubMode:boolean; sessionId:string | null; messageId?:string; onAuthenticationLost:()=>void; onRefresh:()=>void }) {
+  const [tool,setTool]=useState<MemberTool | null>(null);
+  const [booking,setBooking]=useState(false);
   const [answer, setAnswer] = useState<MemberRecordAnswer | null>(null); // null while loading
   const doForMe = useDoForMe();
   const companion = useMemo(() => answer?.outcome === "loaded" ? memberCompanionContext(answer.member, answer.attendance) : null, [answer]);
@@ -69,7 +68,7 @@ function MemberCard({ memberId }: { memberId: string }) {
     let cancelled = false;
     readMemberForInbox(memberId).then(
       (next) => {
-        if (!cancelled) setAnswer(next);
+        if (!cancelled) { if(next.outcome === "unavailable" && SIGN_IN_CODES.includes(next.code))onAuthenticationLost(); else setAnswer(next); }
       },
       () => {
         if (!cancelled) setAnswer({ outcome: "unavailable", code: "", text: "Odoo isn't reachable right now." });
@@ -78,7 +77,7 @@ function MemberCard({ memberId }: { memberId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [memberId]);
+  }, [memberId,onAuthenticationLost]);
 
   if (!answer) return <p role="status" className="text-[12px] text-(--crm-muted)">Loading the member…</p>;
   if (answer.outcome === "missing") {
@@ -127,18 +126,11 @@ function MemberCard({ memberId }: { memberId: string }) {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <button type="button" disabled title={NOT_CONNECTED} className={`${actionButton} border-transparent bg-(--crm-brand) text-white`}>
-          Check in
-        </button>
-        {["Book", "Payment", "Message"].map((label) => (
-          <button key={label} type="button" disabled title={NOT_CONNECTED} className={actionButton}>
-            {label}
-          </button>
-        ))}
-        <button type="button" disabled title={NOT_CONNECTED} className={actionButton}>
-          <Pencil size={12} aria-hidden="true" />
-          Edit
-        </button>
+        <button type="button" disabled={!hubMode} title={!hubMode?REAL_ACTION_REQUIRED:'Review staff attendance in Odoo'} onClick={()=>setTool('attendance')} className={`${actionButton} border-transparent bg-(--crm-brand) text-white`}>Check in</button>
+        <button type="button" disabled={!hubMode} title={!hubMode?REAL_ACTION_REQUIRED:undefined} onClick={()=>setBooking(true)} className={actionButton}>Book</button>
+        <button type="button" disabled={!hubMode} title={!hubMode?REAL_ACTION_REQUIRED:undefined} onClick={()=>setTool('payment')} className={actionButton}>Payment</button>
+        <Link href={messageId?`/inbox?message=${encodeURIComponent(messageId)}`:'/inbox'} title="Review messages in the Inbox" className={actionButton}>Message</Link>
+        <button type="button" disabled={!hubMode} title={!hubMode?REAL_ACTION_REQUIRED:undefined} onClick={()=>setTool('edit')} className={actionButton}><Pencil size={12} aria-hidden="true"/>Edit</button>
         <button
           type="button"
           onClick={() => doForMe.aim(`member:${member.id}`)}
@@ -149,12 +141,14 @@ function MemberCard({ memberId }: { memberId: string }) {
           <Sparkles size={13} aria-hidden="true" className="text-(--crm-agent)" />
         </button>
       </div>
-      <p className="mt-2 text-[11px] text-(--crm-muted)">Check in, Book, Payment, Message and Edit aren&apos;t connected yet.</p>
+      <p className="mt-2 text-[11px] text-(--crm-muted)">Changes require review in Odoo. Message opens the Inbox; it does not send a new message.</p>
+      {hubMode&&tool&&<MemberTools memberId={member.id} tool={tool} initialSessionId={tool==='attendance'?(sessionId??''):''} onClose={()=>{setTool(null);onRefresh();}} onAuthenticationLost={onAuthenticationLost}/>}
+      {hubMode&&booking&&<MemberBookDialog member={member} onClose={()=>{setBooking(false);onRefresh();}} onAuthenticationLost={onAuthenticationLost}/> }
     </>
   );
 }
 
-export default function ActiveContext({ item }: { item: ActiveContextItem }) {
+export default function ActiveContext({ item, hubMode, sessionId, onAuthenticationLost, onRefresh }: { item: ActiveContextItem; hubMode:boolean; sessionId:string | null; onAuthenticationLost:()=>void; onRefresh:()=>void }) {
   return (
     <section aria-label="Active context" className="min-w-0 rounded-2xl border border-(--crm-line) bg-(--crm-panel) p-4">
       <span className={sectionLabel}>Active context</span>
@@ -181,7 +175,7 @@ export default function ActiveContext({ item }: { item: ActiveContextItem }) {
               <Link href={`/inbox?message=${item.message.id}`} className="mt-2 inline-block text-[12px] font-bold text-(--crm-text) underline underline-offset-4">Open this request in Inbox →</Link>
             </div>
           )}
-          <MemberCard key={item.memberId} memberId={item.memberId} />
+          <MemberCard key={item.memberId} memberId={item.memberId} hubMode={hubMode} sessionId={sessionId} messageId={item.message?.id} onAuthenticationLost={onAuthenticationLost} onRefresh={onRefresh} />
         </>
       )}
     </section>

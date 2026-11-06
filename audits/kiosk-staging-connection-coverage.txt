@@ -1,0 +1,50 @@
+Kiosk staging connection restoration - 2026-11-05
+
+User explicitly selected staging, not Companion's local Odoo.
+Source: Dojang Companion server/odoo-gateway.ts, integrations/guardian.ts,
+components/kiosk/guardian/GuardianCheckIn.tsx, integrations/attendanceRecovery.ts,
+server/kiosk-recovery.ts and PublicModeGate. Existing target session-first screens
+and Jodi PR41 tap-your-name/search configuration preserved.
+
+Configuration:
+- Staging /web/health verified HTTP200 after retrying outside network sandbox.
+  Initial socket denial was sandbox policy, not evidence of an Odoo outage.
+- Source local kiosk credentials rejected by staging. They were not installed.
+- Existing project's three staging kiosk secrets retrieved via Secret Manager,
+  verified against a read-only staging sessions request and installed only in
+  ignored .env.local. Staff Odoo URL/account authentication unchanged.
+- apphosting.yaml now references those same named secrets and odoo-test mode.
+  No deployment, commit, push or secret-value output performed.
+
+Connected:
+- Paired-device session roster -> existing identify/confirm/results flow.
+- Native check-in with frozen request identity, expected version and strict receipt
+  member/session/correlation matching. No raw ORM or browser actor/site overrides.
+- Guardian phone + six-digit PIN -> only verified linked family -> per-child native
+  attendance and honest receipt/unknown state. No guardian tokens in persistence.
+- Encrypted bounded attendance recovery: existing AttendanceOutbox, fresh scoped
+  pairing-derived recovery key, original command replay and acknowledged receipts.
+  This is attendance recovery, not automatic outbound message retry.
+- Kiosk entry clears current Hub staff session and browser staff context first;
+  other staff tabs suppress private content after public-mode notification.
+- Fixture routes stay explicit; real errors do not fall back to synthetic UI data.
+- Staff pair-key authentication not introduced. Staff still sign in with their own
+  Odoo accounts. Public concierge/help remains outside this connection pass.
+
+Verification:
+- Local /integration/pair page identified, POST pair confirmed, paired GET sessions
+  verified against staging. This HTTP client had its own temporary cookie, not the
+  user's browser cookie. No browser automation run.
+- Staging currently returns zero available kiosk sessions. No class was invented,
+  created or rescheduled and no live attendance/guardian write executed.
+- 85 kiosk tests pass, including 9 new paired-device, exact-command, native-refusal,
+  unknown/mismatched receipt, guardian proof and recovery authorization tests.
+- Scoped ESLint and production build/TypeScript passed; final build repeated after
+  last UI adjustment. Live attendance and browser/mobile acceptance still required.
+
+Manual test:
+Open /integration/pair, enter DOJANG_KIOSK_PAIR_KEY from local .env.local, connect.
+An Odoo-configured eligible staging kiosk session must exist before class selection
+and live attendance can be tested. Pairing itself does not create sessions.
+
+Final privacy pass: persistent public-mode marker also suppresses cached Back/navigation staff pages; a fresh verified staff login and document reload are required. Final scoped lint, typecheck and production build passed after this change.

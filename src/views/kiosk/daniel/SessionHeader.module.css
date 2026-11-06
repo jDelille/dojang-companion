@@ -1,0 +1,51 @@
+/* Adapted from Dojang Companion daniel/kiosk-design @445212cf. */
+.header {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  margin-top: 28px;
+  padding: 16px 18px;
+  border-left: 3px solid var(--brand);
+  background: var(--interactive);
+}
+
+.time {
+  font-family: var(--font-label);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.period {
+  margin-left: 0.25rem;
+  color: var(--text-secondary);
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.duration {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+@container kiosk (width < 540px) {
+  .header {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.5rem 1rem;
+  }
+  .header > button {
+    grid-column: 1/-1;
+    justify-self: start;
+  }
+}

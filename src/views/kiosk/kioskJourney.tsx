@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useState } from "react";
 import Link from 'next/link';
 import type { KioskDataMode } from '@/domain/kiosk/dataMode';
 import { checkInFlowReducer, initialCheckInFlow } from "@/domain/kiosk/checkInFlow";
@@ -11,10 +11,11 @@ import {
   IDLE_WARNING_SECONDS,
   RESULT_AUTO_RETURN_SECONDS,
   SCHOOL_NAME,
-  SECONDARY_ACTIONS,
 } from "@/domain/kiosk/kioskConfig";
 import { searchRoster } from "@/domain/kiosk/rosterSearch";
 import { checkIn, getRoster, getSessions } from "@/integrations/kiosk";
+import {startAttendanceRecovery} from '@/integrations/attendanceRecovery';
+import GuardianCheckIn from './guardianCheckIn';
 import ConfirmScreen from "./confirmScreen";
 import IdentifyScreen from "./identifyScreen";
 import { idleTimerShouldRun } from "./idleTimer";
@@ -33,6 +34,10 @@ import WelcomeScreen from "./welcomeScreen";
 // Confirm (K05; eligibility, K04, comes back from the check-in), Result (K06)
 // and the privacy resets (K07).
 const KioskJourney = ({ source = 'fixture' }: { source?: KioskDataMode }) => {
+  const [recovery,setRecovery]=useState('');
+  useEffect(()=>{if(source==='odoo-test')return startAttendanceRecovery(setRecovery);},[source]);
+  const [guardian,setGuardian]=useState(false);
+  const [familyArrival,setFamilyArrival]=useState(false),[staffHelp,setStaffHelp]=useState(false);
   const [flow, dispatch] = useReducer(checkInFlowReducer, initialCheckInFlow);
 
   // Fetch today's sessions whenever the session step is loading (first visit or Try again)
@@ -63,7 +68,7 @@ const KioskJourney = ({ source = 'fixture' }: { source?: KioskDataMode }) => {
     flow.step === "identify" && flow.roster.status === "loading" ? flow.session.sessionId : null;
 
   useEffect(() => {
-    if (!rosterSessionId || source !== 'fixture') return;
+    if (!rosterSessionId || source === 'unavailable') return;
 
     // Same late-response guard as sessions. The reducer also checks the sessionId.
     let cancelled = false;
@@ -141,14 +146,14 @@ const KioskJourney = ({ source = 'fixture' }: { source?: KioskDataMode }) => {
     restartKey: flow.step,
     timeoutSeconds: IDLE_TIMEOUT_SECONDS,
     warningSeconds: IDLE_WARNING_SECONDS,
-    onTimeout: () => dispatch({ type: "reset" }),
+    onTimeout: () => {setStaffHelp(false);setGuardian(false);setFamilyArrival(false);dispatch({ type: "reset" });},
   });
 
   // Coming back through the browser's back/forward cache would restore the
   // last visitor's screen, so start clean instead
   useEffect(() => {
     const resetIfRestored = (event: PageTransitionEvent) => {
-      if (event.persisted) dispatch({ type: "reset" });
+      if (event.persisted) {setStaffHelp(false);setGuardian(false);setFamilyArrival(false);dispatch({ type: "reset" });}
     };
     window.addEventListener("pageshow", resetIfRestored);
     return () => window.removeEventListener("pageshow", resetIfRestored);
@@ -156,12 +161,14 @@ const KioskJourney = ({ source = 'fixture' }: { source?: KioskDataMode }) => {
 
   // One screen per step
   const renderScreen = () => {
+    if(staffHelp)return <StatusMessage message="Please see the front desk" detail="Staff have not been notified automatically. Ask a staff member nearby for help." actions={[{label:'Back',onClick:()=>setStaffHelp(false)}]}/>;
     if (flow.step === "welcome") {
       return (
         <WelcomeScreen
           schoolName={SCHOOL_NAME}
-          actions={SECONDARY_ACTIONS}
-          onCheckIn={() => dispatch({ type: "start" })}
+          onCheckIn={()=>{setFamilyArrival(false);dispatch({type:"start"});}}
+          onFamily={source==='odoo-test'?()=>{setFamilyArrival(true);dispatch({type:"start"});}:undefined}
+          onStaffHelp={()=>setStaffHelp(true)}
         />
       );
     }
@@ -170,7 +177,7 @@ const KioskJourney = ({ source = 'fixture' }: { source?: KioskDataMode }) => {
       return (
         <SessionSelectScreen
           sessions={flow.sessions}
-          onSelect={(session) => dispatch({ type: "selectSession", session })}
+          onSelect={(session) => {setGuardian(familyArrival);setFamilyArrival(false);dispatch({ type: "selectSession", session });}}
           onRetry={() => dispatch({ type: "retrySessions" })}
           onBack={() => dispatch({ type: "back" })}
         />
@@ -178,15 +185,14 @@ const KioskJourney = ({ source = 'fixture' }: { source?: KioskDataMode }) => {
     }
 
     if (flow.step === "identify") {
-      if (source !== 'fixture') return <StatusMessage message="Student verification is not connected on this kiosk yet. Please see staff to check in."
-        actions={[{ label: 'Choose another class', onClick: () => dispatch({ type: 'changeSession' }) },
-          { label: 'Done', onClick: () => dispatch({ type: 'reset' }) }]} />;
+      if(guardian&&source==='odoo-test')return <GuardianCheckIn session={flow.session} onCancel={()=>setGuardian(false)} onFinished={()=>{setGuardian(false);dispatch({type:'reset'});}}/>;
       const search =
         flow.roster.status === "ready"
           ? searchRoster(flow.roster.list, flow.query)
           : ({ status: "tooShort" } as const);
 
       return (
+        <>
         <IdentifyScreen
           session={flow.session}
           rosterStatus={flow.roster.status}
@@ -194,11 +200,14 @@ const KioskJourney = ({ source = 'fixture' }: { source?: KioskDataMode }) => {
           search={search}
           onQueryChange={(query) => dispatch({ type: "searchChanged", query })}
           onSelectMember={(member) => dispatch({ type: "selectMember", member })}
+          onStaffHelp={()=>setStaffHelp(true)}
           onRetry={() => dispatch({ type: "retryRoster" })}
           onChangeSession={() => dispatch({ type: "changeSession" })}
           onBack={() => dispatch({ type: "back" })}
           roster={ROSTER_GRID ? (flow.roster.status === "ready" ? flow.roster.list : []) : undefined}
         />
+        {source==='odoo-test'&&<button type="button" className="my-5 min-h-12 rounded-full border border-(--kiosk-line) px-5 py-3 text-base" onClick={()=>setGuardian(true)}>Parent check-in with phone and PIN</button>}
+        </>
       );
     }
 
@@ -224,6 +233,7 @@ const KioskJourney = ({ source = 'fixture' }: { source?: KioskDataMode }) => {
           onDone={() => dispatch({ type: "reset" })}
           onRetry={() => dispatch({ type: "retryCheckIn" })}
           onChooseClass={() => dispatch({ type: "changeSession" })}
+          onStaffHelp={()=>setStaffHelp(true)}
         />
       );
     }
@@ -242,12 +252,13 @@ const KioskJourney = ({ source = 'fixture' }: { source?: KioskDataMode }) => {
 
   return (
     <>
-      <KioskHeader />
+      <KioskHeader label={staffHelp?'Help':flow.step==='welcome'?'Arrival':flow.step==='session'?'Check in':flow.step==='identify'?'Identify':flow.step==='result'?'Complete':'Review'} disabled={flow.step==='sending'||guardian} onReset={()=>{setStaffHelp(false);setGuardian(false);setFamilyArrival(false);dispatch({type:'reset'});}}/>
       <p className="py-2 text-center text-xs text-(--kiosk-muted)">
         {source === 'fixture' ? 'Development preview · Sample classes and attendance' : source === 'odoo-test'
-          ? 'Odoo test connection · Session reads only' : 'Kiosk connection unavailable'}
+          ? 'Odoo test connection' : 'Kiosk connection unavailable'}
         {source === 'odoo-test' && <> · <Link href="/integration/pair" className="underline underline-offset-4">Device setup</Link></>}
       </p>
+      {recovery&&<p role="status" className="py-3 text-sm text-(--kiosk-text-secondary)">{recovery}</p>}
       {renderScreen()}
       <IdleWarning secondsLeft={idle.secondsLeft} onStillHere={idle.stillHere} />
     </>

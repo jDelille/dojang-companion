@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowUp, Sparkles, X } from "lucide-react";
 import type { CompanionContext, Suggestion } from "@/domain/companion";
 import AgentConversation from "./agentConversation";
+import {useStaffConnection} from '@/views/shell/staffConnection';
 
 /*
    The Do For Me rail (Jodi's mockup, Desktop/inspiration/jodi-1.png and jodi-2.png;
@@ -289,7 +290,7 @@ function EvidenceTab({ suggestion }: { suggestion: Suggestion | null }) {
 
 function HistoryTab({ context }: { context: CompanionContext }) {
   if (context.receipts.length === 0) {
-    return <p className="text-[12px] text-(--crm-muted)">Nothing has been done here yet.</p>;
+    return <p className="text-[12px] text-(--crm-muted)">{context.historyNotice??'Nothing has been done here yet.'}</p>;
   }
   return (
     <ul>
@@ -314,6 +315,8 @@ type Props = {
 };
 
 export default function DoForMeRail({ context, tab, picked, onTab, onDoForMe, onClose, focusKey }: Props) {
+  const staff=useStaffConnection();
+  const canPrepareContract=staff?.state==='signedIn'&&['owner','manager'].includes(staff.role);
   // The picked suggestion as the page currently gives it (its panel then has the
   // latest records), or as it was picked once the page no longer offers it
   const livePicked = picked
@@ -349,6 +352,7 @@ export default function DoForMeRail({ context, tab, picked, onTab, onDoForMe, on
       </header>
 
 
+      {canPrepareContract&&<Link href="/operations?section=action-contract" className="mx-5 mt-3 text-[11px] font-semibold text-(--crm-agent) underline underline-offset-4">Open Action Contract</Link>}
       <div
         role="tablist"
         aria-label="Do For Me"

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import type { HubContext, HubMessage } from "@/domain/inbox";
-import { needsStaff, senderName } from "@/views/inbox/inboxCompanion";
+import {matchesQueue} from '@/domain/inboxWorkspace';
+import { deliveryOf, senderName } from "@/views/inbox/inboxCompanion";
 
 /*
    Front Desk's SERVICE QUEUE (do-for-me-1.png): the guardian messages from
@@ -14,6 +15,7 @@ import { needsStaff, senderName } from "@/views/inbox/inboxCompanion";
 */
 
 const SHOWN = 6;
+const DELIVERY_WORK_LABELS:Record<string,string> = {uncertain:"Delivery uncertain",failed:"Delivery failed",cancelled:"Delivery cancelled"};
 
 // What staff have to do, from the Hub's message state (no reply approved yet)
 const WORK_LABELS: Record<HubMessage["state"], string> = {
@@ -34,7 +36,7 @@ export default function ServiceQueue({
   selectedId: string | null;
   onSelect: (message: HubMessage) => void;
 }) {
-  const waiting = context.messages.filter((message) => needsStaff(context, message));
+  const waiting = context.messages.filter((message) => matchesQueue(context,message,'needs'));
 
   return (
     <section aria-label="Service queue" className="flex min-w-0 flex-col rounded-2xl border border-(--crm-line) bg-(--crm-panel) p-4">
@@ -45,6 +47,8 @@ export default function ServiceQueue({
         <ul className="divide-y divide-(--crm-line)">
           {waiting.slice(0, SHOWN).map((message) => {
             const selected = message.id === selectedId;
+            const delivery=deliveryOf(context,message.id);
+            const workLabel=(delivery&&DELIVERY_WORK_LABELS[delivery.state])||WORK_LABELS[message.state];
             return (
               <li key={message.id}>
                 <button
@@ -55,7 +59,7 @@ export default function ServiceQueue({
                     selected ? "text-(--crm-text)" : "text-(--crm-text) hover:opacity-80"
                   }`}
                 >
-                  <span className={`font-bold ${selected ? "underline" : ""}`}>{WORK_LABELS[message.state]}</span>
+                  <span className={`font-bold ${selected ? "underline" : ""}`}>{workLabel}</span>
                   <span className="min-w-0 truncate text-(--crm-text-secondary)">{senderName(message)}</span>
                 </button>
               </li>

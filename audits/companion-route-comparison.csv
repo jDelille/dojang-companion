@@ -1,0 +1,34 @@
+source_route_file,target_same_api_path,assessment
+api/dev/companion-scenario/route.ts,no,Absent exact path; see report for replacement versus missing capability
+api/dev/kiosk-scenario/route.ts,yes,Path exists; implementation needs feature-level assessment
+api/health/route.ts,no,Absent exact path; see report for replacement versus missing capability
+api/hub/photo/route.ts,no,Absent exact path; see report for replacement versus missing capability
+api/hub/route.ts,yes,Path exists; implementation needs feature-level assessment
+api/integration/pair/route.ts,yes,Path exists; implementation needs feature-level assessment
+api/integration/public-mode/route.ts,no,Absent exact path; see report for replacement versus missing capability
+api/integration/readiness/route.ts,no,Absent exact path; see report for replacement versus missing capability
+api/v1/kiosk/concierge/actions/route.ts,no,Absent exact path; see report for replacement versus missing capability
+api/v1/kiosk/concierge/route.ts,no,Absent exact path; see report for replacement versus missing capability
+api/v2/attendance/check-ins/route.ts,yes,Path exists; implementation needs feature-level assessment
+api/v2/companion/approvals/route.ts,no,Absent exact path; see report for replacement versus missing capability
+api/v2/companion/context/route.ts,no,Absent exact path; see report for replacement versus missing capability
+api/v2/companion/requests/route.ts,no,Absent exact path; see report for replacement versus missing capability
+api/v2/guardian/check-ins/route.ts,no,Absent exact path; see report for replacement versus missing capability
+api/v2/guardian/verify/route.ts,no,Absent exact path; see report for replacement versus missing capability
+api/v2/kiosk/recovery/route.ts,no,Absent exact path; see report for replacement versus missing capability
+api/v2/members/[memberId]/route.ts,no,Absent exact path; see report for replacement versus missing capability
+api/v2/members/route.ts,no,Absent exact path; see report for replacement versus missing capability
+api/v2/sessions/[sessionId]/roster/route.ts,yes,Path exists; implementation needs feature-level assessment
+api/v2/sessions/route.ts,yes,Path exists; implementation needs feature-level assessment
+(companion)/follow-ups/page.tsx,not a URL-equivalence check,Reviewed and grouped in companion-repository-comparison.txt
+(companion)/hub/page.tsx,not a URL-equivalence check,Reviewed and grouped in companion-repository-comparison.txt
+(companion)/integration/members/page.tsx,not a URL-equivalence check,Reviewed and grouped in companion-repository-comparison.txt
+(companion)/intel/page.tsx,not a URL-equivalence check,Reviewed and grouped in companion-repository-comparison.txt
+(companion)/ops/page.tsx,not a URL-equivalence check,Reviewed and grouped in companion-repository-comparison.txt
+(companion)/ops/sessions/[id]/page.tsx,not a URL-equivalence check,Reviewed and grouped in companion-repository-comparison.txt
+(companion)/page.tsx,not a URL-equivalence check,Reviewed and grouped in companion-repository-comparison.txt
+(companion)/people/[id]/page.tsx,not a URL-equivalence check,Reviewed and grouped in companion-repository-comparison.txt
+(companion)/people/[id]/proposed-edit/page.tsx,not a URL-equivalence check,Reviewed and grouped in companion-repository-comparison.txt
+(companion)/people/page.tsx,not a URL-equivalence check,Reviewed and grouped in companion-repository-comparison.txt
+(kiosk)/integration/pair/page.tsx,not a URL-equivalence check,Reviewed and grouped in companion-repository-comparison.txt
+(kiosk)/kiosk/page.tsx,not a URL-equivalence check,Reviewed and grouped in companion-repository-comparison.txt
