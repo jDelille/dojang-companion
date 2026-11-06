@@ -19,7 +19,7 @@ env:
     value: "1"
 
   - variable: DOJANG_PUBLIC_ORIGIN
-    value: https://dojang-companion--dojang-companion.us-east4.hosted.app
+    value: https://companion--dojang-companion.us-central1.hosted.app
 
   - variable: DOJANG_COOKIE_SECRET
     secret: dojang-cookie-secret
